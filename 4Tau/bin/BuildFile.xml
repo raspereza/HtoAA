@@ -1,0 +1,21 @@
+<Flags CXXFLAGS="-Wno-unused-variable -Wno-error=unused-but-set-variable -Wno-error=maybe-uninitialized" />
+
+<bin name="Splitter" file="Splitter.cpp">
+</bin>
+
+<bin name="checkRoot" file="checkRoot.C">
+  <use name="root"/>
+</bin>
+
+<bin name="analysis_macro_4tau" file="analysis_macro_4tau.cpp">
+ <use name="PhysicsTools/Utilities"/>
+ <use name="rootgraphics"/>
+ <use name="root"/>
+ <use name="rootmath"/>
+ <use name="roottmva"/>
+ <use name="boost" />
+ <use name="boost_program_options"/>
+ <use name="HToAA/Utilities"/>
+ <use name="HTT-utilities/LepEffInterface"/>
+</bin>
+

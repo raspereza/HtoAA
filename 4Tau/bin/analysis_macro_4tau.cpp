@@ -207,6 +207,8 @@ int main(int argc, char * argv[]) {
   const string higgsPtFileName = cfg.get<string>("HiggsPtFileName");
   TString HiggsPtFileName(higgsPtFileName);
 
+  const string correctionsWorkspaceFileName = cfg.get<string>("CorrectionWorkspaceFileName");
+  TString CorrectionsWorkspaceFileName(correctionsWorkspaceFileName);
 
   // ********** end of configuration *******************
 
@@ -462,7 +464,7 @@ int main(int argc, char * argv[]) {
   string cmsswBase = (getenv ("CMSSW_BASE"));
 
   // Run-lumi selector
-  string fullPathToJsonFile = cmsswBase + "/src/DesyTauAnalyses/NTupleMaker/test/json/" + jsonFile;
+  string fullPathToJsonFile = cmsswBase + "/src/HtoAA/data/json/" + jsonFile;
   std::vector<Period> periods;  
   if (isData) { // read the good runs 
     std::fstream inputFileStream(fullPathToJsonFile.c_str(), std::ios::in);
@@ -482,27 +484,27 @@ int main(int argc, char * argv[]) {
 
   // PU reweighting
   PileUp * PUofficial = new PileUp();
-  TFile * filePUdistribution_data = new TFile(TString(cmsswBase)+"/src/DesyTauAnalyses/NTupleMaker/data/PileUpDistrib/"+PileUpDataFile,"read");
-  TFile * filePUdistribution_MC = new TFile (TString(cmsswBase)+"/src/DesyTauAnalyses/NTupleMaker/data/PileUpDistrib/"+PileUpMCFile, "read");
+  TFile * filePUdistribution_data = new TFile(TString(cmsswBase)+"/src/HtoAA/data/PileUpDistrib/"+PileUpDataFile,"read");
+  TFile * filePUdistribution_MC = new TFile (TString(cmsswBase)+"/src/HtoAA/data/PileUpDistrib/"+PileUpMCFile, "read");
   TH1D * PU_data = (TH1D *)filePUdistribution_data->Get("pileup");
   TH1D * PU_mc = (TH1D *)filePUdistribution_MC->Get("pileup");
   PUofficial->set_h_data(PU_data);
   PUofficial->set_h_MC(PU_mc);
 
   // Higgs reweighting 
-  TFile * higgsPtFile = new TFile(TString(cmsswBase)+"/src/DesyTauAnalyses/NTupleMaker/data/"+HiggsPtFileName);
+  TFile * higgsPtFile = new TFile(TString(cmsswBase)+"/src/HtoAA/data/"+HiggsPtFileName);
   TH1D * higgsPtH = (TH1D*)higgsPtFile->Get("kfactor");
   //  std::cout << "Higgs Pt histogram : " << higgsPtH << std::endl;
 
   // Trigger efficiencies
   ScaleFactor * SF_muon17 = new ScaleFactor();
-  SF_muon17->init_ScaleFactor(TString(cmsswBase)+"/src/"+TString(Muon17TriggerFile));
+  SF_muon17->init_ScaleFactor(TString(cmsswBase)+"/src/HtoAA/data/"+TString(Muon17TriggerFile));
   ScaleFactor * SF_muon8 = new ScaleFactor();
-  SF_muon8->init_ScaleFactor(TString(cmsswBase)+"/src/"+TString(Muon8TriggerFile));
+  SF_muon8->init_ScaleFactor(TString(cmsswBase)+"/src/HtoAA/data/"+TString(Muon8TriggerFile));
 
   // Correction workspace
-  TString correctionsWorkspaceFileName = TString(cmsswBase)+"/src/HTT-utilities/CorrectionsWorkspace/htt_scalefactors_v16_5.root";
-  TFile * correctionWorkSpaceFile = new TFile(correctionsWorkspaceFileName);
+  TString corrWorkspaceFileName = TString(cmsswBase)+"/src/HtoAA/data/"+CorrectionsWorkspaceFileName;
+  TFile * correctionWorkSpaceFile = new TFile(corrWorkspaceFileName);
   RooWorkspace *correctionWS = (RooWorkspace*)correctionWorkSpaceFile->Get("w");
 
   TString filen;
@@ -782,15 +784,20 @@ int main(int argc, char * argv[]) {
      weight *= puweight;
 
      // checking if dimuon trigger bit is ON
-     //     bool isDimuonTrigger = false;
-     //     for (std::map<string,int>::iterator it=hltriggerresults->begin(); it!=hltriggerresults->end(); ++it) {
-     //       TString trigName(it->first);
-     //       if (trigName.Contains(DiMuonTriggerName)) {
-     //  if (it->second==1)
-     //    isDimuonTrigger = true;
-     //       }
-     //     }
-     //     if (!isDimuonTrigger) continue;
+     bool isDimuonTrigger = false;
+     bool triggerFound = false;
+     for (std::map<string,int>::iterator it=hltriggerresults->begin(); it!=hltriggerresults->end(); ++it) {
+       TString trigName(it->first);
+       if (trigName.Contains(DiMuonTriggerName)) {
+	 //	 std::cout << trigName << " : " << it->second << std::endl;
+	 if (it->second==1)
+	   isDimuonTrigger = true;
+	 triggerFound = true;
+       }
+     }
+     if (!triggerFound) 
+       std::cout << "HLT path " << DiMuonTriggerName << " is not found" << std::endl;
+     if (!isDimuonTrigger) continue;
 
      //     unsigned int ntrig = hltriggerresults->size();
      //     std::cout << "ntrig = " << ntrig << std::endl;
@@ -1065,7 +1072,6 @@ int main(int argc, char * argv[]) {
        }
      }
 
-
      if (iLeading<0) continue;
      if (iTrailing<0) continue;
 
@@ -1083,12 +1089,12 @@ int main(int argc, char * argv[]) {
 
        correctionWS->var("m_pt")->setVal(ptLeading);
        correctionWS->var("m_eta")->setVal(etaLeading);
-       double idLeadingW  = correctionWS->function("m_id_ratio")->getVal();
+       double idLeadingW  = correctionWS->function("m_id_kit_ratio")->getVal();
        double trkLeadingW = correctionWS->function("m_trk_ratio")->getVal();
        idLeadingWeight = idLeadingW * trkLeadingW;
        correctionWS->var("m_pt")->setVal(ptTrailing);
        correctionWS->var("m_eta")->setVal(etaTrailing);
-       double idTrailingW = correctionWS->function("m_id_ratio")->getVal();
+       double idTrailingW = correctionWS->function("m_id_kit_ratio")->getVal();
        double trkTrailingW = correctionWS->function("m_trk_ratio")->getVal();
        idTrailingWeight = idTrailingW * trkTrailingW;
 

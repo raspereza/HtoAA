@@ -19,5 +19,11 @@ cd ${CMSSW_BASE}/src/HTT-utilities/CorrectionsWorkspace
 root -l -q CrystalBallEfficiency.cxx++
 cd ${CMSSW_BASE}/src
 git clone https://github.com/raspereza/HtoAA.git HtoAA
-
+git clone https://github.com/cms-analysis/HiggsAnalysis-CombinedLimit.git HiggsAnalysis/CombinedLimit
+cd $CMSSW_BASE/src/HiggsAnalysis/CombinedLimit
+git fetch origin
+git checkout v8.2.0
+scramv1 b clean; scramv1 b 
+cd ${CMSSW_BASE}/src
+scramv1 b -j 8
 ```

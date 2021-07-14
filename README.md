@@ -127,8 +127,8 @@ RunData_2018.bash - submits jobs to NAF batch for all datasets
 RunMC_2018.bash - submit jobs to NAF batch for all MC background samples
 RunSignal_2018.bash - submit jobs to NAF batch for all signal samples
 HaddData_2018.bash - merges RooT files for all datasets
-HaddMC_2018.bash - merges RooT files for all datasets
-HaddSigal_2018.bash - merges RooT files for all datasets
+HaddMC_2018.bash - merges RooT files for all background MC datasets
+HaddSigal_2018.bash - merges RooT files for all signal MC datasets
 resubmitAllJobs_2018.bash - examines all folders ([filelist]_files) for presence of missing, invalid and incomplete RooT files and resubmit corresponding jobs
 ```
 

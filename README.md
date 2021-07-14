@@ -85,12 +85,88 @@ analysis_macro_4tau analysisMacro_ttH_2018.conf SUSYttH_HToAA_AToTauTau_M-125_M-
 
 Running on ggH H->aa->2mu+2tau signal samples (example)
 ```
-analysisMacro_ggH_2mu2tau_2018.conf SUSYGluGluToHToAA_AToMuMu_AToTauTau_M-10
+analysis_macro_4tau analysisMacro_ggH_2mu2tau_2018.conf SUSYGluGluToHToAA_AToMuMu_AToTauTau_M-10
 ```
 
 Note that different config files for different production modes of the signal contain respective names of the Higgs pT reweighting files.
 
-Running analysis macro as given in these examples will produce output RooT file with histograms for further analysis and plotting. The output RooT file is named
+Running analysis macro as given in these examples will produce output RooT file with histograms for further analysis and plotting. The output RooT file is given the name
 ```
 [filelist].root
+```
+
+# Running analysis macro on NAF batch
+
+The analysis macro can be run on NAF batch system using the script HTC_submit_seq.sh. The script is executed with four arguments: the name of executable (in our case this is analysis_macro_4tau), the name of config file, the name of filelist and the number of input RooT files per job. Example of running the script on data sample DoubleMuon_Run2018B is given below
+```
+HTC_submit_seq.sh analysis_macro_4tau analysisMacro_2018.conf DoubleMuon_Run2018B 10
+```
+The script will split input filelist into several parts given specified value of the number of files per job (10), submit to NAF batch system one job for each part, create folder [filelist]_files (in example given above DoubleMuon_Run2018B_files) and put all output RooT files into this folder. You can monitor running of jobs on NAF system using utility
+```
+condor_q
+```
+
+Upon completion of jobs, make sure that all of them successfully finished. To check this execute the script resubmitJobs.sh with [filelist] as the only argument, e.g.
+```
+./resubmitJobs.sh DoubleMuon_Run2018B
+```
+
+This will check if all RooT files in the folder [filelist]_files are properly closed. If any RooT file is not closed properly, the script will resubmit the corresponding job.
+
+Once all jobs successfully executed you can merge RooT files stored in the folder [filelist]_files by executing
+```
+./hadd.sh [filelist]
+``` 
+  
+This will create RooT file named [filelist].root. 
+
+# Useful scripts
+
+```
+RunData_2018.bash - submits jobs to NAF batch for all datasets
+RunMC_2018.bash - submit jobs to NAF batch for all MC background samples
+RunSignal_2018.bash - submit jobs to NAF batch for all signal samples
+HaddData_2018.bash - merges RooT files for all datasets
+HaddMC_2018.bash - merges RooT files for all datasets
+HaddSigal_2018.bash - merges RooT files for all datasets
+resubmitAllJobs_2018.bash - examines all folders ([filelist]_files) for presence of missing, invalid and incomplete RooT files and resubmit corresponding jobs
+```
+
+# Study of trigger acceptance for the signal samples
+ 
+One of important tasks is to evaluate the signal acceptance for various HLT paths. Presently, our primary ntuples contain information on the following interesting HLT paths:
+```
+HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_Mass8_v
+HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_Mass3p8_v
+HLT_TripleMu_12_10_5_v
+```
+Unfortunately, no information is available for other interesting HLT paths:
+```
+HLT_TripleMu_10_5_5_DZ
+HLT_TripleMu_5_3_3_Mass3p8to60_DZ
+HLT_TrkMu12_DoubleTrkMu5NoFiltersNoVtx
+```
+Information on this HLT paths will be added when processing UL samples.
+
+
+In order to study signal acceptance for this HLT paths, modify config files.
+Initial steering parameters
+```
+ApplyTriggerMatch = true
+DiMuonTriggerName = HLT_Mu18_Mu9_SameSign_v
+```
+have to be changed "false" and the HLT path name to be studied. Example:
+```
+ApplyTriggerMatch = false
+DiMuonTriggerName = HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_Mass8_v
+```
+
+Run analysis macro with these modified config files on the signal samples. Once output RooT files are created you can compute signal acceptance. For that use histograms named 
+```
+histWeightsH - number of weighted generated events for a given sample
+counter_FinalEventsH - number of weighted events selected into final sample
+``` 
+The acceptance can then be computed as
+```
+double acceptance = counter_FinalEventsH->GetSumOfWeights()/histWeightsH->GetSumOfWeights();
 ```

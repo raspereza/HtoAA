@@ -170,3 +170,34 @@ The acceptance can then be computed as
 ```
 double acceptance = counter_FinalEventsH->GetSumOfWeights()/histWeightsH->GetSumOfWeights();
 ```
+
+# Plotting variables at the generator level
+
+The variables such as deltaR(mu,track) pT(track) can be plotted at the generator level for various masses of the pseudoscalar. The plotting macro is
+```
+PlotDistributions.C
+
+#include "CMS_lumi.C"
+#include "HttStylesNew.cc"
+#include "HtoH.h"
+
+//TH1D * deltaRMuonPionH = new TH1D("deltaRMuonPionH","",200,0,2);
+//TH1D * pionPtH = new TH1D("pionPtH","",100,0,100);
+
+void PlotDistributions(
+TString histName = "deltaRMuonPionH", // histogram to plot
+TString dir = "./", // folder where ntuples reside
+float xLower = 0, // lower boundary of x-axis
+float xUpper = 2, // upper boundary of y-axis
+TString xtitle = "#delta R(#mu,track)", // title of x-axis
+TString ytitle = "normalized to unity"  // title of y-axis
+) 
+{
+...
+}
+
+```
+
+Please note that macro rebins initial distribution (with very fine binning) and you will be requested to enter the new number of bins interactively after starting this macro.
+
+

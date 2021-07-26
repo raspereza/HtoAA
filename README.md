@@ -200,4 +200,8 @@ TString ytitle = "normalized to unity"  // title of y-axis
 
 Please note that macro rebins initial distribution (with very fine binning) and you will be requested to enter the new number of bins interactively after starting this macro.
 
+The macro is found in the folder
+```
+${CMSSW_BASE}/src/HtoAA/4Tau/test/2018
+```
 

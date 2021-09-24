@@ -2,12 +2,18 @@
 #include "HttStylesNew.cc"
 #include "HtoH.h"
 
-// Variables to plot ->
+// these histograms are filled after applying same-sign dimuon selection
+// no further cuts are applied
+//
+// muon kinematics ->
 //TH1D * ptLeadingMuH = new TH1D("ptLeadingMuH","",50,0,100);
 //TH1D * ptTrailingMuH = new TH1D("ptTrailingMuH","",50,0,100);
 //TH1D * etaLeadingMuH = new TH1D("etaLeadingMuH","",50,-2.5,2.5);
 //TH1D * etaTrailingMuH = new TH1D("etaTrailingMuH","",50,-2.5,2.5);
 //TH1D * dimuonMassH = new TH1D("dimuonMassH","",500,0,500);
+//
+// number of tracks within dR<0.4 around muons
+// we select events where there is only one track accompanies each of muons   
 //TH1D * nTracksLeadingMuH = new TH1D("nTracksLeadingMuH","",21,-0.5,20.5);
 //TH1D * nTracksTrailingMuH = new TH1D("nTracksTrailingMuH","",21,-0.5,20.5); 
 

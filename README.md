@@ -134,7 +134,7 @@ resubmitAllJobs_2018.bash - examines all folders ([filelist]_files) for presence
 
 # Study of trigger acceptance for the signal samples
  
-One of important tasks is to evaluate the signal acceptance for various HLT paths. Presently, our primary ntuples contain information on the following interesting HLT paths:
+One of the important tasks is to evaluate the signal acceptance for various alternative triggers to emable analysis of 2017 data taken w/o same-sign dimuon HLT. Presently, our primary ntuples contain information on the following interesting HLT paths:
 ```
 HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_Mass8_v
 HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_Mass3p8_v
@@ -202,6 +202,65 @@ Please note that macro rebins initial distribution (with very fine binning) and 
 
 The macro is found in the folder
 ```
-${CMSSW_BASE}/src/HtoAA/4Tau/test/2018
+${CMSSW_BASE}/src/HtoAA/4Tau/macros
 ```
+
+# Plotting macro 
+
+To plot various distributions save as TH1 objects use the macro 
+```
+$CMSSW_BASE/src/HtoAA/4Tau/macros/Plot.C
+
+#include "CMS_lumi.C"
+#include "HttStylesNew.cc"
+#include "HtoH.h"
+
+// these histograms are filled after applying same-sign dimuon selection
+// no further cuts are applied
+//
+// muon kinematics ->
+//TH1D * ptLeadingMuH = new TH1D("ptLeadingMuH","",50,0,100);
+//TH1D * ptTrailingMuH = new TH1D("ptTrailingMuH","",50,0,100);
+//TH1D * etaLeadingMuH = new TH1D("etaLeadingMuH","",50,-2.5,2.5);
+//TH1D * etaTrailingMuH = new TH1D("etaTrailingMuH","",50,-2.5,2.5);
+//TH1D * dimuonMassH = new TH1D("dimuonMassH","",500,0,500);
+//
+// number of tracks within dR<0.4 around muons
+// we select events where there is only one track accompanies each of muons   
+//TH1D * nTracksLeadingMuH = new TH1D("nTracksLeadingMuH","",21,-0.5,20.5);
+//TH1D * nTracksTrailingMuH = new TH1D("nTracksTrailingMuH","",21,-0.5,20.5); 
+
+
+void Plot(TString histName = "ptLeadingMuH", // histogram name
+	  TString xtitle = "p_{T}^{#mu1} [GeV]", // title of x axis
+	  TString ytitle = "Events / 2 GeV", // title of y axis
+	  TString Mass = "10", // ma [GeV]
+	  float xLower = 18, // lower boundary of x axis 
+	  float xUpper = 100, // upper boundary of x axis
+	  float yLower = 1000, // lower boundary of y axis (in case when plotting y axis in log scale)
+	  int nBinsNew = 50, // new number of bins
+	  bool logY = true, // log or linear scale of Y axis
+	  bool drawLeg = true) { // draw or not legend
+
+
+
+```
+The macro produces 
+The list of histograms containing interesting distributions is given in the beginning of the macro. 
+The listed distributions are obtained after selectring muon pairs of opposite charge. The isolation requirement (each muon is accompanied by only one track) significantly reduces statistics in the QCD multijet MC samples resulting in sparsely populated histograms with large bin-by-bin uncertainties. Other distributions filled in the process of signal selection can be found in the analysis macro 
+```
+$CMSSW_BASE/src/HToAA/4Tau/bin/analysis_macro_4tau.cpp
+```
+Please fill free to edit this macro and add histograms of the distributions you are interested in.
+
+# Creating datacards
+To perform statistical analysis one needs to create datacards (ascii file encoding uncertainty model and RooT files with observed data, background and signal distributions). For more information on statistical tools used in the CMS analysis please consult documentation here
+```
+https://twiki.cern.ch/twiki/bin/view/LHCPhysics/LHCHWG
+```
+The macro producing datacards is
+```
+$CMSSW_BASE/src/HtoAA/4Tau/macros/CreateCards.C
+```
+
 

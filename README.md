@@ -241,26 +241,57 @@ void Plot(TString histName = "ptLeadingMuH", // histogram name
 	  int nBinsNew = 50, // new number of bins
 	  bool logY = true, // log or linear scale of Y axis
 	  bool drawLeg = true) { // draw or not legend
-
-
+...
+}
 
 ```
-The macro produces 
+The macro produces graphic file $histName.png in the working directory where the script is executed.
 The list of histograms containing interesting distributions is given in the beginning of the macro. 
-The listed distributions are obtained after selectring muon pairs of opposite charge. The isolation requirement (each muon is accompanied by only one track) significantly reduces statistics in the QCD multijet MC samples resulting in sparsely populated histograms with large bin-by-bin uncertainties. Other distributions filled in the process of signal selection can be found in the analysis macro 
+The distributions are obtained after selectring muon pairs of opposite charge. Further selection, in particular isolation requirement imposed on the muon-track pairs (each muon must be accompanied by only one track within dR cone of 0.4 around muon direction) significantly reduces statistics in the QCD multijet MC samples resulting in sparsely populated histograms with large bin-by-bin uncertainties. Therefore distributions obtained with further selection  Other distributions filled in the process of signal selection can be found in the analysis macro 
 ```
-$CMSSW_BASE/src/HToAA/4Tau/bin/analysis_macro_4tau.cpp
+$CMSSW_BASE/src/HtoAA/4Tau/bin/analysis_macro_4tau.cpp
 ```
 Please fill free to edit this macro and add histograms of the distributions you are interested in.
 
 # Creating datacards
-To perform statistical analysis one needs to create datacards (ascii file encoding uncertainty model and RooT files with observed data, background and signal distributions). For more information on statistical tools used in the CMS analysis please consult documentation here
-```
-https://twiki.cern.ch/twiki/bin/view/LHCPhysics/LHCHWG
-```
+To perform statistical analysis one needs to create datacards. This includes ascii file encoding uncertainty model and RooT files with the observed data, background and signal distributions. For more information on statistical tools used in the CMS analysis please consult [this documentation](https://twiki.cern.ch/twiki/bin/view/LHCPhysics/LHCHWG). You are adviced also to familiarize with the analysis by reading [dedicated paper](https://arxiv.org/abs/1907.07235v2) on the CMS analysis of 2016 data or [latest presentation] on the strategy of the H->aa search with the 2018 dataset(https://indico.cern.ch/event/1053526/contributions/4447626/attachments/2279719/3873270/Haa_2018.pdf).  
+
+At the last stage of the analysis, the signal is extracted from two-dimensional distribution of the muon-track pairs selected in the final sample. The purpose of the macro, producing datacards, is to create templates of the two-dimensional distributions for data, background and various signal processes as well as to define uncertainty model in the format compliant with the CMS statistical toolkit. 
+
 The macro producing datacards is
 ```
 $CMSSW_BASE/src/HtoAA/4Tau/macros/CreateCards.C
+
+#include "CMS_lumi.C"
+#include "HttStylesNew.cc"
+#include "HtoH.h"
+
+void CreateCards(TString mass="4", // mass of pseudoscalar boson
+		 bool Azimov = true, // produce b-only Azimov dataset
+		 bool correlation = true // apply correlation coefficients in background model
+		 ) {
+
+  TString dir = "/nfs/dust/cms/user/rasp/Run/Run2018/H2aa/";
+
+....
+}
+
 ```
 
+It accepts three input parameters: the probed pseudoscalar mass hypothesis (TString), and two boolean variables. First boolean (named Asimov) instructs code which type datacards should be produced. If parameter is set to true the background-only Asimov dataset is created, that is the data in each bin of distribution is replaced by background expectation. Otherwise real data are used to create datacards. It is advice to set this variable to true while analysis is kept blinded (we are not biasing ourselves by looking at data in the signal region). The second boolean, when set to true, instructs code to apply correlation mass correlation coefficients in the background model. Otherwise the masses of muon-track pairs in th background are assumed to be uncorrelated. 
+The macro uses as inputs histograms in the RooT files produced by analysis 
+macro analysis_macro_4tau.cpp. As background is estimated solely from data,
+to produce datacards one needs only data and signal RooT files:
+- DoubleMuon_Run2016.root 
+- SUSYGluGluToHToAA_AToTauTau_M-125_M-${mass}.root
+- SUSYVBFToHToAA_AToTauTau_M-125_M-${mass}.root
+- SUSYVH_HToAA_AToTauTau_M-125_M-${mass}.root
+- SUSYttH_HToAA_AToTauTau_M-125_M-${mass}.root
+- SUSYGluGluToHToAA_AToMuMu_AToTauTau_M-${mass}.root
 
+Additionally, one needs RooT files containing 2d histogram with mass correlation coefficients derived in the control (sideband) region from data and from the simulated QCD samples and in the signal region from the simulated QCD samples:  
+- CorrCoefficients_data.root
+- CorrCoefficients_control_mc.root
+- CorrCoefficients_signal_mc.root
+
+The script produces two files named haa_2018-13TeV_ma${mass}.root and haa_2018-13TeV_ma${mass}.txt. These files are then used in the statistical analysis.   

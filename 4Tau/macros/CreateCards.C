@@ -1,8 +1,5 @@
-#include "CMS_lumi.C"
-#include "HttStylesNew.cc"
 #include "HtoH.h"
-
-void CreateCards(TString mass="4", // mass of pseudoscalar
+void CreateCards(TString mass="5", // mass of pseudoscalar
 		 bool Azimov = true, //
 		 bool correlation = true
 		 ) {
@@ -36,9 +33,6 @@ void CreateCards(TString mass="4", // mass of pseudoscalar
     massD = 15.0;
 
   bool crude = false;
-
-
-  SetStyle();
 
   std::cout << std::endl;
   std::cout << "Mass = " << mass << std::endl;

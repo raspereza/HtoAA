@@ -18,11 +18,11 @@
 //TH1D * nTracksTrailingMuH = new TH1D("nTracksTrailingMuH","",21,-0.5,20.5); 
 
 
-void Plot(TString histName = "ptLeadingMuH", // histogram name
-	  TString xtitle = "p_{T}^{#mu1} [GeV]", // title of x axis
+void Plot(TString histName = "ptTrailingMuH", // histogram name
+	  TString xtitle = "p_{T}^{#mu2} [GeV]", // title of x axis
 	  TString ytitle = "Events / 2 GeV", // title of y axis
 	  TString Mass = "10", // ma [GeV]
-	  float xLower = 18, // lower boundary of x axis 
+	  float xLower = 10, // lower boundary of x axis 
 	  float xUpper = 100, // upper boundary of x axis
 	  float yLower = 1000, // lower boundary of y axis (in case when plotting y axis in log scale)
 	  int nBinsNew = 50, // new number of bins

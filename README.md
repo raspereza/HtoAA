@@ -1,6 +1,6 @@
 # HtoAA
 
-# Setup software
+# Setting up software
 
 ```
 export CMSSW_GIT_REFERENCE=/nfs/dust/cms/user/${USER}/.cmsgit-cache
@@ -254,7 +254,7 @@ $CMSSW_BASE/src/HtoAA/4Tau/bin/analysis_macro_4tau.cpp
 Please fill free to edit this macro and add histograms of the distributions you are interested in.
 
 # Creating datacards
-To perform statistical analysis one needs to create datacards. This includes ascii file encoding uncertainty model and RooT files with the observed data, background and signal distributions. For more information on statistical tools used in the CMS analysis please consult [this documentation](https://twiki.cern.ch/twiki/bin/view/LHCPhysics/LHCHWG). You are adviced also to familiarize with the analysis by reading [dedicated paper](https://arxiv.org/abs/1907.07235v2) on the CMS analysis of 2016 data or [latest presentation] on the strategy of the H->aa search with the 2018 dataset(https://indico.cern.ch/event/1053526/contributions/4447626/attachments/2279719/3873270/Haa_2018.pdf).  
+To perform statistical analysis one needs to create datacards. This includes ascii file encoding uncertainty model and RooT files with the observed data, background and signal distributions. For more information on statistical tools used in the CMS analysis please consult [this documentation](). You are adviced also to familiarize with the analysis by reading [dedicated paper](https://arxiv.org/abs/1907.07235v2) on the CMS analysis of 2016 data or [latest presentation](https://indico.cern.ch/event/1053526/contributions/4447626/attachments/2279719/3873270/Haa_2018.pdf) on the strategy of the H->aa search with the 2018 dataset.  
 
 At the last stage of the analysis, the signal is extracted from two-dimensional distribution of the muon-track pairs selected in the final sample. The purpose of the macro, producing datacards, is to create templates of the two-dimensional distributions for data, background and various signal processes as well as to define uncertainty model in the format compliant with the CMS statistical toolkit. 
 
@@ -262,8 +262,6 @@ The macro producing datacards is
 ```
 $CMSSW_BASE/src/HtoAA/4Tau/macros/CreateCards.C
 
-#include "CMS_lumi.C"
-#include "HttStylesNew.cc"
 #include "HtoH.h"
 
 void CreateCards(TString mass="4", // mass of pseudoscalar boson
@@ -278,7 +276,7 @@ void CreateCards(TString mass="4", // mass of pseudoscalar boson
 
 ```
 
-It accepts three input parameters: the probed pseudoscalar mass hypothesis (TString), and two boolean variables. First boolean (named Asimov) instructs code which type datacards should be produced. If parameter is set to true the background-only Asimov dataset is created, that is the data in each bin of distribution is replaced by background expectation. Otherwise real data are used to create datacards. It is advice to set this variable to true while analysis is kept blinded (we are not biasing ourselves by looking at data in the signal region). The second boolean, when set to true, instructs code to apply correlation mass correlation coefficients in the background model. Otherwise the masses of muon-track pairs in th background are assumed to be uncorrelated. 
+It accepts three input parameters: the probed pseudoscalar mass hypothesis (TString), and two boolean variables. First boolean (named Asimov) instructs code which type datacards should be produced. If parameter is set to true the background-only Asimov dataset is created, that is the data in each bin of distribution is replaced by background expectation. Otherwise real data are used to create datacards. It is advice to set this variable to true while analysis is kept blinded (we are not biasing ourselves by looking at data in the signal region). The second boolean, when set to true, instructs code to apply correlation mass correlation coefficients for the background model. Otherwise the masses of muon-track pairs in th background are assumed to be uncorrelated. 
 The macro uses as inputs histograms in the RooT files produced by analysis 
 macro analysis_macro_4tau.cpp. As background is estimated solely from data,
 to produce datacards one needs only data and signal RooT files:
@@ -289,9 +287,62 @@ to produce datacards one needs only data and signal RooT files:
 - SUSYttH_HToAA_AToTauTau_M-125_M-${mass}.root
 - SUSYGluGluToHToAA_AToMuMu_AToTauTau_M-${mass}.root
 
-Additionally, one needs RooT files containing 2d histogram with mass correlation coefficients derived in the control (sideband) region from data and from the simulated QCD samples and in the signal region from the simulated QCD samples:  
+Additionally one needs RooT files containing 2d histogram with mass correlation coefficients derived in the control (sideband) region from data and from the simulated QCD samples and in the signal region from the simulated QCD samples:  
 - CorrCoefficients_data.root
 - CorrCoefficients_control_mc.root
 - CorrCoefficients_signal_mc.root
+The first RooT file (correlation coefficients measured in control region in data) is produced by macro
+```
+$CMSSW_BASE/src/HtoAA/4Tau/macros/CorrCoefficients.C
+```
+The correlation coefficients derived from simulation are presently inherited from the analysis of the 2016 data. The analysis code needs to be updated to rederive these coefficients for 2018 dataset.
 
-The script produces two files named haa_2018-13TeV_ma${mass}.root and haa_2018-13TeV_ma${mass}.txt. These files are then used in the statistical analysis.   
+All RooT files used in creation of datacards are located in the folder specified by parameter 
+TString dir. By default this variable points to the directory 
+```
+/nfs/dust/cms/user/rasp/Run/Run2018/H2aa
+```
+You should modify this parameter accordingly when using another working directory containing all necessary ingredients to produce datacards.  
+
+The datacard producer creates two files named 
+- haa_2018-13TeV_ma${mass}.root 
+- haa_2018-13TeV_ma${mass}.txt. 
+These files are then used in the statistical analysis. The RooT file contains TH1 objects, representing 2d mass distributions unrolled in 1d array of bins. The following histograms are stored in this RooT file:
+- data_obs: observed data (or background model if Azimov = true)
+- bkg: background model
+- ggh: gg->H signal with aa->4tau
+- vbf: qqH signal with aa->4tau
+- vh: ZH+WH signal with aa->4tau
+- tth: ttH signal with aa->4tau
+- mmtt: ggH signal with aa->4tau (yield is rescaled to the inclusive cross section sigma(ggH)+sigma(qqH)+sigma(VH)+sigma(ttH)) 
+The RooT file contains also up/down systematic variations of bkg model related to uncertainty in the estimate of 1D background shape in the distribution of muon-track invariant mass and uncertainty in mass correlation coefficients: 
+- bkgd_CMS_unc1d_2018Up(Down)
+- bkgd_CMS_uncCorr_2018Up(Down)
+The ascii file haa_2018-13TeV_ma${mass}.txt defines the uncertainty model.
+With the following line in the ascii file
+```
+bkgNorm_2018   rateParam  haa_2018  bkgd  1  [0.5,1.5]
+```
+we instruct the CMS statistical toolkit to perform fit with freely floating overall background normalization. 
+You can produce datacards for all tested mass hypotheses (ma=4..15 GeV) at once by executing macro
+```
+$CMSSW_BASE/src/HtoAA/4Tau/macros/CreateAllCards.C
+```
+
+# Running limits
+The observed and expected limits are computed for all tested pseudoscalar mass hypotheses at once by running script
+```
+$CMSSW_BASE/src/HtoAA/4Tau/macros/RunLimits.bash
+```
+The script creates RooT files named *higgsCombineTest.AsymptoticLimits.mH$mass$.root* (one file per tested mass hypothesis) and filelist is saved into ascii file *limits.txt*. The filelist is then used by the macro
+```
+$CMSSW_BASE/src/HtoAA/4Tau/macros/PlotLimits.C
+
+
+
+```
+which plots expected median and observed upper limits on sigma(pp->H+X)*BR(H->aa->4tau)/sigma(pp->H+X,SM). 
+
+# Other useful macros
+
+# Task list

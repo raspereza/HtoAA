@@ -132,50 +132,12 @@ HaddSigal_2018.bash - merges RooT files for all signal MC datasets
 resubmitAllJobs_2018.bash - examines all folders ([filelist]_files) for presence of missing, invalid and incomplete RooT files and resubmit corresponding jobs
 ```
 
-# Study of trigger acceptance for the signal samples
- 
-One of the important tasks is to evaluate the signal acceptance for various alternative triggers to emable analysis of 2017 data taken w/o same-sign dimuon HLT. Presently, our primary ntuples contain information on the following interesting HLT paths:
-```
-HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_Mass8_v
-HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_Mass3p8_v
-HLT_TripleMu_12_10_5_v
-```
-Unfortunately, no information is available for other interesting HLT paths:
-```
-HLT_TripleMu_10_5_5_DZ
-HLT_TripleMu_5_3_3_Mass3p8to60_DZ
-HLT_TrkMu12_DoubleTrkMu5NoFiltersNoVtx
-```
-Information on this HLT paths will be added when processing UL samples.
-
-
-In order to study signal acceptance for this HLT paths, modify config files.
-Initial steering parameters
-```
-ApplyTriggerMatch = true
-DiMuonTriggerName = HLT_Mu18_Mu9_SameSign_v
-```
-have to be changed "false" and the HLT path name to be studied. Example:
-```
-ApplyTriggerMatch = false
-DiMuonTriggerName = HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_Mass8_v
-```
-
-Run analysis macro with these modified config files on the signal samples. Once output RooT files are created you can compute signal acceptance. For that use histograms named 
-```
-histWeightsH - number of weighted generated events for a given sample
-counter_FinalEventsH - number of weighted events selected into final sample
-``` 
-The acceptance can then be computed as
-```
-double acceptance = counter_FinalEventsH->GetSumOfWeights()/histWeightsH->GetSumOfWeights();
-```
 
 # Plotting variables at the generator level
 
 The variables such as deltaR(mu,track) pT(track) can be plotted at the generator level for various masses of the pseudoscalar. The plotting macro is
 ```
-PlotDistributions.C
+${CMSSW_BASE}/src/HtoAA/4Tau/macros/PlotDistributions.C
 
 #include "CMS_lumi.C"
 #include "HttStylesNew.cc"
@@ -196,18 +158,9 @@ TString ytitle = "normalized to unity"  // title of y-axis
 ...
 }
 
-```
+# Plotting distributions at the reco level 
 
-Please note that macro rebins initial distribution (with very fine binning) and you will be requested to enter the new number of bins interactively after starting this macro.
-
-The macro is found in the folder
-```
-${CMSSW_BASE}/src/HtoAA/4Tau/macros
-```
-
-# Plotting macro 
-
-To plot various distributions save as TH1 objects use the macro 
+To plot various distributions saved as TH1 objects in the created RooT file, use the macro 
 ```
 $CMSSW_BASE/src/HtoAA/4Tau/macros/Plot.C
 
@@ -245,16 +198,17 @@ void Plot(TString histName = "ptLeadingMuH", // histogram name
 }
 
 ```
-The macro produces graphic file $histName.png in the working directory where the script is executed.
+The macro produces file `$histName.png` in the working directory where the script is executed.
 The list of histograms containing interesting distributions is given in the beginning of the macro. 
-The distributions are obtained after selectring muon pairs of opposite charge. Further selection, in particular isolation requirement imposed on the muon-track pairs (each muon must be accompanied by only one track within dR cone of 0.4 around muon direction) significantly reduces statistics in the QCD multijet MC samples resulting in sparsely populated histograms with large bin-by-bin uncertainties. Therefore distributions obtained with further selection  Other distributions filled in the process of signal selection can be found in the analysis macro 
+The distributions are obtained after selectring muon pairs of opposite charge. Further selection, in particular isolation requirement imposed on the muon-track pairs (each muon must be accompanied by only one track within dR cone of 0.4 around muon direction) significantly reduces statistics in the QCD multijet MC samples resulting in sparsely populated histograms with large bin-by-bin uncertainties. 
+Other distributions filled in the process of signal selection can be found in the analysis macro 
 ```
 $CMSSW_BASE/src/HtoAA/4Tau/bin/analysis_macro_4tau.cpp
 ```
 Please fill free to edit this macro and add histograms of the distributions you are interested in.
 
 # Creating datacards
-To perform statistical analysis one needs to create datacards. This includes ascii file encoding uncertainty model and RooT files with the observed data, background and signal distributions. For more information on statistical tools used in the CMS analysis please consult [this documentation](). You are adviced also to familiarize with the analysis by reading [dedicated paper](https://arxiv.org/abs/1907.07235v2) on the CMS analysis of 2016 data or [latest presentation](https://indico.cern.ch/event/1053526/contributions/4447626/attachments/2279719/3873270/Haa_2018.pdf) on the strategy of the H->aa search with the 2018 dataset.  
+To perform statistical analysis one needs to create datacards. This includes ascii file encoding uncertainty model and RooT files with the observed data, background and signal distributions. For more information on statistical tools used in the CMS analysis please consult [this documentation](http://cms-analysis.github.io/HiggsAnalysis-CombinedLimit). You are adviced also to familiarize with the analysis by reading [dedicated paper](https://arxiv.org/abs/1907.07235v2) on the CMS analysis of 2016 data or [latest presentation](https://indico.cern.ch/event/1053526/contributions/4447626/attachments/2279719/3873270/Haa_2018.pdf) on the strategy of the H->aa search with the 2018 dataset.  
 
 At the last stage of the analysis, the signal is extracted from two-dimensional distribution of the muon-track pairs selected in the final sample. The purpose of the macro, producing datacards, is to create templates of the two-dimensional distributions for data, background and various signal processes as well as to define uncertainty model in the format compliant with the CMS statistical toolkit. 
 
@@ -276,7 +230,7 @@ void CreateCards(TString mass="4", // mass of pseudoscalar boson
 
 ```
 
-It accepts three input parameters: the probed pseudoscalar mass hypothesis (TString), and two boolean variables. First boolean (named Asimov) instructs code which type datacards should be produced. If parameter is set to true the background-only Asimov dataset is created, that is the data in each bin of distribution is replaced by background expectation. Otherwise real data are used to create datacards. It is advice to set this variable to true while analysis is kept blinded (we are not biasing ourselves by looking at data in the signal region). The second boolean, when set to true, instructs code to apply correlation mass correlation coefficients for the background model. Otherwise the masses of muon-track pairs in th background are assumed to be uncorrelated. 
+It is steered with three input parameters: the probed pseudoscalar mass hypothesis (TString), and two boolean variables. First boolean (named Asimov) instructs code which type datacards should be produced. If parameter is set to true the background-only Asimov dataset is created, that is the data in each bin of distribution is replaced by background expectation. Otherwise real data are used to create datacards. It is advice to set this variable to true while analysis is kept blinded (we are not biasing ourselves by looking at data in the signal region). The second boolean, when set to true, instructs code to apply correlation mass correlation coefficients for the background model. Otherwise the masses of muon-track pairs in th background are assumed to be uncorrelated. 
 The macro uses as inputs histograms in the RooT files produced by analysis 
 macro analysis_macro_4tau.cpp. As background is estimated solely from data,
 to produce datacards one needs only data and signal RooT files:
@@ -291,6 +245,7 @@ Additionally one needs RooT files containing 2d histogram with mass correlation 
 - CorrCoefficients_data.root
 - CorrCoefficients_control_mc.root
 - CorrCoefficients_signal_mc.root
+
 The first RooT file (correlation coefficients measured in control region in data) is produced by macro
 ```
 $CMSSW_BASE/src/HtoAA/4Tau/macros/CorrCoefficients.C
@@ -298,15 +253,13 @@ $CMSSW_BASE/src/HtoAA/4Tau/macros/CorrCoefficients.C
 The correlation coefficients derived from simulation are presently inherited from the analysis of the 2016 data. The analysis code needs to be updated to rederive these coefficients for 2018 dataset.
 
 All RooT files used in creation of datacards are located in the folder specified by parameter 
-TString dir. By default this variable points to the directory 
-```
-/nfs/dust/cms/user/rasp/Run/Run2018/H2aa
-```
+TString dir. By default this variable points to the directory `/nfs/dust/cms/user/rasp/Run/Run2018/H2aa`.
 You should modify this parameter accordingly when using another working directory containing all necessary ingredients to produce datacards.  
 
 The datacard producer creates two files named 
 - haa_2018-13TeV_ma${mass}.root 
-- haa_2018-13TeV_ma${mass}.txt. 
+- haa_2018-13TeV_ma${mass}.txt 
+
 These files are then used in the statistical analysis. The RooT file contains TH1 objects, representing 2d mass distributions unrolled in 1d array of bins. The following histograms are stored in this RooT file:
 - data_obs: observed data (or background model if Azimov = true)
 - bkg: background model
@@ -314,10 +267,12 @@ These files are then used in the statistical analysis. The RooT file contains TH
 - vbf: qqH signal with aa->4tau
 - vh: ZH+WH signal with aa->4tau
 - tth: ttH signal with aa->4tau
-- mmtt: ggH signal with aa->4tau (yield is rescaled to the inclusive cross section sigma(ggH)+sigma(qqH)+sigma(VH)+sigma(ttH)) 
+- mmtt: ggH signal with aa->2mu2tau (yield is rescaled to the inclusive cross section sigma(ggH)+sigma(qqH)+sigma(VH)+sigma(ttH)) 
+
 The RooT file contains also up/down systematic variations of bkg model related to uncertainty in the estimate of 1D background shape in the distribution of muon-track invariant mass and uncertainty in mass correlation coefficients: 
 - bkgd_CMS_unc1d_2018Up(Down)
 - bkgd_CMS_uncCorr_2018Up(Down)
+
 The ascii file haa_2018-13TeV_ma${mass}.txt defines the uncertainty model.
 With the following line in the ascii file
 ```
@@ -334,15 +289,89 @@ The observed and expected limits are computed for all tested pseudoscalar mass h
 ```
 $CMSSW_BASE/src/HtoAA/4Tau/macros/RunLimits.bash
 ```
-The script creates RooT files named *higgsCombineTest.AsymptoticLimits.mH$mass$.root* (one file per tested mass hypothesis) and filelist is saved into ascii file *limits.txt*. The filelist is then used by the macro
+The scripts call `combine` utility of the [CMS Higgs statistical package](http://cms-analysis.github.io/HiggsAnalysis-CombinedLimit) and creates RooT files named `higgsCombineTest.AsymptoticLimits.mH$mass$.root` (one file per tested mass hypothesis) where info on median/observed limits is stored. The script creates also filelist named `limits.txt`. The filelist is then used by the macro
 ```
 $CMSSW_BASE/src/HtoAA/4Tau/macros/PlotLimits.C
 
+#include "HttStylesNew.cc"
+#include "CMS_lumi.C"
 
+void PlotLimits(char* fileList = "limits.txt",
+		bool blindData = true) {
+
+...
+}
 
 ```
-which plots expected median and observed upper limits on sigma(pp->H+X)*BR(H->aa->4tau)/sigma(pp->H+X,SM). 
+
+which plots expected median and observed upper limits on `sigma(pp->H+X)*BR(H->aa->4tau)/sigma(pp->H+X,SM)`. Before unblinding the data the input parameter `bool blindData` is recommended to be set to true, which instructs the macro to hide the observed limits. If datacards are produced with data replaced by background-only Azimov dataset, the observed limits should be equal to the median expected ones.
+
+# Running maximum likelihood fits
+Maximum likelihood fits can be run either on data or on the Asimov dataset with predefined signal strength. 
+
+To run fits on data execute the script
+```
+$CMSSW_BASE/src/HtoAA/4Tau/macros/RunFits_Data.bash
+```
+It accepts one input parameter - tested mass hypothesis, e.g.
+```
+./RunFits_Data.bash 10
+```
+The script calls `combine` utility, computes the best-fit value of the signal strength and creates output RooT file named `fitDiagnostics_ma$mass_data.root`. This RooT file contains results of the fit (the best-fit mu value and fitted values of nuisance parameters), and the prefit and postfit distributions for signal and background. Please note if datacards are produced for background-only Asimov dataset, the fitted value mu and all nuisances would be zero as we the fit is performed on dataset which is obtained from background model. 
+
+To run fits on the signal+background Asimov dataset execute the script
+```
+$CMSSW_BASE/src/HtoAA/4Tau/macros/RunFits_Asimov.bash
+```
+You should pass to parameters to the script: pseudoscalar mass and the signal strength mu, e.g.
+```
+./RunFits_Asimov.bash 10 1
+```
+The script will create RooT file name containing the fit results and postfit shapes with uncertainties. The best-fit value of mu should be equal to signal strength injected into Asimov dataset (1 in the above example).
+
 
 # Other useful macros
+## Plotting unrolled 2D signal distributions after final selection
+
+## Plotting 1D mass distribution of muon-track pairs
+
+
+## Plotting unrolled 2D distribution (signal and background) after final selection
+
 
 # Task list
+
+## Study of the signal acceptance for various HTL paths (done)
+ 
+One of the important tasks is to evaluate the signal acceptance for various alternative triggers which can be potentially used in the analysis of 2017 data taken w/o same-sign dimuon HLT. Presently, our ntuples contain information on the following interesting HLT paths:
+```
+HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_Mass8_v
+HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_Mass3p8_v
+HLT_TripleMu_12_10_5_v
+```
+
+In order to study signal acceptance for this HLT paths, modify config files.
+Initial steering parameters
+```
+ApplyTriggerMatch = true
+DiMuonTriggerName = HLT_Mu18_Mu9_SameSign_v
+```
+have to be changed "false" and the HLT path name to be studied. Example:
+```
+ApplyTriggerMatch = false
+DiMuonTriggerName = HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_Mass8_v
+```
+
+Run analysis macro with these modified config files on the signal samples. Once output RooT files are created you can compute signal acceptance. For that use histograms named 
+```
+histWeightsH - number of weighted generated events for a given sample
+counter_FinalEventsH - number of weighted events selected into final sample
+``` 
+The acceptance can then be computed as
+```
+double acceptance = counter_FinalEventsH->GetSumOfWeights()/histWeightsH->GetSumOfWeights();
+```
+
+## Optimization of cut on dR(muon,track)
+
+## Study correlation between muon+track momentum and in signal samples

@@ -146,6 +146,7 @@ ${CMSSW_BASE}/src/HtoAA/4Tau/macros/PlotDistributions.C
 //TH1D * deltaRMuonPionH = new TH1D("deltaRMuonPionH","",200,0,2);
 //TH1D * pionPtH = new TH1D("pionPtH","",100,0,100);
 
+
 void PlotDistributions(
 TString histName = "deltaRMuonPionH", // histogram to plot
 TString dir = "./", // folder where ntuples reside
@@ -161,7 +162,8 @@ TString ytitle = "normalized to unity"  // title of y-axis
 
 # Plotting distributions at the reco level 
 
-To plot various distributions saved as TH1 objects in the created RooT file, use the macro 
+To plot various distributions saved as TH1 objects in the RooT files created by analysis executable, 
+use the macro 
 ```
 $CMSSW_BASE/src/HtoAA/4Tau/macros/Plot.C
 
@@ -305,7 +307,7 @@ void PlotLimits(char* fileList = "limits.txt",
 
 ```
 
-which plots expected median and observed upper limits on `sigma(pp->H+X)*BR(H->aa->4tau)/sigma(pp->H+X,SM)`. Before unblinding the data the input parameter `bool blindData` is recommended to be set to true, which instructs the macro to hide the observed limits. If datacards are produced with data replaced by background-only Azimov dataset, the observed limits should be equal to the median expected ones.
+which plots expected median and observed upper limits on the signal strength (mu) defined as `mu=sigma(pp->H+X)*BR(H->aa->4tau)/sigma(pp->H+X,SM)`. Before unblinding the data the input parameter `bool blindData` is recommended to be set to true, which instructs the macro to hide the observed limits. If datacards are produced with data replaced by background-only Azimov dataset, the observed limits should be equal to the median expected ones.
 
 # Running maximum likelihood fits
 Maximum likelihood fits can be run either on data or on the Asimov dataset with predefined signal strength. 
@@ -328,17 +330,91 @@ You should pass to parameters to the script: pseudoscalar mass and the signal st
 ```
 ./RunFits_Asimov.bash 10 1
 ```
-The script will create RooT file name containing the fit results and postfit shapes with uncertainties. The best-fit value of mu should be equal to signal strength injected into Asimov dataset (1 in the above example).
+The script will create RooT file named `fitDiagnostics_ma$mass_mu$mu.root` containing the fit results and postfit shapes with uncertainties. The best-fit value of mu should be equal to signal strength injected into Asimov dataset (1 in the above example).
 
 
 # Other useful macros
-## Plotting unrolled 2D signal distributions after final selection
 
-## Plotting 1D mass distribution of muon-track pairs
+## Plotting unrolled 2D (m1,m2) signal distributions after final selection
 
+The unrolled 2D (m1,m2) signal distributions are plotted by running the macro
+```
+$CMSSW_BASE/src/HtoAA/4Tau/macros/PlotSignal.C
 
-## Plotting unrolled 2D distribution (signal and background) after final selection
+#include "CMS_lumi.C"
+#include "HttStylesNew.cc"
 
+void PlotSignal(TString mass = "4") {
+...
+
+}
+```
+The macro accepts one input parameter (TString mass): the mass of pseudoscalar.
+Contributions from H->aa->4tau and H->aa->2mu2tau decays are plotted separately.
+The macro uses the datacard RooT file `haa_2018-13TeV_ma$mass.root` 
+in the folder defined by variable TString dir 
+(the default folder is `/nfs/dust/cms/user/rasp/Run/Run2018/H2aa/`).
+
+## Plotting 1D mass distribution of muon-track pairs after final selection
+
+The 1D distribution of muon-track pairs is plotted with the macro
+```
+$CMSSW_BASE/src/HtoAA/4Tau/macros/PlotMass1D.C
+
+#include "CMS_lumi.C"
+#include "HttStylesNew.cc"
+#include "HtoH.h"
+
+void PlotMass1D(float xLower = 0, // lower boundary in x axis
+		float xUpper = 12, // upper boundary in x axis
+		TString xtitle = "m_{#mu,trk} [GeV]", // x-axis xtitle
+		TString ytitle = "normalised to unity", // y-axis title
+		bool drawLeg = true, // draw legend
+		bool logY = true, // use log scale for y-axis
+		bool blindData = true) { // blind data
+...
+}
+```
+If input parameter blindData is set to true, the data points are not shown for bins with m(mu,trak) > 6 GeV, which are most sensitive to the signal. 
+The macro uses RooT files produced by the analysis executable `analysis_macro_4tau`. The directory, where the RooT files are stored, is defined by parameter TString dir (default location is `/nfs/dust/cms/user/rasp/Run/Run2018/H2aa/`).
+
+## Plotting unrolled 2D (m1,m2) distribution (signal, background and data) after final selection
+
+The unrolled 2D (m1,m2) distributions in data, background and signal samples are plotted using the macro
+```
+$CMSSW_BASE/src/HtoAA/4Tau/macros/PlotMass2D.C
+
+#include "CMS_lumi.C"
+#include "HttStylesNew.cc"
+#include "boost/lexical_cast.hpp"
+#include "boost/algorithm/string.hpp"
+#include "boost/format.hpp"
+#include "boost/program_options.hpp"
+#include "boost/range/algorithm.hpp"
+#include "boost/range/algorithm_ext.hpp"
+#include "Plotting.h"
+#include "Plotting_Style.h"
+
+void PlotMass2D(
+		bool prefit = true, // prefit (or postfit) distributions
+		bool blindData = true, // blind data
+		bool drawLeg = true, // draw legend
+		bool logY = true // use log scale for
+		) {
+  
+
+  TString dir("/nfs/dust/cms/user/rasp/Run/Run2018/H2aa/");
+...
+}
+
+```
+
+The macro uses datacard RooT files created for mass points ma=4,7,10,15 (`haa_2018-13TeV_ma$ma.root`). Additionally RooT file created by running the script 
+```
+RunFits_data.bash 10
+``` 
+These RooT files are supposed to be located in the directory specified by variable `TString dir` 
+(default directory is `/nfs/dust/cms/user/rasp/Run/Run2018/H2aa/`).
 
 # Task list
 
@@ -373,6 +449,11 @@ The acceptance can then be computed as
 double acceptance = counter_FinalEventsH->GetSumOfWeights()/histWeightsH->GetSumOfWeights();
 ```
 
+Please compute acceptance for the studied HLT paths as a function of probed mass hypothesis in
+the range [4..15] GeV.
+
 ## Optimization of cut on dR(muon,track)
 
-## Study correlation between muon+track momentum and in signal samples
+## Study correlation between muon+track momentum and dR(muon,track) in signal samples
+
+It is possible that the sensitivity of the search 

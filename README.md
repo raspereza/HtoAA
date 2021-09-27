@@ -345,6 +345,9 @@ $CMSSW_BASE/src/HtoAA/4Tau/macros/PlotSignal.C
 #include "HttStylesNew.cc"
 
 void PlotSignal(TString mass = "4") {
+
+  TString dir("/nfs/dust/cms/user/rasp/Run/Run2018/H2aa/");
+
 ...
 
 }
@@ -372,7 +375,11 @@ void PlotMass1D(float xLower = 0, // lower boundary in x axis
 		bool drawLeg = true, // draw legend
 		bool logY = true, // use log scale for y-axis
 		bool blindData = true) { // blind data
+
+  TString dir("/nfs/dust/cms/user/rasp/Run/Run2018/H2aa/");
+
 ...
+
 }
 ```
 If input parameter blindData is set to true, the data points are not shown for bins with m(mu,trak) > 6 GeV, which are most sensitive to the signal. 
@@ -402,16 +409,16 @@ void PlotMass2D(
 		bool logY = true // use log scale for
 		) {
   
-
   TString dir("/nfs/dust/cms/user/rasp/Run/Run2018/H2aa/");
 ...
+
 }
 
 ```
 
-The macro uses datacard RooT files created for mass points ma=4,7,10,15 (`haa_2018-13TeV_ma$ma.root`). Additionally RooT file created by running the script 
+The macro uses datacard RooT files created for mass points ma=4,7,10,15 (`haa_2018-13TeV_ma$ma.root`). Additionally RooT file `fitDiagnostics_ma10.root` file created by running the script is required 
 ```
-RunFits_data.bash 10
+> RunFits_data.bash 10
 ``` 
 These RooT files are supposed to be located in the directory specified by variable `TString dir` 
 (default directory is `/nfs/dust/cms/user/rasp/Run/Run2018/H2aa/`).
@@ -454,6 +461,40 @@ the range [4..15] GeV.
 
 ## Optimization of cut on dR(muon,track)
 
+The current version of analysis requires muon-track pair stemming from a->tautau decay to have dR(muon,track)<0.5. This cut may be not sub-optimal for some tested pseudoscalar mass hypotheses. Therefore, it is desirable to study the sensitivity of the search for different mass hypothesis in dependence of upper cut on dR(mu,track). This parameter is specified in configuration file steering the running of analysis executable `analysis_macro_4tau`: 
+```  
+dRIsoMuon = 0.5
+```
+
+The workflow of the study would be
+- create working directory to run analysis with a given value of `dRIsoMuon`;
+- copy content of folder `$CMSSW_BASE/src/HtoAA/4Tau/test/2018` to the working directory;
+- create filelists with the script `FileListMaker2018.sh`;
+- modify appropriately the parameter `dRIsoMuon` in configuration files for data (`analysisMacro_2018.conf`) and signal samples (`analysisMacro_{ggH,VBF,VH,ttH,ggH_2mu2tau}_2018.conf`);
+- run analysis executable `analysis_macro_4tau` on data and signal samples;
+- create datacards; 
+- compute expected limits for all mass hypothesis (ma=4..15 GeV).
+
+Perform study for `dRIsoMuon=0.4,0.6,0.7`. Results for `dRIsoMuon=0.5` 
+are already available in the folder `/nfs/dust/cms/user/rasp/Run/Run2018/H2aa`.
+
 ## Study correlation between muon+track momentum and dR(muon,track) in signal samples
 
-It is possible that the sensitivity of the search 
+It is well possible that the sensitivity of the search can be improved over entire range of probed mass hypothesis by using dynamic cut on dR(muon,track), e.g. by applying cut in dependence of pT(mu+track) or p(mu+track), where pT(p) is the transverse (full) momentum of the muon-track system.
+To assess potential improvement of sensitivity one has to study the correlation between dR(muon,track) and pT(mu+track) or p(mu+track). The updated version of the analysis macro produces ntuple with the generator level information to facilitate such studies. Each entry of the ntuple stores kinematic properties of muon-track pair resulting from the a->tau(mu)tau(1-prong) decay.
+The variables stored in ntuple are:
+```
+genmu_P : generator muon momentum
+genmu_Pt : generator muon transverse momentum
+genmu_Eta : generator muon pseudorapidiry
+gentrk_P : generator track momentum
+gentrk_Pt : generator track transverse momentum
+gentrk_Eta : generator track pseudorapidiry
+genmutrk_P : generator momentum of muon-track system
+genmutrk_Pt : generator transverse momentum of muon-track
+genmutrk_Eta : generator pseudorapifity of muon-track system
+genmutrk_DR : dR(mu,track)
+```  
+
+Using this information we can study correlations by plotting 2D distributions (genmutrk_DR,genmutrk_Pt) or (genmutrk_DR,genmutrk_P) by plotting  in bins of pT(p) of mu+track system (e.g. pT=[10,15,20,25,100] GeV). One has to perform these study for several mass hypotheses, e.g. ma = 4, 7, 10, 12, 15 GeV. 
+The results of these studies can be then used to come up with optimal formula for upper cut on dR(mu,track) as a function of pT(p) of muon-track system.

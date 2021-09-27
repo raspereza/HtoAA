@@ -320,7 +320,7 @@ It accepts one input parameter - tested mass hypothesis, e.g.
 ```
 ./RunFits_Data.bash 10
 ```
-The script calls `combine` utility, computes the best-fit value of the signal strength and creates output RooT file named `fitDiagnostics_ma$mass_data.root`. This RooT file contains results of the fit (the best-fit mu value and fitted values of nuisance parameters), and the prefit and postfit distributions for signal and background. Please note if datacards are produced for background-only Asimov dataset, the fitted value mu and all nuisances would be zero as we the fit is performed on dataset which is obtained from background model. 
+The script calls `combine` utility, computes the best-fit value of the signal strength and creates output RooT file named `fitDiagnostics_ma$mass.root`. This RooT file contains results of the fit (the best-fit mu value and fitted values of nuisance parameters), and the prefit and postfit distributions for signal and background. Please note if datacards are produced for background-only Asimov dataset, the fitted value mu and all nuisances would be zero as we the fit is performed on dataset which is obtained from background model. 
 
 To run fits on the signal+background Asimov dataset execute the script
 ```
@@ -331,7 +331,6 @@ You should pass to parameters to the script: pseudoscalar mass and the signal st
 ./RunFits_Asimov.bash 10 1
 ```
 The script will create RooT file named `fitDiagnostics_ma$mass_mu$mu.root` containing the fit results and postfit shapes with uncertainties. The best-fit value of mu should be equal to signal strength injected into Asimov dataset (1 in the above example).
-
 
 # Other useful macros
 
@@ -382,8 +381,8 @@ void PlotMass1D(float xLower = 0, // lower boundary in x axis
 
 }
 ```
-If input parameter blindData is set to true, the data points are not shown for bins with m(mu,trak) > 6 GeV, which are most sensitive to the signal. 
-The macro uses RooT files produced by the analysis executable `analysis_macro_4tau`. The directory, where the RooT files are stored, is defined by parameter TString dir (default location is `/nfs/dust/cms/user/rasp/Run/Run2018/H2aa/`).
+If input parameter `blindData` is set to true, the data points are not shown for bins with m(mu,trak) > 6 GeV (these are bins which are most sensitive to the signal). 
+The macro uses RooT files produced by the analysis executable `analysis_macro_4tau`. The directory, where the RooT files are stored, is defined by parameter `TString dir` (default location is `/nfs/dust/cms/user/rasp/Run/Run2018/H2aa/`).
 
 ## Plotting unrolled 2D (m1,m2) distribution (signal, background and data) after final selection
 
@@ -416,11 +415,11 @@ void PlotMass2D(
 
 ```
 
-The macro uses datacard RooT files created for mass points ma=4,7,10,15 (`haa_2018-13TeV_ma$ma.root`). Additionally RooT file `fitDiagnostics_ma10.root` file created by running the script is required 
+The macro uses datacard RooT files created for mass points ma=4,7,10,15 (`haa_2018-13TeV_ma$ma.root`). Additionally RooT file `fitDiagnostics_ma10.root` is required. This RooT file is created by executing command 
 ```
 > RunFits_data.bash 10
 ``` 
-These RooT files are supposed to be located in the directory specified by variable `TString dir` 
+All RooT files are supposed to be located in the directory specified by variable `TString dir` 
 (default directory is `/nfs/dust/cms/user/rasp/Run/Run2018/H2aa/`).
 
 # Task list
@@ -461,7 +460,7 @@ the range [4..15] GeV.
 
 ## Optimization of cut on dR(muon,track)
 
-The current version of analysis requires muon-track pair stemming from a->tautau decay to have dR(muon,track)<0.5. This cut may be not sub-optimal for some tested pseudoscalar mass hypotheses. Therefore, it is desirable to study the sensitivity of the search for different mass hypothesis in dependence of upper cut on dR(mu,track). This parameter is specified in configuration file steering the running of analysis executable `analysis_macro_4tau`: 
+The current version of analysis requires muon-track pair stemming from a->tautau decay to have dR(muon,track)<0.5. This cut may be sub-optimal for some tested pseudoscalar mass hypotheses. Therefore, it is desirable to study the sensitivity of the search for different mass hypothesis in dependence of upper cut on dR(mu,track). This parameter is specified in configuration file steering the running of analysis executable `analysis_macro_4tau`: 
 ```  
 dRIsoMuon = 0.5
 ```
@@ -472,6 +471,7 @@ The workflow of the study would be
 - create filelists with the script `FileListMaker2018.sh`;
 - modify appropriately the parameter `dRIsoMuon` in configuration files for data (`analysisMacro_2018.conf`) and signal samples (`analysisMacro_{ggH,VBF,VH,ttH,ggH_2mu2tau}_2018.conf`);
 - run analysis executable `analysis_macro_4tau` on data and signal samples;
+- create RooT file with (m1,m2) correlation coefficients by running macro `CorrCoefficients.C` in the working directory;
 - create datacards; 
 - compute expected limits for all mass hypothesis (ma=4..15 GeV).
 
@@ -496,5 +496,6 @@ genmutrk_Eta : generator pseudorapifity of muon-track system
 genmutrk_DR : dR(mu,track)
 ```  
 
-Using this information we can study correlations by plotting 2D distributions (genmutrk_DR,genmutrk_Pt) or (genmutrk_DR,genmutrk_P) by plotting  in bins of pT(p) of mu+track system (e.g. pT=[10,15,20,25,100] GeV). One has to perform these study for several mass hypotheses, e.g. ma = 4, 7, 10, 12, 15 GeV. 
+Using this information we can study correlations by plotting 2D distributions (genmutrk_DR,genmutrk_Pt) or (genmutrk_DR,genmutrk_P). Another way to study correlations is to plot genmutrk_DR in bins of genmutrk_Pt(genmutrk_P) (e.g. genmutrk_Pt=[10,15,20,25,100] GeV). 
+One has to perform these study for several mass hypotheses, e.g. ma = 4, 7, 10, 12, 15 GeV. 
 The results of these studies can be then used to come up with optimal formula for upper cut on dR(mu,track) as a function of pT(p) of muon-track system.

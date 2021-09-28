@@ -181,7 +181,7 @@ $CMSSW_BASE/src/HtoAA/4Tau/macros/Plot.C
 //TH1D * etaTrailingMuH = new TH1D("etaTrailingMuH","",50,-2.5,2.5);
 //TH1D * dimuonMassH = new TH1D("dimuonMassH","",500,0,500);
 //
-// number of tracks within dR<0.4 around muons
+// number of tracks within dR<0.5 around muons
 // we select events where there is only one track accompanies each of muons   
 //TH1D * nTracksLeadingMuH = new TH1D("nTracksLeadingMuH","",21,-0.5,20.5);
 //TH1D * nTracksTrailingMuH = new TH1D("nTracksTrailingMuH","",21,-0.5,20.5); 
@@ -203,7 +203,7 @@ void Plot(TString histName = "ptLeadingMuH", // histogram name
 ```
 The macro produces file `$histName.png` in the working directory where the script is executed.
 The list of histograms containing interesting distributions is given in the beginning of the macro. 
-The distributions are obtained after selectring muon pairs of opposite charge. Further selection, in particular isolation requirement imposed on the muon-track pairs (each muon must be accompanied by only one track within dR cone of 0.4 around muon direction) significantly reduces statistics in the QCD multijet MC samples resulting in sparsely populated histograms with large bin-by-bin uncertainties. 
+The distributions are obtained after selectring muon pairs of opposite charge. Further selection, in particular isolation requirement imposed on the muon-track pairs (each muon must be accompanied by only one track within dR cone of 0.5 around muon direction) significantly reduces statistics in the QCD multijet MC samples resulting in sparsely populated histograms with large bin-by-bin uncertainties. 
 Other distributions filled in the process of signal selection can be found in the analysis macro 
 ```
 $CMSSW_BASE/src/HtoAA/4Tau/bin/analysis_macro_4tau.cpp
@@ -480,8 +480,8 @@ are already available in the folder `/nfs/dust/cms/user/rasp/Run/Run2018/H2aa`.
 
 ## Study correlation between muon+track momentum and dR(muon,track) in signal samples
 
-It is well possible that the sensitivity of the search can be improved over entire range of probed mass hypothesis by using dynamic cut on dR(muon,track), e.g. by applying cut in dependence of pT(mu+track) or p(mu+track), where pT(p) is the transverse (full) momentum of the muon-track system.
-To assess potential improvement of sensitivity one has to study the correlation between dR(muon,track) and pT(mu+track) or p(mu+track). The updated version of the analysis macro produces ntuple with the generator level information to facilitate such studies. Each entry of the ntuple stores kinematic properties of muon-track pair resulting from the a->tau(mu)tau(1-prong) decay.
+It is well possible that the sensitivity of the search can be improved over entire range of probed mass hypotheses by using dynamic cut on dR(muon,track), e.g. by applying cut in dependence of pT(mu+track) or p(mu+track), where pT(p) is the transverse (full) momentum of the muon-track system.
+To assess potential improvement of sensitivity one has to study the correlation between dR(muon,track) and pT(mu+track) or p(mu+track). The updated version of the analysis macro produces ntuple (named "muTrkTree") with the generator level information to facilitate such studies. Each entry of the ntuple stores kinematic properties of a muon-track pair resulting from the a->tau(mu)tau(1-prong) decay.
 The variables stored in ntuple are:
 ```
 genmu_P : generator muon momentum
@@ -496,6 +496,6 @@ genmutrk_Eta : generator pseudorapifity of muon-track system
 genmutrk_DR : dR(mu,track)
 ```  
 
-Using this information we can study correlations by plotting 2D distributions (genmutrk_DR,genmutrk_Pt) or (genmutrk_DR,genmutrk_P). Another way to study correlations is to plot genmutrk_DR in bins of genmutrk_Pt(genmutrk_P) (e.g. genmutrk_Pt=[10,15,20,25,100] GeV). 
-One has to perform these study for several mass hypotheses, e.g. ma = 4, 7, 10, 12, 15 GeV. 
-The results of these studies can be then used to come up with optimal formula for upper cut on dR(mu,track) as a function of pT(p) of muon-track system.
+Using this information one can study correlations by plotting 2D distributions (genmutrk_DR,genmutrk_Pt) or (genmutrk_DR,genmutrk_P). Another way to study correlations is to plot genmutrk_DR in bins of genmutrk_Pt(genmutrk_P) (e.g. genmutrk_Pt=[10,15,20,25,100] GeV). 
+One has to perform this study for several mass hypotheses, e.g. ma = 4, 7, 10, 12, 15 GeV. 
+The results of these studies can be then used to derive an optimal formula for upper cut on dR(mu,track) as a function of pT(p) of the muon-track system.

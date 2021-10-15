@@ -879,7 +879,7 @@ int main(int argc, char * argv[]) {
 	   //	   std::cout << jet << ":" << btagDiscr << std::endl;
 	 }
        }
-       std::cout << "nbtags = " << nbtags << std::endl;
+       //       std::cout << "nbtags = " << nbtags << std::endl;
        if (nbtags>0) continue;
      }
      

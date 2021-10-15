@@ -18,6 +18,7 @@ git clone https://github.com/CMS-HTT/CorrectionsWorkspace HTT-utilities/Correcti
 cd ${CMSSW_BASE}/src/HTT-utilities/CorrectionsWorkspace
 root -l -q CrystalBallEfficiency.cxx++
 cd ${CMSSW_BASE}/src
+git clone https://github.com/marmeyer/RecoilCorrections.git HTT-utilities/RecoilCorrections_KIT
 git clone https://github.com/raspereza/HtoAA.git HtoAA
 git clone https://github.com/cms-analysis/HiggsAnalysis-CombinedLimit.git HiggsAnalysis/CombinedLimit
 cd $CMSSW_BASE/src/HiggsAnalysis/CombinedLimit
@@ -499,3 +500,23 @@ genmutrk_DR : dR(mu,track)
 Using this information one can study correlations by plotting 2D distributions (genmutrk_DR,genmutrk_Pt) or (genmutrk_DR,genmutrk_P). Another way to study correlations is to plot genmutrk_DR in bins of genmutrk_Pt(genmutrk_P) (e.g. genmutrk_Pt=[10,15,20,25,100] GeV). 
 One has to perform this study for several mass hypotheses, e.g. ma = 4, 7, 10, 12, 15 GeV. 
 The results of these studies can be then used to derive an optimal formula for upper cut on dR(mu,track) as a function of pT(p) of the muon-track system.
+
+## Impact b-tag veto on the analysis performance
+The analysis macro `analysis_macro_4tau.cpp` and corresponding configuration files have been updated 
+to facilitate study of the impact of the b-tag veto on the analysis performance. 
+Configuration files contain now the following steering parameters
+```  
+ApplyBTagVeto = true
+BTagAlgorithm = pfDeepFlavourJetTags
+BTagDiscriminator1 = pfDeepFlavourJetTags:probb
+BTagDiscriminator2 = pfDeepFlavourJetTags:probbb
+BTagDiscriminator3 = pfDeepFlavourJetTags:problepb
+# tight = 0.7264, medium = 0.277, loose = 0.0494
+BTagCut = 0.277
+BJetEta = 2.5
+BJetPt = 20
+```  
+
+One can run the analysis for various working points of the recommended tagger (pfDeepFlavourJetTags), namely tight (BTagCut = 0.7264), medium (BTagCut = 0.277) and loose (BTagCut = 0.0494), and estimate expected sensitivity in terms of expected upper limit as a function of the pseudoscalar mass. 
+Follow exactly the same analysis workflow as described in the section "Optimization of cut on dR(muon,track)".
+

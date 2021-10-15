@@ -28,6 +28,8 @@
 #include "HtoAA/Utilities/interface/json.h"
 #include "HTT-utilities/LepEffInterface/interface/ScaleFactor.h"
 #include "HtoAA/Utilities/interface/PileUp.h"
+#include "HtoAA/Utilities/interface/functions.h"
+
 
 #include "RooWorkspace.h"
 #include "RooAbsReal.h"
@@ -35,102 +37,6 @@
 
 
 using namespace std;
-double PtoEta(double Px, double Py, double Pz) {
-
-  double P = TMath::Sqrt(Px*Px+Py*Py+Pz*Pz);
-  double cosQ = Pz/P;
-  double Q = TMath::ACos(cosQ);
-  double Eta = - TMath::Log(TMath::Tan(0.5*Q));
-  return Eta;
-
-}
-
-double dPhiFrom2P(double Px1, double Py1,
-                  double Px2, double Py2) {
-
-
-  double prod = Px1*Px2 + Py1*Py2;
-  double mod1 = TMath::Sqrt(Px1*Px1+Py1*Py1);
-  double mod2 = TMath::Sqrt(Px2*Px2+Py2*Py2);
-
-  double cosDPhi = prod/(mod1*mod2);
-
-  return TMath::ACos(cosDPhi);
-
-}
-
-double deltaR(double Eta1, double Phi1,
-              double Eta2, double Phi2) {
-
-  double Px1 = TMath::Cos(Phi1);
-  double Py1 = TMath::Sin(Phi1);
-
-  double Px2 = TMath::Cos(Phi2);
-  double Py2 = TMath::Sin(Phi2);
-
-  double dPhi = dPhiFrom2P(Px1,Py1,Px2,Py2);
-  double dEta = Eta1 - Eta2;
-
-  double dR = TMath::Sqrt(dPhi*dPhi+dEta*dEta);
-
-  return dR;
-
-}
-
-// obsolete parameterization
-double MuLegEfficiency(double pt, double eta, double ptThres, double etaThres) {
-
-  double absEta = fabs(eta);
-
-  if (absEta>etaThres) return 0;
-
-  double effEtaLt0p9 = 0.932;
-  double effEta0p9to1p2 = 0.922;
-  double effEtaGt1p2 = 0.950;
-
-  double eff = 1.0;
-  double ptThresLow = ptThres-1.0;
-  double ptThresHigh = ptThres+1.0;
-  if (ptThres>30) {
-    ptThresLow = ptThres-3.0;
-    ptThresHigh = ptThres+3.0;
-    effEtaLt0p9 = 0.919;
-    effEta0p9to1p2 = 0.841;
-    effEtaGt1p2 = 0.866;
-  }
-  else if (ptThres>16) {
-    effEtaLt0p9 =  0.931;
-    effEta0p9to1p2 = 0.919;
-    effEtaGt1p2 = 0.926;
-  }
-
-  if (pt<ptThresLow) {
-    eff = 0;
-  }
-  else if (pt>=ptThresLow&&pt<ptThresHigh) {
-    if (absEta<0.9) 
-      eff = 0.5*effEtaLt0p9;
-    else if (absEta>=0.9&&absEta<1.2)
-      eff = 0.5*effEta0p9to1p2;
-    else
-      eff = 0.5*effEtaGt1p2;
-  }
-  else {
-    if (absEta<0.9)
-      eff = effEtaLt0p9;
-    else if (absEta>=0.9&&absEta<1.2)
-      eff = effEta0p9to1p2;
-    else
-      eff = effEtaGt1p2;
-  }
-  
-  return eff;
-  
-}
-
-
-const float MuMass = 0.105658367;
-const float PionMass = 0.13957;
 
 int main(int argc, char * argv[]) {
   
@@ -184,6 +90,20 @@ int main(int argc, char * argv[]) {
   const float DRTrigMatch    = cfg.get<float>("DRTrigMatch"); 
   const float effDzSS        = cfg.get<float>("effDzSS");
   const unsigned int numberOfMuons = cfg.get<unsigned int>("NumberOfMuons");
+
+  const bool ApplyBTagVeto = cfg.get<bool>("ApplyBTagVeto");
+  const string bTagAlgorithm = cfg.get<string>("BTagAlgorithm");
+  const string bTagDiscriminator1 = cfg.get<string>("BTagDiscriminator1");
+  const string bTagDiscriminator2 = cfg.get<string>("BTagDiscriminator2");
+  const string bTagDiscriminator3 = cfg.get<string>("BTagDiscriminator3");
+  const float btagCut = cfg.get<float>("BTagCut");
+  const float bjetEta = cfg.get<float>("BJetEta");
+  const float bjetPt = cfg.get<float>("BJetPt");
+
+  TString BTagAlgorithm(bTagAlgorithm);
+  TString BTagDiscriminator1(bTagDiscriminator1);
+  TString BTagDiscriminator2(bTagDiscriminator2);
+  TString BTagDiscriminator3(bTagDiscriminator3);
 
   TString DiMuonTriggerName(dimuonTriggerName);
   TString MuonHighPtFilterName(muonHighPtFilterName);
@@ -276,6 +196,23 @@ int main(int argc, char * argv[]) {
   Int_t genparticles_status[1000];
   UInt_t genparticles_info[1000];
 
+  UInt_t          pfjet_count;
+  Float_t         pfjet_e[200];   //[pfjet_count]
+  Float_t         pfjet_pt[200];    //[pfjet_count]
+  Float_t         pfjet_eta[200];   //[pfjet_count]
+  Float_t         pfjet_phi[200];   //[pfjet_count]
+  Float_t         pfjet_neutralhadronicenergy[200];   //[pfjet_count]
+  Float_t         pfjet_chargedhadronicenergy[200];   //[pfjet_count]
+  Float_t         pfjet_neutralemenergy[200];   //[pfjet_count]
+  Float_t         pfjet_chargedemenergy[200];   //[pfjet_count]
+  Float_t         pfjet_muonenergy[200];   //[pfjet_count]
+  Float_t         pfjet_chargedmuonenergy[200];   //[pfjet_count]
+  UInt_t          pfjet_chargedmulti[200];   //[pfjet_count]
+  UInt_t          pfjet_neutralmulti[200];   //[pfjet_count]
+  UInt_t          pfjet_chargedhadronmulti[200];   //[pfjet_count]
+  Int_t           pfjet_flavour[200];   //[pfjet_count]
+  Float_t         pfjet_btag[200][10];   //[pfjet_count]
+
   float genweight;
 
   float metx;
@@ -301,6 +238,7 @@ int main(int argc, char * argv[]) {
   std::map<std::string, int> * hltriggerresults = new std::map<std::string, int>() ;
   std::map<std::string, int> * hltriggerprescales = new std::map<std::string, int>() ;
   std::vector<std::string>   * hltfilters = new std::vector<std::string>();
+  std::vector<std::string>   * btagdiscriminators = new std::vector<std::string>();
 
   std::string rootFileName(argv[2]);
   
@@ -453,13 +391,42 @@ int main(int argc, char * argv[]) {
   TH2D * InvMassTrackPlusMuon2D_ControlYH = new TH2D("InvMassTrackPlusMuon2D_ControlYH","",20,0.,20.,20,0.,20.);
    
   // Monte Carlo information
-  TH1D * deltaRMuonPionH = new TH1D("deltaRMuonPionH","",200,0,2);
-  TH1D * pionPtH = new TH1D("pionPtH","",100,0,100);
+  TH1D * deltaRMuonPionH = new TH1D("deltaRMuonPionH","",400,0,4);
+  TH1D * pionPtH = new TH1D("pionPtH","",200,0,200);
+  TH1D * muonPtH = new TH1D("muonPtH","",200,0,200);
 
+  // generator variables
   float higgsPt;
+
+  float genmu_Pt;
+  float genmu_Eta;
+  float genmu_P;
+
+  float gentrk_Pt;
+  float gentrk_Eta;
+  float gentrk_P;
+
+  float genmutrk_Pt;
+  float genmutrk_Eta;
+  float genmutrk_P;
+  float genmutrk_DR;
 
   TTree * higgsTree = new TTree("higgsTree","");
   higgsTree->Branch("HiggsPt",&higgsPt,"HiggsPt/F");
+  TTree * muTrkTree = new TTree("muTrkTree","");
+
+  muTrkTree->Branch("genmu_P",&genmu_P,"genmu_P/F");
+  muTrkTree->Branch("genmu_Pt",&genmu_Pt,"genmu_Pt/F");
+  muTrkTree->Branch("genmu_Eta",&genmu_Eta,"genmu_Eta/F");
+
+  muTrkTree->Branch("gentrk_P",&gentrk_P,"gentrk_P/F");
+  muTrkTree->Branch("gentrk_Pt",&gentrk_Pt,"gentrk_Pt/F");
+  muTrkTree->Branch("gentrk_Eta",&gentrk_Eta,"gentrk_Eta/F");
+
+  muTrkTree->Branch("genmutrk_P",&genmutrk_P,"genmutrk_P/F");
+  muTrkTree->Branch("genmutrk_Pt",&genmutrk_Pt,"genmutrk_Pt/F");
+  muTrkTree->Branch("genmutrk_Eta",&genmutrk_Eta,"genmutrk_Eta/F");
+  muTrkTree->Branch("genmutrk_DR",&genmutrk_DR,"genmutrk_DR/F");
 
   string cmsswBase = (getenv ("CMSSW_BASE"));
 
@@ -608,11 +575,27 @@ int main(int argc, char * argv[]) {
 
    // Additional trigger objects
    tree_->SetBranchAddress("run_hltfilters",&hltfilters);
-   //   tree_->SetBranchAddress("run_btagdiscriminators", &run_btagdiscriminators);
+   tree_->SetBranchAddress("run_btagdiscriminators", &btagdiscriminators);
    tree_->SetBranchAddress("hltriggerresults",&hltriggerresults);
    tree_->SetBranchAddress("hltriggerprescales",&hltriggerprescales);
 
    tree_->SetBranchAddress("numtruepileupinteractions",&numtruepileupinteractions);
+
+   tree_->SetBranchAddress("pfjet_count",&pfjet_count);
+   tree_->SetBranchAddress("pfjet_e",pfjet_e);
+   tree_->SetBranchAddress("pfjet_pt",pfjet_pt);
+   tree_->SetBranchAddress("pfjet_eta",pfjet_eta);
+   tree_->SetBranchAddress("pfjet_phi",pfjet_phi);
+   tree_->SetBranchAddress("pfjet_neutralhadronicenergy",pfjet_neutralhadronicenergy);
+   tree_->SetBranchAddress("pfjet_chargedhadronicenergy",pfjet_chargedhadronicenergy);
+   tree_->SetBranchAddress("pfjet_neutralemenergy",pfjet_neutralemenergy);
+   tree_->SetBranchAddress("pfjet_chargedemenergy",pfjet_chargedemenergy);
+   tree_->SetBranchAddress("pfjet_muonenergy",pfjet_muonenergy);
+   tree_->SetBranchAddress("pfjet_chargedmuonenergy",pfjet_chargedmuonenergy);
+   tree_->SetBranchAddress("pfjet_chargedmulti",pfjet_chargedmulti);
+   tree_->SetBranchAddress("pfjet_neutralmulti",pfjet_neutralmulti);
+   tree_->SetBranchAddress("pfjet_flavour",pfjet_flavour);
+   tree_->SetBranchAddress("pfjet_btag",pfjet_btag);
 
    if (!isData) {
      tree_->SetBranchAddress("genweight",&genweight);
@@ -625,8 +608,6 @@ int main(int argc, char * argv[]) {
      tree_->SetBranchAddress("genparticles_status", genparticles_status);
      tree_->SetBranchAddress("genparticles_info", genparticles_info);
    }   
-
-   
 
    int numberOfCandidates = tree_->GetEntries();
 
@@ -689,6 +670,7 @@ int main(int argc, char * argv[]) {
 						 genparticles_e[pionIndex]);
 	   pionPtH->Fill(pionLV.Pt(),weight);
 	   float dRMuonPion = 1e+8;
+	   TLorentzVector muLV;
 	   for (unsigned int iMuon=0; iMuon<posMuon.size(); ++iMuon) {
 	     unsigned int muonIndex = posMuon.at(iMuon);
 	     TLorentzVector muonLV; muonLV.SetXYZT(genparticles_px[muonIndex],
@@ -697,9 +679,25 @@ int main(int argc, char * argv[]) {
 						   genparticles_e[muonIndex]);
 	     float dRx = deltaR(pionLV.Eta(),pionLV.Phi(),
 				muonLV.Eta(),muonLV.Phi());
-	     if (dRx<dRMuonPion) dRMuonPion = dRx;
+	     if (dRx<dRMuonPion) { 
+	       dRMuonPion = dRx;
+	       muLV = muonLV;
+	     }
 	   }
+	   TLorentzVector mupionLV = muLV + pionLV;
+	   genmu_Pt = muLV.Pt();
+	   genmu_P = muLV.P();
+	   genmu_Eta = muLV.Eta();
+	   gentrk_Pt = pionLV.Pt();
+	   gentrk_P = pionLV.P();
+	   gentrk_Eta = pionLV.Eta();
+	   genmutrk_DR = dRMuonPion;
+	   genmutrk_Pt = mupionLV.Pt();
+	   genmutrk_P = mupionLV.P();
+	   genmutrk_Eta = mupionLV.Eta();
 	   deltaRMuonPionH->Fill(dRMuonPion,weight);
+	   muonPtH->Fill(genmu_Pt,weight);
+	   muTrkTree->Fill();
 	 }
        }
        if (posMuon.size()==0&&negMuon.size()==2&&negPion.size()==0&&posPion.size()==2) {
@@ -711,6 +709,7 @@ int main(int argc, char * argv[]) {
 						 genparticles_e[pionIndex]);
 	   pionPtH->Fill(pionLV.Pt(),weight);
 	   float dRMuonPion = 1e+8;
+	   TLorentzVector muLV;
 	   for (unsigned int iMuon=0; iMuon<negMuon.size(); ++iMuon) {
 	     unsigned int muonIndex = negMuon.at(iMuon);
 	     TLorentzVector muonLV; muonLV.SetXYZT(genparticles_px[muonIndex],
@@ -719,9 +718,25 @@ int main(int argc, char * argv[]) {
 						   genparticles_e[muonIndex]);
 	     float dRx = deltaR(pionLV.Eta(),pionLV.Phi(),
 				muonLV.Eta(),muonLV.Phi());
-	     if (dRx<dRMuonPion) dRMuonPion = dRx;
+	     if (dRx<dRMuonPion) { 
+	       dRMuonPion = dRx;
+	       muLV = muonLV;
+	     }
 	   }
+	   TLorentzVector mupionLV = muLV + pionLV;
+	   genmu_Pt = muLV.Pt();
+	   genmu_P = muLV.P();
+	   genmu_Eta = muLV.Eta();
+	   gentrk_Pt = pionLV.Pt();
+	   gentrk_P = pionLV.P();
+	   gentrk_Eta = pionLV.Eta();
+	   genmutrk_DR = dRMuonPion;
+	   genmutrk_Pt = mupionLV.Pt();
+	   genmutrk_P = mupionLV.P();
+	   genmutrk_Eta = mupionLV.Eta();
 	   deltaRMuonPionH->Fill(dRMuonPion,weight);
+	   muonPtH->Fill(genmu_Pt,weight);
+	   muTrkTree->Fill();
 	 }
        }
      }
@@ -810,6 +825,63 @@ int main(int argc, char * argv[]) {
      //     for (std::map<string,int>::iterator it=hltriggerprescales->begin(); it!=hltriggerprescales->end(); ++it) 
      //       std::cout << it->first << "  :  "  << it->second << std::endl;
      //     std::cout << std::endl;
+
+     // ******************
+     // applying btag veto
+     // ******************
+     if (ApplyBTagVeto) {
+       int nBTagDiscriminant1 = -1;
+       int nBTagDiscriminant2 = -1;
+       int nBTagDiscriminant3 = -1;
+       unsigned int num_btags = 0;
+       for (unsigned int ibtag=0; ibtag<btagdiscriminators->size(); ibtag++) {
+	 TString discr(btagdiscriminators->at(ibtag));
+	 if (discr==BTagDiscriminator1) {
+	   nBTagDiscriminant1 = ibtag;
+	   num_btags++;
+	 }
+	 if ((BTagAlgorithm == "pfDeepCSVJetTags" || BTagAlgorithm == "pfDeepFlavourJetTags") && discr == BTagDiscriminator2) {
+	   nBTagDiscriminant2 = ibtag;
+	   num_btags++;
+	 }
+	 if (BTagAlgorithm == "pfDeepFlavourJetTags" && discr == BTagDiscriminator3) {
+	   nBTagDiscriminant3 = ibtag;
+	   num_btags++;
+	 }
+       }
+       bool isCorrectBTag = true;
+       if (num_btags==0) {
+	 std::cout << "No discriminants are found for " << BTagAlgorithm << std::endl;
+	 isCorrectBTag = false;
+       }
+       if (BTagAlgorithm=="pfDeepCSVJetTags" && num_btags!=2) {
+	 std::cout << "Numbers of discriminators for " << BTagAlgorithm << " = " << num_btags 
+		   << "   should be 2 " << std::endl;
+	 isCorrectBTag = false;
+       }
+       if (BTagAlgorithm=="pfDeepFlavourJetTags" && num_btags!=3) {
+	 std::cout << "Numbers of discriminators for " << BTagAlgorithm << " = " << num_btags 
+		   << "   should be 3" << std::endl;
+	 isCorrectBTag = false;
+       }
+       unsigned int nbtags = 0;
+       if (isCorrectBTag) {
+	 for (unsigned int jet=0; jet<pfjet_count; ++jet) {
+	   float absEta = TMath::Abs(pfjet_eta[jet]);
+	   if (absEta>bjetEta) continue;
+	   if (pfjet_pt[jet]<bjetPt) continue;
+	   float btagDiscr = pfjet_btag[jet][nBTagDiscriminant1];
+	   if (BTagAlgorithm=="pfDeepFlavourJetTags"||BTagAlgorithm=="pfDeepCSVJetTags")
+	     btagDiscr += pfjet_btag[jet][nBTagDiscriminant2];
+	   if (BTagAlgorithm=="pfDeepFlavourJetTags")
+	     btagDiscr += pfjet_btag[jet][nBTagDiscriminant3];
+	   if (btagDiscr>btagCut) nbtags++;
+	   //	   std::cout << jet << ":" << btagDiscr << std::endl;
+	 }
+       }
+       std::cout << "nbtags = " << nbtags << std::endl;
+       if (nbtags>0) continue;
+     }
      
      // finding HLT filters in the HLT Filter library
      unsigned int nMu8Leg   = 0;

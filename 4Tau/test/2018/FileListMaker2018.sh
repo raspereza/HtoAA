@@ -25,8 +25,8 @@ done
 
 
 #File lists for background MC samples
-samples=(DYJetsToLL_M-10to50_TuneCP5_13TeV-madgraphMLM-pythia8
-DYJetsToLL_M-50_TuneCP5_13TeV-madgraphMLM-pythia8
+samples=(DYJetsToLL_M-50
+DYJetsToLL_M-50
 WW_TuneCP5_13TeV-pythia8
 WZ_TuneCP5_13TeV-pythia8
 ZZ_TuneCP5_13TeV-pythia8
@@ -76,8 +76,8 @@ while [ $i -lt ${#samples[@]} ]
 do
     echo "Creating file list for sample" ${samples[$i]} 
 
-    #ls /pnfs/desy.de/cms/tier2/store/user/mmeyer/ntuples/2018/mc/${samples[$i]}*/*root > ${names[$i]}
-    ls /pnfs/desy.de/cms/tier2/store/user/acardini/ntuples/2018/mc_v2/${samples[$i]}/*root > ${names[$i]}
+    ls /pnfs/desy.de/cms/tier2/store/user/mmeyer/ntuples/2018/mc/${samples[$i]}*/*root > ${names[$i]}
+#    ls /pnfs/desy.de/cms/tier2/store/user/acardini/ntuples/2018/mc_v2/${samples[$i]}/*root > ${names[$i]}
       
     i=`expr $i + 1` 
 done

@@ -126,6 +126,7 @@ int main(int argc, char * argv[]) {
   // Higgs pt reweighting
   const string higgsPtFileName = cfg.get<string>("HiggsPtFileName");
   TString HiggsPtFileName(higgsPtFileName);
+  const bool isVH = cfg.get<bool>("IsVH");
 
   const string correctionsWorkspaceFileName = cfg.get<string>("CorrectionWorkspaceFileName");
   TString CorrectionsWorkspaceFileName(correctionsWorkspaceFileName);
@@ -459,9 +460,45 @@ int main(int argc, char * argv[]) {
   PUofficial->set_h_MC(PU_mc);
 
   // Higgs reweighting 
-  TFile * higgsPtFile = new TFile(TString(cmsswBase)+"/src/HtoAA/data/"+HiggsPtFileName);
-  TH1D * higgsPtH = (TH1D*)higgsPtFile->Get("kfactor");
-  //  std::cout << "Higgs Pt histogram : " << higgsPtH << std::endl;
+  TFile * higgsPtFile = NULL;new TFile(TString(cmsswBase)+"/src/HtoAA/data/"+HiggsPtFileName);
+  TH1D * higgsPtH = NULL;
+  TH1D * higgsPt_WPlusH = NULL;
+  TH1D * higgsPt_WMinusH = NULL;
+  TH1D * higgsPt_ZH = NULL;
+  if (applyHiggsPtWeight) { 
+    std::cout << "ApplyHiggsPtWeight = " << applyHiggsPtWeight << std::endl;
+    TString fullpath_HiggsPtFile = TString(cmsswBase)+"/src/HtoAA/data/"+HiggsPtFileName;
+    higgsPtFile = new TFile(fullpath_HiggsPtFile);
+    if (higgsPtFile->IsZombie()) {
+      std::cout << fullpath_HiggsPtFile << "  not found" << std::endl;
+      exit(-1);
+    }
+    if (isVH) {
+      std::cout << "IsVH = " << isVH << std::endl;
+      higgsPt_WPlusH = (TH1D*)higgsPtFile->Get("kfactor_WplusH");
+      higgsPt_WMinusH = (TH1D*)higgsPtFile->Get("kfactor_WminusH");
+      higgsPt_ZH = (TH1D*)higgsPtFile->Get("kfactor_ZH");
+      if (higgsPt_WPlusH==NULL) {
+	std::cout << "histogram kfactor_WplusH is not found in file " << fullpath_HiggsPtFile << std::endl;
+	exit(-1);
+      }
+      if (higgsPt_WMinusH==NULL) {
+	std::cout << "histogram kfactor_WminusH is not found in file " << fullpath_HiggsPtFile << std::endl;
+	exit(-1);
+      }
+      if (higgsPt_ZH==NULL) {
+	std::cout << "histogram kfactor_ZH is not found in file " << fullpath_HiggsPtFile << std::endl;
+	exit(-1);
+      }
+    }
+    else {
+      higgsPtH = (TH1D*)higgsPtFile->Get("kfactor");
+      if (higgsPtH==NULL) {
+	std::cout << "histogram kfactor is not found in file " << fullpath_HiggsPtFile << std::endl;
+	exit(-1);	
+      }
+    }
+  }
 
   // Trigger efficiencies
   ScaleFactor * SF_muon17 = new ScaleFactor();
@@ -634,6 +671,9 @@ int main(int argc, char * argv[]) {
 
      bool HiggsFound = false;
      unsigned int higgsIndex = 0;
+     bool isWplus = false;
+     bool isWminus = false;
+     bool isZ = false;
      if (!isData) {
        //       std::cout << "Generated particles = " << genparticles_count << std::endl;
        for (unsigned int iP=0; iP<genparticles_count; ++iP) {
@@ -643,6 +683,9 @@ int main(int argc, char * argv[]) {
 	   if (genparticles_pdgid[iP]==211) posPion.push_back(iP);
 	   if (genparticles_pdgid[iP]==-211) negPion.push_back(iP);
 	 }
+	 if (genparticles_pdgid[iP]==24) isWplus = true;
+	 if (genparticles_pdgid[iP]==-24) isWminus = true;
+	 if (genparticles_pdgid[iP]==23) isZ = true;
 	 if (genparticles_pdgid[iP]==35) {
 	   higgsIndex = iP;
 	   HiggsFound = true;
@@ -750,7 +793,18 @@ int main(int argc, char * argv[]) {
        if (applyHiggsPtWeight) {
 	 double HiggsPtForWeighting = higgsPt;
 	 if (higgsPt>500) HiggsPtForWeighting = 499;
-	 double higgsPtWeight = higgsPtH->GetBinContent(higgsPtH->FindBin(HiggsPtForWeighting));
+	 double higgsPtWeight = 1;
+	 if (isVH) {
+	   if (isWplus)
+	     higgsPtWeight = higgsPt_WPlusH->GetBinContent(higgsPt_WPlusH->FindBin(HiggsPtForWeighting));
+	   if (isWminus)
+	     higgsPtWeight = higgsPt_WMinusH->GetBinContent(higgsPt_WMinusH->FindBin(HiggsPtForWeighting));
+	   if (isZ)
+	     higgsPtWeight = higgsPt_ZH->GetBinContent(higgsPt_ZH->FindBin(HiggsPtForWeighting));
+	 }
+	 else {
+	   higgsPtWeight = higgsPtH->GetBinContent(higgsPtH->FindBin(HiggsPtForWeighting));
+	 }
 	 weight *= higgsPtWeight;
 	 //	 std::cout << "Higgs : " << genparticles_pdgid[higgsIndex] 
 	 //		   << "    pT = " << higgsLV.Pt()

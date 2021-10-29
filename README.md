@@ -520,3 +520,42 @@ BJetPt = 20
 One can run the analysis for various working points of the recommended tagger (pfDeepFlavourJetTags), namely tight (BTagCut = 0.7264), medium (BTagCut = 0.277) and loose (BTagCut = 0.0494), and estimate expected sensitivity in terms of expected upper limit as a function of the pseudoscalar mass. 
 Follow exactly the same analysis workflow as described in the section "Optimization of cut on dR(muon,track)".
 
+## Datacards 
+Datacards corresponding to the 2016 analysis and preliminary datacards for the 2018 analysis are located in the folder
+```
+$CMSSW_BASE/src/HtoAA/datacards
+```
+
+The 2016 datacards are named `haa-13TeV_ma${mass}.txt` and corresponding RooT files - `haa-13TeV_ma${mass}.root`.
+
+The 2018 datacards are `haa_2018-13TeV_ma${mass}.txt` and `haa_2018-13TeV_ma${mass}.root`.
+
+The datacards for each mass hypothesis ${mass} can be combined using script `CombineCards.bash`.
+This will produce datacards with names `haa-Run2_ma${mass}.txt`. 
+Limits can be computed with these datacards as well as with the 2016 or 2018 datacards individually
+
+```
+RunLimits.bash ${datacards}
+```
+  
+You should provide as an input parameter (${datacards}) the common datacard name. Available options are: 
+
+- haa-13TeV (2016)
+- haa_2018-13TeV (2018)
+- haa-Run2 (combination)
+
+The scripts call `combine` utility of the [CMS Higgs statistical package](http://cms-analysis.github.io/HiggsAnalysis-CombinedLimit) and creates RooT files named `${parameter}_limits_mH${i}.root` (one file per tested mass hypothesis) where info on median/observed limits is stored. The script creates also filelist named `${parameter}_limits.txt`. The filelist is then used by the macro
+```
+$CMSSW_BASE/src/HtoAA/4Tau/macros/PlotLimits.C
+
+#include "HttStylesNew.cc"
+#include "CMS_lumi.C"
+
+void PlotLimits(char* fileList = "haa-Run2_limits.txt",
+		bool blindData = true) {
+
+...
+}
+
+```
+

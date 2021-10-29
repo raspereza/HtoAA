@@ -544,7 +544,7 @@ You should provide as an input parameter (${datacards}) the common datacard name
 - haa_2018-13TeV (2018)
 - haa-Run2 (combination)
 
-The scripts call `combine` utility of the [CMS Higgs statistical package](http://cms-analysis.github.io/HiggsAnalysis-CombinedLimit) and creates RooT files named `${parameter}_limits_mH${i}.root` (one file per tested mass hypothesis) where info on median/observed limits is stored. The script creates also filelist named `${parameter}_limits.txt`. The filelist is then used by the macro
+The scripts call `combine` utility of the [CMS Higgs statistical package](http://cms-analysis.github.io/HiggsAnalysis-CombinedLimit) and creates RooT files named `${parameter}_limits_mH${i}.root` (one file per tested mass hypothesis) where info on median/observed limits is stored. The script produces also ascii file named `${parameter}_limits.txt` containing the list of files `${parameter}_limits_mH${i}.root`. This filelist should be passed to the macro, which plots limits:
 ```
 $CMSSW_BASE/src/HtoAA/4Tau/macros/PlotLimits.C
 

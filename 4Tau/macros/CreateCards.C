@@ -1,7 +1,8 @@
 #include "HtoH.h"
 void CreateCards(TString mass="5", // mass of pseudoscalar
-		 bool Azimov = true, //
-		 bool correlation = true
+		 bool Azimov = true, // replace data by background expectations 
+		 bool correlation = true, // apply correlations
+		 bool btagVeto = false // if true => bins = {0,1,2,3,4,5,20};
 		 ) {
 
   TString dir = "/nfs/dust/cms/user/rasp/Run/Run2018/H2aa/";
@@ -105,6 +106,9 @@ void CreateCards(TString mass="5", // mass of pseudoscalar
 
   int nBinsNew = 6;
   double bins[7] = {0,1,2,3,4,6,20};
+  if (btagVeto)
+    bins[5] = 5;
+
 
   TH1D * hist1d    = (TH1D*)TH1DtoTH1D(hist1dN23Old,nBinsNew,bins,true,"_new");
   TH1D * hist1dN45 = (TH1D*)TH1DtoTH1D(hist1dN45Old,nBinsNew,bins,true,"_new");

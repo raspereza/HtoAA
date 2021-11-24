@@ -1,7 +1,7 @@
 #include "HttStylesNew.cc"
 #include "HtoH.h"
 
-void CorrCoefficients() {
+void CorrCoefficients(bool btagVeto = false) {
 
   TString dir("/nfs/dust/cms/user/rasp/Run/Run2018/H2aa");
   SetStyle();
@@ -15,6 +15,11 @@ void CorrCoefficients() {
   int nBinsNew = 6;
   double bins[7]     = {0,1,2,3,4,6,20};
   double binsCorr[7] = {0,1,2,3,4,6,12};
+
+  if (btagVeto) {
+    bins[5] = 5;
+    binsCorr[5] = 5;
+  }
 
   TH1D * hist1D = (TH1D*)TH1DtoTH1D(hist1Dold,nBinsNew,bins,true,"_new");
   TH2D * hist2D = (TH2D*)TH2DtoTH2D(hist2Dold,nBinsNew,bins,nBinsNew,bins,"_sigNew");

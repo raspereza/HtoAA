@@ -643,7 +643,7 @@ int main(int argc, char * argv[]) {
    tree_->SetBranchAddress("muon_photonIso", muon_photonIso);
    tree_->SetBranchAddress("muon_puIso", muon_puIso);
    tree_->SetBranchAddress("muon_isMedium", muon_isMedium);
-   tree_->SetBranchAddress("muon_isICHEP", muon_isICHEP);
+   //   tree_->SetBranchAddress("muon_isICHEP", muon_isICHEP);
 
    // MET
    tree_->SetBranchAddress("pfmetcorr_ex", &metx);
@@ -1168,10 +1168,10 @@ int main(int argc, char * argv[]) {
      vector<bool> passMu45; passMu45.clear();
      for(UInt_t i=0;i<muon_count;i++){
        bool muonID = muon_isMedium[i]; // MC 
-       if (isData) {
-	 if (event_run >= 278820 && muon_isMedium[i]) muonID = true; // Run2016G-H
-	 if (event_run < 278820  && muon_isICHEP[i]) muonID = true; // Run2016B-F
-       }
+       //       if (isData) {
+       //	 if (event_run >= 278820 && muon_isMedium[i]) muonID = true; // Run2016G-H
+       //	 if (event_run < 278820  && muon_isICHEP[i]) muonID = true; // Run2016B-F
+       //       }
        if (!muonID) continue;
        if(fabs(muon_dxy[i])>dxyMuonCut) continue;
        if(fabs(muon_dz[i])>dzMuonCut) continue;

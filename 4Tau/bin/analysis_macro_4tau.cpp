@@ -134,6 +134,7 @@ int main(int argc, char * argv[]) {
   // ********** end of configuration *******************
 
   std::ifstream fileList(argv[2]);
+  std::ifstream fileListX(argv[2]);
 
   // event info
   ULong64_t event_nr;
@@ -402,32 +403,96 @@ int main(int argc, char * argv[]) {
   float genmu_Pt;
   float genmu_Eta;
   float genmu_P;
+  float genmu_Q;
 
   float gentrk_Pt;
   float gentrk_Eta;
   float gentrk_P;
+  float gentrk_Q;
 
   float genmutrk_Pt;
   float genmutrk_Eta;
   float genmutrk_P;
   float genmutrk_DR;
+  float genmutrk_M;
 
   TTree * higgsTree = new TTree("higgsTree","");
   higgsTree->Branch("HiggsPt",&higgsPt,"HiggsPt/F");
-  TTree * muTrkTree = new TTree("muTrkTree","");
 
-  muTrkTree->Branch("genmu_P",&genmu_P,"genmu_P/F");
-  muTrkTree->Branch("genmu_Pt",&genmu_Pt,"genmu_Pt/F");
-  muTrkTree->Branch("genmu_Eta",&genmu_Eta,"genmu_Eta/F");
+  float genmu1_Pt;
+  float genmu1_Eta;
+  float genmu1_P;
+  float genmu1_Q;
 
-  muTrkTree->Branch("gentrk_P",&gentrk_P,"gentrk_P/F");
-  muTrkTree->Branch("gentrk_Pt",&gentrk_Pt,"gentrk_Pt/F");
-  muTrkTree->Branch("gentrk_Eta",&gentrk_Eta,"gentrk_Eta/F");
+  float gentrk1_Pt;
+  float gentrk1_Eta;
+  float gentrk1_P;
+  float gentrk1_Q;
 
-  muTrkTree->Branch("genmutrk_P",&genmutrk_P,"genmutrk_P/F");
-  muTrkTree->Branch("genmutrk_Pt",&genmutrk_Pt,"genmutrk_Pt/F");
-  muTrkTree->Branch("genmutrk_Eta",&genmutrk_Eta,"genmutrk_Eta/F");
-  muTrkTree->Branch("genmutrk_DR",&genmutrk_DR,"genmutrk_DR/F");
+  float genmutrk1_Pt;
+  float genmutrk1_Eta;
+  float genmutrk1_P;
+  float genmutrk1_DR;
+  float genmutrk1_M;
+  
+  float genmu2_Pt;
+  float genmu2_Eta;
+  float genmu2_P;
+  float genmu2_Q;
+  
+  float gentrk2_Pt;
+  float gentrk2_Eta;
+  float gentrk2_P;
+  float gentrk2_Q;
+
+  float genmutrk2_Pt;
+  float genmutrk2_Eta;
+  float genmutrk2_P;
+  float genmutrk2_DR;
+  float genmutrk2_M;
+  
+  float dimuons_DR;
+  float dimuons_Pt;
+  float dimuons_P;
+
+  TTree * dimuonsTree = new TTree("dimuonsTree","");
+
+  dimuonsTree->Branch("genmu1_P",&genmu1_P,"genmu1_P/F");
+  dimuonsTree->Branch("genmu1_Pt",&genmu1_Pt,"genmu1_Pt/F");
+  dimuonsTree->Branch("genmu1_Eta",&genmu1_Eta,"genmu1_Eta/F");
+  dimuonsTree->Branch("genmu1_Q",&genmu1_Q,"genmu1_Q/F");
+
+  dimuonsTree->Branch("gentrk1_P",&gentrk1_P,"gentrk1_P/F");
+  dimuonsTree->Branch("gentrk1_Pt",&gentrk1_Pt,"gentrk1_Pt/F");
+  dimuonsTree->Branch("gentrk1_Eta",&gentrk1_Eta,"gentrk1_Eta/F");
+  dimuonsTree->Branch("gentrk1_Q",&gentrk1_Q,"gentrk1_Q/F");
+
+  dimuonsTree->Branch("genmutrk1_P",&genmutrk1_P,"genmutrk1_P/F");
+  dimuonsTree->Branch("genmutrk1_Pt",&genmutrk1_Pt,"genmutrk1_Pt/F");
+  dimuonsTree->Branch("genmutrk1_Eta",&genmutrk1_Eta,"genmutrk1_Eta/F");
+  dimuonsTree->Branch("genmutrk1_DR",&genmutrk1_DR,"genmutrk1_DR/F");
+  dimuonsTree->Branch("genmutrk1_M",&genmutrk1_M,"genmutrk1_M/F");
+
+  dimuonsTree->Branch("genmu2_P",&genmu2_P,"genmu2_P/F");
+  dimuonsTree->Branch("genmu2_Pt",&genmu2_Pt,"genmu2_Pt/F");
+  dimuonsTree->Branch("genmu2_Eta",&genmu2_Eta,"genmu2_Eta/F");
+  dimuonsTree->Branch("genmu2_Q",&genmu2_Q,"genmu2_Q/F");
+
+  dimuonsTree->Branch("gentrk2_P",&gentrk2_P,"gentrk2_P/F");
+  dimuonsTree->Branch("gentrk2_Pt",&gentrk2_Pt,"gentrk2_Pt/F");
+  dimuonsTree->Branch("gentrk2_Eta",&gentrk2_Eta,"gentrk2_Eta/F");
+  dimuonsTree->Branch("gentrk2_Q",&gentrk2_Q,"gentrk2_Q/F");
+
+  dimuonsTree->Branch("genmutrk2_P",&genmutrk2_P,"genmutrk2_P/F");
+  dimuonsTree->Branch("genmutrk2_Pt",&genmutrk2_Pt,"genmutrk2_Pt/F");
+  dimuonsTree->Branch("genmutrk2_Eta",&genmutrk2_Eta,"genmutrk2_Eta/F");
+  dimuonsTree->Branch("genmutrk2_DR",&genmutrk2_DR,"genmutrk2_DR/F");
+  dimuonsTree->Branch("genmutrk2_M",&genmutrk2_M,"genmutrk2_M/F");
+
+  dimuonsTree->Branch("dimuons_DR",&dimuons_DR,"dimuons_DR/F");
+  dimuonsTree->Branch("dimuons_Pt",&dimuons_Pt,"dimuons_Pt/F");
+  dimuonsTree->Branch("dimuons_P",&dimuons_P,"dimuons_P/F");
+
 
   string cmsswBase = (getenv ("CMSSW_BASE"));
 
@@ -514,9 +579,13 @@ int main(int argc, char * argv[]) {
   TString filen;
   int iFiles = 0;
   int events = 0;
+  int counterFiles = 0;
+  while (fileListX >> filen)
+    counterFiles++;
+
   while (fileList >> filen) {
    iFiles++;
-   cout << "file " << iFiles << " : " << filen << endl;
+   cout << "file " << iFiles << " out of " << counterFiles << " : " << filen << endl;
    
    TFile * file_ = TFile::Open(TString(filen));
    if (file_==NULL) continue;
@@ -664,6 +733,10 @@ int main(int argc, char * argv[]) {
        weight *= genweight;
      }
 
+     // **************************************************
+     // ********* generator studies **********************
+     // **************************************************
+
      std::vector<unsigned int> posPion; posPion.clear();
      std::vector<unsigned int> negPion; negPion.clear();
      std::vector<unsigned int> posMuon; posMuon.clear();
@@ -705,6 +778,24 @@ int main(int argc, char * argv[]) {
        //	 std::cout << std::endl;
        //       }
        if (posMuon.size()==2&&negMuon.size()==0&&negPion.size()==2&&posPion.size()==0) {
+
+	 unsigned int muonIndex1 = posMuon.at(0);
+	 TLorentzVector muonLV1; muonLV1.SetXYZT(genparticles_px[muonIndex1],
+						 genparticles_py[muonIndex1],
+						 genparticles_pz[muonIndex1],
+						 genparticles_e[muonIndex1]);
+
+	 unsigned int muonIndex2 = posMuon.at(1);
+	 TLorentzVector muonLV2; muonLV2.SetXYZT(genparticles_px[muonIndex2],
+						 genparticles_py[muonIndex2],
+						 genparticles_pz[muonIndex2],
+						 genparticles_e[muonIndex2]);
+
+	 unsigned int muonIndexLeading = muonIndex1;
+	 if (muonLV2.Pt()>muonLV1.Pt()) {
+	   muonIndexLeading = muonIndex2;
+	 }
+
 	 for (unsigned int iPion=0; iPion<negPion.size(); ++iPion) {
 	   unsigned int pionIndex = negPion.at(iPion);
 	   TLorentzVector pionLV; pionLV.SetXYZT(genparticles_px[pionIndex],
@@ -714,6 +805,7 @@ int main(int argc, char * argv[]) {
 	   pionPtH->Fill(pionLV.Pt(),weight);
 	   float dRMuonPion = 1e+8;
 	   TLorentzVector muLV;
+	   unsigned int muIndex = 0;
 	   for (unsigned int iMuon=0; iMuon<posMuon.size(); ++iMuon) {
 	     unsigned int muonIndex = posMuon.at(iMuon);
 	     TLorentzVector muonLV; muonLV.SetXYZT(genparticles_px[muonIndex],
@@ -725,25 +817,69 @@ int main(int argc, char * argv[]) {
 	     if (dRx<dRMuonPion) { 
 	       dRMuonPion = dRx;
 	       muLV = muonLV;
+	       muIndex = muonIndex;
 	     }
 	   }
 	   TLorentzVector mupionLV = muLV + pionLV;
-	   genmu_Pt = muLV.Pt();
-	   genmu_P = muLV.P();
-	   genmu_Eta = muLV.Eta();
-	   gentrk_Pt = pionLV.Pt();
-	   gentrk_P = pionLV.P();
-	   gentrk_Eta = pionLV.Eta();
-	   genmutrk_DR = dRMuonPion;
-	   genmutrk_Pt = mupionLV.Pt();
-	   genmutrk_P = mupionLV.P();
-	   genmutrk_Eta = mupionLV.Eta();
+	   if (muIndex==muonIndexLeading) {
+	     genmu1_Pt = muLV.Pt();
+	     genmu1_P = muLV.P();
+	     genmu1_Eta = muLV.Eta();
+	     genmu1_Q = 1.;
+	     gentrk1_Pt = pionLV.Pt();
+	     gentrk1_P = pionLV.P();
+	     gentrk1_Eta = pionLV.Eta();
+	     gentrk1_Q = -1.;
+	     genmutrk1_DR = dRMuonPion;
+	     genmutrk1_Pt = mupionLV.Pt();
+	     genmutrk1_P = mupionLV.P();
+	     genmutrk1_Eta = mupionLV.Eta();
+	     genmutrk1_M = mupionLV.M();
+	   }
+	   else {
+	     genmu2_Pt = muLV.Pt();
+	     genmu2_P = muLV.P();
+	     genmu2_Eta = muLV.Eta();
+	     genmu2_Q = 1.;
+	     gentrk2_Pt = pionLV.Pt();
+	     gentrk2_P = pionLV.P();
+	     gentrk2_Eta = pionLV.Eta();
+	     gentrk2_Q = -1.;
+	     genmutrk2_DR = dRMuonPion;
+	     genmutrk2_Pt = mupionLV.Pt();
+	     genmutrk2_P = mupionLV.P();
+	     genmutrk2_Eta = mupionLV.Eta();
+	     genmutrk2_M = mupionLV.M();
+	   }
 	   deltaRMuonPionH->Fill(dRMuonPion,weight);
-	   muonPtH->Fill(genmu_Pt,weight);
-	   muTrkTree->Fill();
+	   muonPtH->Fill(muLV.Pt(),weight);
 	 }
+	 TLorentzVector dimuonsLV = muonLV1 + muonLV2;
+	 dimuons_DR = deltaR(muonLV1.Eta(),muonLV1.Phi(),
+			     muonLV2.Eta(),muonLV2.Phi());
+	 dimuons_P = dimuonsLV.P();
+	 dimuons_Pt = dimuonsLV.Pt();
+	 dimuonsTree->Fill();
        }
        if (posMuon.size()==0&&negMuon.size()==2&&negPion.size()==0&&posPion.size()==2) {
+
+	 unsigned int muonIndex1 = negMuon.at(0);
+	 TLorentzVector muonLV1; muonLV1.SetXYZT(genparticles_px[muonIndex1],
+						 genparticles_py[muonIndex1],
+						 genparticles_pz[muonIndex1],
+						 genparticles_e[muonIndex1]);
+
+	 unsigned int muonIndex2 = negMuon.at(1);
+	 TLorentzVector muonLV2; muonLV2.SetXYZT(genparticles_px[muonIndex2],
+						 genparticles_py[muonIndex2],
+						 genparticles_pz[muonIndex2],
+						 genparticles_e[muonIndex2]);
+
+	 unsigned int muonIndexLeading = muonIndex1;
+	 if (muonLV2.Pt()>muonLV1.Pt()) {
+	   muonIndexLeading = muonIndex2;
+	 }
+
 	 for (unsigned int iPion=0; iPion<posPion.size(); ++iPion) {
 	   unsigned int pionIndex = posPion.at(iPion);
 	   TLorentzVector pionLV; pionLV.SetXYZT(genparticles_px[pionIndex],
@@ -753,6 +889,7 @@ int main(int argc, char * argv[]) {
 	   pionPtH->Fill(pionLV.Pt(),weight);
 	   float dRMuonPion = 1e+8;
 	   TLorentzVector muLV;
+	   unsigned int muIndex = 0;
 	   for (unsigned int iMuon=0; iMuon<negMuon.size(); ++iMuon) {
 	     unsigned int muonIndex = negMuon.at(iMuon);
 	     TLorentzVector muonLV; muonLV.SetXYZT(genparticles_px[muonIndex],
@@ -764,25 +901,55 @@ int main(int argc, char * argv[]) {
 	     if (dRx<dRMuonPion) { 
 	       dRMuonPion = dRx;
 	       muLV = muonLV;
+	       muIndex = muonIndex;
 	     }
 	   }
 	   TLorentzVector mupionLV = muLV + pionLV;
-	   genmu_Pt = muLV.Pt();
-	   genmu_P = muLV.P();
-	   genmu_Eta = muLV.Eta();
-	   gentrk_Pt = pionLV.Pt();
-	   gentrk_P = pionLV.P();
-	   gentrk_Eta = pionLV.Eta();
-	   genmutrk_DR = dRMuonPion;
-	   genmutrk_Pt = mupionLV.Pt();
-	   genmutrk_P = mupionLV.P();
-	   genmutrk_Eta = mupionLV.Eta();
+	   if (muIndex==muonIndexLeading) { 
+	     genmu1_Pt = muLV.Pt();
+	     genmu1_P = muLV.P();
+	     genmu1_Eta = muLV.Eta();
+	     genmu1_Q = -1.;
+	     gentrk1_Pt = pionLV.Pt();
+	     gentrk1_P = pionLV.P();
+	     gentrk1_Eta = pionLV.Eta();
+	     gentrk1_Q = 1.;
+	     genmutrk1_DR = dRMuonPion;
+	     genmutrk1_Pt = mupionLV.Pt();
+	     genmutrk1_P = mupionLV.P();
+	     genmutrk1_Eta = mupionLV.Eta();
+	     genmutrk1_M = mupionLV.M();
+	   }
+	   else {
+	     genmu2_Pt = muLV.Pt();
+	     genmu2_P = muLV.P();
+	     genmu2_Eta = muLV.Eta();
+	     genmu2_Q = -1.;
+	     gentrk2_Pt = pionLV.Pt();
+	     gentrk2_P = pionLV.P();
+	     gentrk2_Eta = pionLV.Eta();
+	     gentrk2_Q = 1.;
+	     genmutrk2_DR = dRMuonPion;
+	     genmutrk2_Pt = mupionLV.Pt();
+	     genmutrk2_P = mupionLV.P();
+	     genmutrk2_Eta = mupionLV.Eta();
+	     genmutrk2_M = mupionLV.M();
+	   }
 	   deltaRMuonPionH->Fill(dRMuonPion,weight);
-	   muonPtH->Fill(genmu_Pt,weight);
-	   muTrkTree->Fill();
+	   muonPtH->Fill(muLV.Pt(),weight);
 	 }
+	 TLorentzVector dimuonsLV = muonLV1 + muonLV2;
+	 dimuons_DR = deltaR(muonLV1.Eta(),muonLV1.Phi(),
+			     muonLV2.Eta(),muonLV2.Phi());
+	 dimuons_P = dimuonsLV.P();
+	 dimuons_Pt = dimuonsLV.Pt();
+	 dimuonsTree->Fill();
        }
      }
+     // ****************************************************
+     // *********** Higgs pT reweighting *******************
+     // ****************************************************
+
      if (HiggsFound) {
        TLorentzVector higgsLV; higgsLV.SetXYZT(genparticles_px[higgsIndex],
 					       genparticles_py[higgsIndex],

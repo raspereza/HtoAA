@@ -8,3 +8,5 @@
 /nfs/dust/cms/user/rasp/CMSSW/CMSSW_10_2_25/src/HtoAA/datacards/haa-Run2_limits_mH11.root
 /nfs/dust/cms/user/rasp/CMSSW/CMSSW_10_2_25/src/HtoAA/datacards/haa-Run2_limits_mH12.root
 /nfs/dust/cms/user/rasp/CMSSW/CMSSW_10_2_25/src/HtoAA/datacards/haa-Run2_limits_mH13.root
+/nfs/dust/cms/user/rasp/CMSSW/CMSSW_10_2_25/src/HtoAA/datacards/haa-Run2_limits_mH14.root
+/nfs/dust/cms/user/rasp/CMSSW/CMSSW_10_2_25/src/HtoAA/datacards/haa-Run2_limits_mH15.root

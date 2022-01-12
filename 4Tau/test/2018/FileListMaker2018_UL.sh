@@ -71,20 +71,18 @@ TTToHadronic
 WJetsToLNu
 )
 
-names_QCD=(QCD_Pt-20to30_MuEnrichedPt5  
-QCD_Pt-30to50_MuEnrichedPt5
-QCD_Pt-50to80_MuEnrichedPt5
-QCD_Pt-80to120_MuEnrichedPt5
-QCD_Pt-120to170_MuEnrichedPt5
-QCD_Pt-120to170_MuEnrichedPt5-ext1-v2
-QCD_Pt-170to300_MuEnrichedPt5
-QCD_Pt-300to470_MuEnrichedPt5
-QCD_Pt-300to470_MuEnrichedPt5-ext3-v1
-QCD_Pt-470to600_MuEnrichedPt5
-QCD_Pt-470to600_MuEnrichedPt5-ext1-v2
-QCD_Pt-600to800_MuEnrichedPt5
-QCD_Pt-800to1000_MuEnrichedPt5
-QCD_Pt-1000toInf_MuEnrichedPt5
+names_QCD=(QCD_Pt-15To20_MuEnrichedPt5
+QCD_Pt-20To30_MuEnrichedPt5  
+QCD_Pt-30To50_MuEnrichedPt5
+QCD_Pt-50To80_MuEnrichedPt5
+QCD_Pt-80To120_MuEnrichedPt5
+QCD_Pt-120To170_MuEnrichedPt5
+QCD_Pt-170To300_MuEnrichedPt5
+QCD_Pt-300To470_MuEnrichedPt5
+QCD_Pt-470To600_MuEnrichedPt5
+QCD_Pt-600To800_MuEnrichedPt5
+QCD_Pt-800To1000_MuEnrichedPt5
+QCD_Pt-1000_MuEnrichedPt5
 )
 
 i=0
@@ -111,18 +109,8 @@ j=0
 while [ $j -lt ${#names_QCD[@]} ] 
 do
     echo "Creating file list for sample" ${names_QCD[$j]} 
-    ls /pnfs/desy.de/cms/tier2/store/user/sconsueg/ntuples/H2aa_4tau/2018/mc/${names_QCD[$j]}/*root > ${names_QCD[$j]}
+    ls /pnfs/desy.de/cms/tier2/store/user/rasp/ntuples/H2AA/2018/mc/${names_QCD[$j]}/*root > ${names_QCD[$j]}
       
     j=`expr $j + 1` 
 done
 
-ls /pnfs/desy.de/cms/tier2/store/user/sconsueg/ntuples/H2aa_4tau/2018/mc/QCD_Pt-80to120_MuEnrichedPt5-ext1-v2/QCD_Pt-80to120_MuEnrichedPt5-ext1-v2/*root > QCD_Pt-80to120_MuEnrichedPt5-ext1-v2
-
-cat QCD_Pt-80to120_MuEnrichedPt5-ext1-v2 >> QCD_Pt-80to120_MuEnrichedPt5
-cat QCD_Pt-120to170_MuEnrichedPt5-ext1-v2 >> QCD_Pt-120to170_MuEnrichedPt5
-cat QCD_Pt-300to470_MuEnrichedPt5-ext3-v1 >> QCD_Pt-300to470_MuEnrichedPt5
-cat QCD_Pt-470to600_MuEnrichedPt5-ext1-v2 >> QCD_Pt-470to600_MuEnrichedPt5
-rm QCD_Pt-80to120_MuEnrichedPt5-ext1-v2
-rm QCD_Pt-120to170_MuEnrichedPt5-ext1-v2
-rm QCD_Pt-300to470_MuEnrichedPt5-ext3-v1
-rm QCD_Pt-470to600_MuEnrichedPt5-ext1-v2

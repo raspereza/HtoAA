@@ -683,7 +683,7 @@ int main(int argc, char * argv[]) {
   BTagCalibrationReader reader_B;
   BTagCalibrationReader reader_C;
   BTagCalibrationReader reader_Light;
-  if (applyBTagSF) {
+  if (applyBTagSF && !isData) {
     calib = BTagCalibration(bTagAlgorithm, BtagSfFile);
     reader_B = BTagCalibrationReader(BTagEntry::OP_TIGHT, "central",{"up","down"});
     reader_C = BTagCalibrationReader(BTagEntry::OP_TIGHT, "central",{"up","down"});
@@ -700,7 +700,7 @@ int main(int argc, char * argv[]) {
   TH2F  *tagEff_C     = 0;
   TH2F  *tagEff_Light = 0;
   TRandom3 *rand = new TRandom3();
-  if (applyBTagSF) {
+  if (applyBTagSF && !isData) {
     tagEff_B     = (TH2F*)fileTagging->Get("btag_eff_b");
     tagEff_C     = (TH2F*)fileTagging->Get("btag_eff_c");
     tagEff_Light = (TH2F*)fileTagging->Get("btag_eff_oth");
@@ -718,8 +718,8 @@ int main(int argc, char * argv[]) {
   SF_muon8->init_ScaleFactor(TString(cmsswBase)+"/src/HtoAA/data/"+TString(Muon8TriggerFile));
 
   // Correction workspace
-  TString corrWorkspaceFileName = TString(cmsswBase)+"/src/HtoAA/data/"+CorrectionsWorkspaceFileName;
-  TFile * correctionWorkSpaceFile = new TFile(corrWorkspaceFileName);
+  //  TString corrWorkspaceFileName = TString(cmsswBase)+"/src/HtoAA/data/"+CorrectionsWorkspaceFileName;
+  TFile * correctionWorkSpaceFile = new TFile(CorrectionsWorkspaceFileName);
   RooWorkspace *correctionWS = (RooWorkspace*)correctionWorkSpaceFile->Get("w");
 
   TString filen;
@@ -876,6 +876,8 @@ int main(int argc, char * argv[]) {
    TRandom3 rand;
 
    for (int iCand=0; iCand<numberOfCandidates; iCand++) {
+
+     //     std::cout << "Ok 0" << std::endl;
      
      tree_->GetEntry(iCand);
 
@@ -1281,7 +1283,8 @@ int main(int argc, char * argv[]) {
      puWeightH->Fill(puweight,1.0);
      weight *= puweight;
 
-     // checking if dimuon trigger bit is ON
+     // checking if dimuon trigger bit is ON (obsolete : do just trigger match
+     /*
      bool isDimuonTrigger = false;
      bool triggerFound = false;
      for (std::map<string,int>::iterator it=hltriggerresults->begin(); it!=hltriggerresults->end(); ++it) {
@@ -1295,13 +1298,14 @@ int main(int argc, char * argv[]) {
      }
      if (!triggerFound) 
        std::cout << "HLT path " << DiMuonTriggerName << " is not found" << std::endl;
-     if (!isDimuonTrigger) continue;
+     */
 
+     //     if (!isDimuonTrigger) continue;
      //     unsigned int ntrig = hltriggerresults->size();
      //     std::cout << "ntrig = " << ntrig << std::endl;
      //     for (std::map<string,int>::iterator it=hltriggerresults->begin(); it!=hltriggerresults->end(); ++it) 
-       //       std::cout << it->first << "  :  "  << it->second << std::endl;
-       //     std::cout << std::endl;
+     //       std::cout << it->first << "  :  "  << it->second << std::endl;
+     //     std::cout << std::endl;
 
      //     unsigned int npres = hltriggerprescales->size();
      //     std::cout << "npres = " << npres << std::endl;
@@ -1312,6 +1316,9 @@ int main(int argc, char * argv[]) {
      // ******************
      // applying btag veto
      // ******************
+
+     //     std::cout << "Ok 1" << std::endl;
+
      float weight_btag = 1.0;
      float weight_btag_up = 1.0;
      float weight_btag_down = 1.0;
@@ -1437,6 +1444,7 @@ int main(int argc, char * argv[]) {
 	 weight_btag_down = Pdata_down/Pdata;	 
        }
      }
+     //     std::cout << "Ok 2" << std::endl;
      
      // finding HLT filters in the HLT Filter library
      unsigned int nMu8Leg   = 0;
@@ -1542,6 +1550,8 @@ int main(int argc, char * argv[]) {
      if (muons.size()<2) continue; // quit event if number of good muons < 2
      counter_MuonSizeGTE2H->Fill(1.,weight);
 
+     //     std::cout << "Ok 3" << std::endl;
+
      // ************************************************
      // ********** Some trigger studies ****************
      // *** TripleMu triggers vs. DoubleMuSS trigger ***
@@ -1610,6 +1620,8 @@ int main(int argc, char * argv[]) {
 
      }
 
+     //     std::cout << "Ok 4" << std::endl;
+
      // *************************
      // selection of dimuon pairs 
      // *************************
@@ -1675,11 +1687,13 @@ int main(int argc, char * argv[]) {
 	 bool isTriggerMatched = true;
 	 if (applyTriggerMatch) {
 	   isTriggerMatched = (mu1MatchMu17&&mu2MatchMu8&&mu1PtHigh&&mu2PtLow)||(mu1MatchMu8&&mu2MatchMu17&&mu1PtLow&&mu2PtHigh);
-	   if (isData) {
-	     isTriggerMatched = isTriggerMatched && mu1MatchSS && mu2MatchSS;
+	   isTriggerMatched = isTriggerMatched && mu1MatchSS && mu2MatchSS;
+	   if (DiMuonTriggerName.Contains("HLT_Mu17_Mu8_SameSign")&&isData) {
 	     if (event_run<=274442||event_run>=280919) // when dZ filter is present
 	       isTriggerMatched = isTriggerMatched && mu1MatchDz && mu2MatchDz;
 	   }
+	   if (DiMuonTriggerName.Contains("HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ")) 
+	     isTriggerMatched = isTriggerMatched && mu1MatchDz && mu2MatchDz;
 	 }
 	 else {
 	   isTriggerMatched = (mu1PtHigh&&mu2PtLow) || (mu1PtLow&&mu2PtHigh);
@@ -1699,6 +1713,8 @@ int main(int argc, char * argv[]) {
        }
      }
 
+     //     std::cout << "Ok 5 " << std::endl;
+
      if (iLeading<0) continue;
      if (iTrailing<0) continue;
 
@@ -1713,17 +1729,21 @@ int main(int argc, char * argv[]) {
 
        if (ptLeading<10.0) ptLeading = 10.01;
        if (ptTrailing<10.0) ptTrailing = 10.01;
+       
+       //       std::cout << "before weighting " << std::endl;
 
        correctionWS->var("m_pt")->setVal(ptLeading);
        correctionWS->var("m_eta")->setVal(etaLeading);
-       double idLeadingW  = correctionWS->function("m_id_kit_ratio")->getVal();
+       double idLeadingW  = correctionWS->function("m_id_ic_ratio")->getVal();
        double trkLeadingW = correctionWS->function("m_trk_ratio")->getVal();
        idLeadingWeight = idLeadingW * trkLeadingW;
        correctionWS->var("m_pt")->setVal(ptTrailing);
        correctionWS->var("m_eta")->setVal(etaTrailing);
-       double idTrailingW = correctionWS->function("m_id_kit_ratio")->getVal();
+       double idTrailingW = correctionWS->function("m_id_ic_ratio")->getVal();
        double trkTrailingW = correctionWS->function("m_trk_ratio")->getVal();
        idTrailingWeight = idTrailingW * trkTrailingW;
+
+       //       std::cout << "after weighting" << std::endl;
 
        double effMu17dataTrailing = SF_muon17->get_EfficiencyData(ptTrailing,etaTrailing); 
        double effMu8dataTrailing = SF_muon8->get_EfficiencyData(ptTrailing,etaTrailing); 
@@ -1764,6 +1784,8 @@ int main(int argc, char * argv[]) {
      weight *= triggerWeight;
      weight *= idLeadingWeight;
      weight *= idTrailingWeight;
+
+     //     std::cout << "Ok 6" << std::endl;
 
      // dimuon selection passed 
      TLorentzVector LeadingMuon4; LeadingMuon4.SetXYZM(muon_px[iLeading],

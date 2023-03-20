@@ -1,4 +1,4 @@
-<Flags CXXFLAGS="-Wno-unused-variable -Wno-error=unused-but-set-variable -Wno-error=maybe-uninitialized" />
+<Flags CXXFLAGS="-Wno-unused-variable -Wno-error=unused-but-set-variable -Wno-error=maybe-uninitialized -fpermissive" />
 
 <bin name="Splitter" file="Splitter.cpp">
 </bin>
@@ -8,6 +8,42 @@
 </bin>
 
 <bin name="analysis_macro_4tau" file="analysis_macro_4tau.cpp">
+ <use name="rootgraphics"/>
+ <use name="root"/>
+ <use name="rootmath"/>
+ <use name="roottmva"/>
+ <use name="boost" />
+ <use name="boost_program_options"/>
+ <use name="HtoAA/Utilities"/>
+ <use name="HTT-utilities/LepEffInterface"/>
+ <use name="FWCore/Framework"/>
+ <use name="FWCore/ParameterSet"/>
+ <use name="DataFormats/Common"/>
+ <use name="PhysicsTools/Utilities"/>
+ <use name="CommonTools/Utils"/>
+ <use name="CondFormats/BTauObjects"/>
+ <use name="CondTools/BTau"/>
+</bin>
+
+<bin name="btag_eff" file="btag_eff.cpp">
+ <use name="rootgraphics"/>
+ <use name="root"/>
+ <use name="rootmath"/>
+ <use name="roottmva"/>
+ <use name="boost" />
+ <use name="boost_program_options"/>
+ <use name="HtoAA/Utilities"/>
+ <use name="HTT-utilities/LepEffInterface"/>
+ <use name="FWCore/Framework"/>
+ <use name="FWCore/ParameterSet"/>
+ <use name="DataFormats/Common"/>
+ <use name="PhysicsTools/Utilities"/>
+ <use name="CommonTools/Utils"/>
+ <use name="CondFormats/BTauObjects"/>
+ <use name="CondTools/BTau"/>
+</bin>
+
+<bin name="analysis_macro_trigger" file="analysis_macro_trigger.cpp">
  <use name="rootgraphics"/>
  <use name="root"/>
  <use name="rootmath"/>

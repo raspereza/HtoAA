@@ -60,7 +60,9 @@ int main(int argc, char * argv[]) {
 
   const bool applyGoodRunSelection = cfg.get<bool>("ApplyGoodRunSelection");
   const string jsonFile = cfg.get<string>("jsonFile");
-
+  
+  //const bool applyDRRandomization = cfg.get<bool>("ApplyDRRandomization");
+  const float randomCone = cfg.get<float>("RandomCone");
   
   // kinematic cuts on muons
   const float ptMuonCut      = cfg.get<float>("ptMuonLowCut");
@@ -114,14 +116,11 @@ int main(int argc, char * argv[]) {
   const string MuonTriggerEffFile = cfg.get<string>("MuonTriggerEffFile");
   const string MuonIdEffFile     = cfg.get<string>("MuonIdEffFile");
 
-  const string recoilFileName = cfg.get<string>("RecoilFileName");
-  TString RecoilFileName(recoilFileName);
-
   // sys uncertainties
-  const float jetES = cfg.get<float>("JetES"); 
-  const float unclusteredES = cfg.get<float>("UnclusteredES"); 
-  const float zPtReweighting = cfg.get<float>("ZPtReweighting"); 
-  const float topPtReweighting = cfg.get<float>("TopPtReweighting"); 
+  const int jetES = cfg.get<int>("JetES"); 
+  const int unclusteredES = cfg.get<int>("UnclusteredES"); 
+  const int zPtReweighting = cfg.get<int>("ZPtReweighting"); 
+  const int topPtReweighting = cfg.get<int>("TopPtReweighting"); 
 
   // ********** end of configuration *******************
 
@@ -263,6 +262,7 @@ int main(int argc, char * argv[]) {
   std::string rootFileName(argv[2]);
   
   std::string chainName("makeroottree/AC1B");
+  std::string initNtupleName("initroottree/AC1B");
   TString TStrName(rootFileName);
   std::cout <<TStrName <<std::endl;
   if (TStrName.Contains("Signal")) {
@@ -288,70 +288,78 @@ int main(int argc, char * argv[]) {
   // histograms after final selection
   TH1D * ptMuonH         = new TH1D("ptMuonH","",100,0,500);
   TH1D * ptMuonH_2p5to5  = new TH1D("ptMuonH_2p5to5","",100,0,500);
-  TH1D * ptMuonH_5to7p5  = new TH1D("ptMuonH_5to7p5","",100,0,500);
-  TH1D * ptMuonH_7p5to10 = new TH1D("ptMuonH_7p5to10","",100,0,500);
+  TH1D * ptMuonH_5to10  = new TH1D("ptMuonH_5to10","",100,0,500);
   TH1D * ptMuonH_10to15  = new TH1D("ptMuonH_10to15","",100,0,500);
   TH1D * ptMuonH_15to20  = new TH1D("ptMuonH_15to20","",100,0,500);
   TH1D * ptMuonH_20toInf = new TH1D("ptMuonH_20toInf","",100,0,500);
+  
+  TH1D * ptTrkH_2p5to5  = new TH1D("ptTrkH_2p5to5","",200,0,100);                                 
+  TH1D * ptTrkH_5to10 = new TH1D("ptTrkH_5to10","",200,0,100);            
+  TH1D * ptTrkH_10to15  = new TH1D("ptTrkH_10to15","",200,0,100);                   
+  TH1D * ptTrkH_15to20  = new TH1D("ptTrkH_15to20","",200,0,100);                   
+  TH1D * ptTrkH_20toInf = new TH1D("ptTrkH_20toInf","",200,0,100);                               
+  
   TH1D * etaMuonH = new TH1D("etaMuonH","",25,-2.5,2.5);
   TH1D * ptTrackH = new TH1D("ptTrackH","",400,0,400);
   TH1D * ptTrackLowH = new TH1D("ptTrackLowH","",100,0,50);
   TH1D * etaTrackH = new TH1D("etaTrackH","",25,-2.5,2.5);
   TH1D * dzTrackH = new TH1D("dzTrackH","",100,0,1.);
   TH1D * dxyTrackH = new TH1D("dxyTrackH","",100,0,1.0);
+  
   TH1D * mTH         = new TH1D("mTH","",500,0,500);
   TH1D * mTH_2p5to5  = new TH1D("mTH_2p5to5","",500,0,500);
-  TH1D * mTH_5to7p5  = new TH1D("mTH_5to7p5","",500,0,500);
-  TH1D * mTH_7p5to10 = new TH1D("mTH_7p5to10","",500,0,500);
+  TH1D * mTH_5to10  = new TH1D("mTH_5to10","",500,0,500);
   TH1D * mTH_10to15  = new TH1D("mTH_10to15","",500,0,500);
   TH1D * mTH_15to20  = new TH1D("mTH_15to20","",500,0,500);
   TH1D * mTH_20toInf = new TH1D("mTH_20toInf","",500,0,500);
+  
   TH1D * invMassMuTrkH         = new TH1D("invMassMuTrkH","",500,0,500);
   TH1D * invMassMuTrkH_2p5to5  = new TH1D("invMassMuTrkH_2p5to5","",500,0,500);
-  TH1D * invMassMuTrkH_5to7p5  = new TH1D("invMassMuTrkH_5to7p5","",500,0,500);
-  TH1D * invMassMuTrkH_7p5to10 = new TH1D("invMassMuTrkH_7p5to10","",500,0,500);
+  TH1D * invMassMuTrkH_5to10  = new TH1D("invMassMuTrkH_5to10","",500,0,500);
   TH1D * invMassMuTrkH_10to15  = new TH1D("invMassMuTrkH_10to15","",500,0,500);
   TH1D * invMassMuTrkH_15to20  = new TH1D("invMassMuTrkH_15to20","",500,0,500);
   TH1D * invMassMuTrkH_20toInf = new TH1D("invMassMuTrkH_20toInf","",500,0,500);
+  
+  TH1D * invMassMuTrkH_Gt10 = new TH1D("invMassMuTrkH_Gt10","",500,0,500);
+  
   TH1D * metH         = new TH1D("metH","",500,0,500);
   TH1D * metH_2p5to5  = new TH1D("metH_2p5to5","",500,0,500);
-  TH1D * metH_5to7p5  = new TH1D("metH_5to7p5","",500,0,500);
-  TH1D * metH_7p5to10 = new TH1D("metH_7p5to10","",500,0,500);
+  TH1D * metH_5to10  = new TH1D("metH_5to10","",500,0,500);
   TH1D * metH_10to15  = new TH1D("metH_10to15","",500,0,500);
   TH1D * metH_15to20  = new TH1D("metH_15to20","",500,0,500);
   TH1D * metH_20toInf = new TH1D("metH_20toInf","",500,0,500);
+  
   TH1D * dzetaH         = new TH1D("dzetaH","",200,-100,100);
   TH1D * dzetaH_2p5to5  = new TH1D("dzetaH_2p5to5","",200,-100,100);
-  TH1D * dzetaH_5to7p5  = new TH1D("dzetaH_5to7p5","",200,-100,100);
-  TH1D * dzetaH_7p5to10 = new TH1D("dzetaH_7p5to10","",200,-100,100);
+  TH1D * dzetaH_5to10  = new TH1D("dzetaH_5to10","",200,-100,100);
   TH1D * dzetaH_10to15  = new TH1D("dzetaH_10to15","",200,-100,100);
   TH1D * dzetaH_15to20  = new TH1D("dzetaH_15to20","",200,-100,100);
   TH1D * dzetaH_20toInf = new TH1D("dzetaH_20toInf","",200,-100,100);
+  
   TH1D * dPhiMuonTrkH = new TH1D("dPhiMuonTrkH","",32,0,3.15);
   TH1D * dPhiMuonTrkH_2p5to5  = new TH1D("dPhiMuonTrkH_2p5to5","",32,0,3.15);
-  TH1D * dPhiMuonTrkH_5to7p5  = new TH1D("dPhiMuonTrkH_5to7p5","",32,0,3.15);
-  TH1D * dPhiMuonTrkH_7p5to10 = new TH1D("dPhiMuonTrkH_7p5to10","",32,0,3.15);
+  TH1D * dPhiMuonTrkH_5to10  = new TH1D("dPhiMuonTrkH_5to10","",32,0,3.15);
   TH1D * dPhiMuonTrkH_10to15  = new TH1D("dPhiMuonTrkH_10to15","",32,0,3.15);
   TH1D * dPhiMuonTrkH_15to20  = new TH1D("dPhiMuonTrkH_15to20","",32,0,3.15);
   TH1D * dPhiMuonTrkH_20toInf = new TH1D("dPhiMuonTrkH_20toInf","",32,0,3.15);
+  
   TH1D * dPhiMuonMetH = new TH1D("dPhiMuonMetH","",32,0,3.15);
   TH1D * dPhiMuonMetH_2p5to5  = new TH1D("dPhiMuonMetH_2p5to5","",32,0,3.15);
-  TH1D * dPhiMuonMetH_5to7p5  = new TH1D("dPhiMuonMetH_5to7p5","",32,0,3.15);
-  TH1D * dPhiMuonMetH_7p5to10 = new TH1D("dPhiMuonMetH_7p5to10","",32,0,3.15);
+  TH1D * dPhiMuonMetH_5to10  = new TH1D("dPhiMuonMetH_5to10","",32,0,3.15);
   TH1D * dPhiMuonMetH_10to15  = new TH1D("dPhiMuonMetH_10to15","",32,0,3.15);
   TH1D * dPhiMuonMetH_15to20  = new TH1D("dPhiMuonMetH_15to20","",32,0,3.15);
   TH1D * dPhiMuonMetH_20toInf = new TH1D("dPhiMuonMetH_20toInf","",32,0,3.15);
+  
   TH1D * dPhiTrkMetH = new TH1D("dPhiTrkMetH","",32,0,3.15);
   TH1D * dPhiTrkMetH_2p5to5  = new TH1D("dPhiTrkMetH_2p5to5","",32,0,3.15);
-  TH1D * dPhiTrkMetH_5to7p5  = new TH1D("dPhiTrkMetH_5to7p5","",32,0,3.15);
-  TH1D * dPhiTrkMetH_7p5to10 = new TH1D("dPhiTrkMetH_7p5to10","",32,0,3.15);
+  TH1D * dPhiTrkMetH_5to10  = new TH1D("dPhiTrkMetH_5to10","",32,0,3.15);
   TH1D * dPhiTrkMetH_10to15  = new TH1D("dPhiTrkMetH_10to15","",32,0,3.15);
   TH1D * dPhiTrkMetH_15to20  = new TH1D("dPhiTrkMetH_15to20","",32,0,3.15);
   TH1D * dPhiTrkMetH_20toInf = new TH1D("dPhiTrkMetH_20toInf","",32,0,3.15);
+  
   TH1D * dPhiMuonJetH = new TH1D("dPhiMuonJetH","",32,0,3.15);
   TH1D * dPhiMuonJetH_2p5to5  = new TH1D("dPhiMuonJetH_2p5to5","",32,0,3.15);
-  TH1D * dPhiMuonJetH_5to7p5  = new TH1D("dPhiMuonJetH_5to7p5","",32,0,3.15);
-  TH1D * dPhiMuonJetH_7p5to10 = new TH1D("dPhiMuonJetH_7p5to10","",32,0,3.15);
+  TH1D * dPhiMuonJetH_5to10  = new TH1D("dPhiMuonJetH_5to10","",32,0,3.15);
   TH1D * dPhiMuonJetH_10to15  = new TH1D("dPhiMuonJetH_10to15","",32,0,3.15);
   TH1D * dPhiMuonJetH_15to20  = new TH1D("dPhiMuonJetH_15to20","",32,0,3.15);
   TH1D * dPhiMuonJetH_20toInf = new TH1D("dPhiMuonJetH_20toInf","",32,0,3.15);
@@ -360,12 +368,14 @@ int main(int argc, char * argv[]) {
   // histograms not after final selection
   TH1D * nCloseTrksH         = new TH1D("nCloseTrksH","",20,0,20);
   TH1D * nCloseTrksH_2p5to5  = new TH1D("nCloseTrksH_2p5to5","",20,0,20);
-  TH1D * nCloseTrksH_5to7p5  = new TH1D("nCloseTrksH_5to7p5","",20,0,20);
-  TH1D * nCloseTrksH_7p5to10 = new TH1D("nCloseTrksH_7p5to10","",20,0,20);
+  TH1D * nCloseTrksH_5to10  = new TH1D("nCloseTrksH_5to10","",20,0,20);
   TH1D * nCloseTrksH_10to15  = new TH1D("nCloseTrksH_10to15","",20,0,20);
   TH1D * nCloseTrksH_15to20  = new TH1D("nCloseTrksH_15to20","",20,0,20);
   TH1D * nCloseTrksH_20toInf = new TH1D("nCloseTrksH_20toInf","",20,0,20);
-
+  
+  //weights
+  TH1D * checkWeights = new TH1D("weights","",20,0,10);
+  
   string cmsswBase = (getenv ("CMSSW_BASE"));
 
   // Load CrystalBallEfficiency class
@@ -394,7 +404,7 @@ int main(int argc, char * argv[]) {
       std::stringstream ss(s);
       ss >> periods.back();
     }
-  }
+  } 
 
   // PU reweighting
   PileUp * PUofficial = new PileUp();
@@ -412,11 +422,14 @@ int main(int argc, char * argv[]) {
   SF_muonTrigger->init_ScaleFactor(TString(cmsswBase)+"/src/"+TString(MuonTriggerEffFile));
 
   // Zpt reweighting for LO DY samples
-  TFile *f_zptweight = new TFile(TString(cmsswBase) + "/src/" + ZptweightFile, "read");
-  TH2D *h_zptweight = (TH2D*)f_zptweight->Get("zptmass_histo");
-  
+  /*TFile *f_zptweight = new TFile(TString(cmsswBase) + "/src/" + ZptweightFile, "read");
+  TH2D *h_zptweight = (TH2D*)f_zptweight->Get("zptmass_histo");*/
+  TString correctionsWorkspaceFileName = TString(cmsswBase)+"/src/" + ZptweightFile;
+  TFile * correctionWorkSpaceFile = new TFile(correctionsWorkspaceFileName);
+  RooWorkspace *correctionWS = (RooWorkspace*)correctionWorkSpaceFile->Get("w");
+
   // Recoil correctot
-  RecoilCorrector recoilMetCorrector(RecoilFileName);
+  // RecoilCorrector recoilMetCorrector(RecoilFileName);
 
   TString filen;
   int iFiles = 0;
@@ -430,9 +443,11 @@ int main(int argc, char * argv[]) {
    if (file_==NULL) continue;
 
    TTree * tree_ = (TTree*)file_->Get(TString(chainName));
+   TTree * inittree_ = (TTree*)file_->Get(TString(initNtupleName));
    
    if (tree_==NULL) continue;
-
+   if (inittree_==NULL) continue;
+   
    tree_->SetMaxVirtualSize(3000000);
    // event info
    tree_->SetBranchAddress("event_nr", &event_nr);
@@ -464,7 +479,7 @@ int main(int argc, char * argv[]) {
    tree_->SetBranchAddress("muon_photonIso", muon_photonIso);
    tree_->SetBranchAddress("muon_puIso", muon_puIso);
    tree_->SetBranchAddress("muon_isMedium", muon_isMedium);
-   tree_->SetBranchAddress("muon_isICHEP", muon_isICHEP);
+   //tree_->SetBranchAddress("muon_isICHEP", muon_isICHEP);
 
    // MET
    tree_->SetBranchAddress("pfmetcorr_ex", &metx);
@@ -517,6 +532,7 @@ int main(int argc, char * argv[]) {
    tree_->SetBranchAddress("numtruepileupinteractions",&numtruepileupinteractions);
 
    if (!isData) {
+     inittree_->SetBranchAddress("genweight",&genweight);
      tree_->SetBranchAddress("genweight",&genweight);
      tree_->SetBranchAddress("genparticles_count", &genparticles_count);
      tree_->SetBranchAddress("genparticles_e", genparticles_e);
@@ -557,6 +573,21 @@ int main(int argc, char * argv[]) {
    //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
    //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  Event Loop
    //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+   
+   for (int iCand=0; iCand<inittree_->GetEntries(); iCand++) {
+     
+     inittree_->GetEntry(iCand);
+     
+     float weight =1;
+     if (!isData) {
+       weight *= genweight;
+     }
+
+     histWeightsH->Fill(1.0,weight);
+   }
+   
+   delete inittree_;
+     
    for (int iCand=0; iCand<numberOfCandidates; iCand++) {
      
      tree_->GetEntry(iCand);
@@ -568,9 +599,6 @@ int main(int argc, char * argv[]) {
      if (!isData) {
        weight *= genweight;
      }
-
-     histWeightsH->Fill(1.0,weight);
-
 
      // -------------------------------------------- Sys uncertainties
      if (!isData) {
@@ -639,20 +667,17 @@ int main(int argc, char * argv[]) {
        float zptmassweight = 1;
        float bosonMass = genBosonLV.M();
        float bosonPt = genBosonLV.Pt();
-       double massxmin = h_zptweight->GetXaxis()->GetXmin();
-       double massxmax = h_zptweight->GetXaxis()->GetXmax();
-
-       double ptxmin = h_zptweight->GetYaxis()->GetXmin();
-       double ptxmax = h_zptweight->GetYaxis()->GetXmax();
-
-       if (bosonMass > 50.0) {
+       if (bosonMass>50.0) {
 	 float bosonMassX = bosonMass;
 	 float bosonPtX = bosonPt;
-	 if (bosonMassX > massxmax) bosonMassX = massxmax - h_zptweight->GetXaxis()->GetBinWidth(h_zptweight->GetYaxis()->GetNbins())*0.5;//Merijn: if doesn't work, lower by 1/2 binwidth..
-	 if (bosonPtX < ptxmin)     bosonPtX = ptxmin + h_zptweight->GetYaxis()->GetBinWidth(1)*0.5;
-	 if (bosonPtX > ptxmax)     bosonPtX = ptxmax - h_zptweight->GetYaxis()->GetBinWidth(h_zptweight->GetYaxis()->GetNbins())*0.5;
-	 zptmassweight = h_zptweight->GetBinContent(h_zptweight->GetXaxis()->FindBin(bosonMassX), h_zptweight->GetYaxis()->FindBin(bosonPtX));
-       }	
+	 if (bosonMassX>1000.) bosonMassX = 1000.;
+	 if (bosonPtX<1.)      bosonPtX = 1.;
+	 if (bosonPtX>1000.)   bosonPtX = 1000.;
+	 correctionWS->var("z_gen_pt")->setVal(bosonPtX);
+	 correctionWS->var("z_gen_mass")->setVal(bosonMassX);
+	 if(zPtReweighting > 0) zptmassweight = correctionWS->function("zptmass_weight_nom")->getVal(); // or zptmass_weight_nom
+	 else if(zPtReweighting < 0) zptmassweight = 1;
+       }
 
        weight *= zptmassweight;
      }
@@ -663,7 +688,7 @@ int main(int argc, char * argv[]) {
        if(topPtReweighting < 0)       topptweight = 1;
        else if(topPtReweighting > 0 ) topptweight *= topptweight;
        weight *= topptweight;
-     }
+     } 
 
      if (isData) {
 	if (applyGoodRunSelection) {
@@ -709,6 +734,7 @@ int main(int argc, char * argv[]) {
      for (unsigned int i=0; i<nfilters; ++i) {
        //       std::cout << hltfilters->at(i) << std::endl;
        TString HLTFilter(hltfilters->at(i));
+      // cout << HLTFilter << endl;
        if (HLTFilter==SingleMuonFilterName) {
 	 singleMuonFilter = i;
 	 isSingleMuonFilter = true;
@@ -748,10 +774,10 @@ int main(int argc, char * argv[]) {
      vector<unsigned int> looseMuons; looseMuons.clear();
      for(UInt_t i=0;i<muon_count;i++){
        bool muonID = muon_isMedium[i]; // MC 
-       if (isData) {
-	 if (event_run >= 278820 && muon_isMedium[i]) muonID = true; // Run2016G-H
-	 if (event_run < 278820  && muon_isICHEP[i]) muonID = true; // Run2016B-F
-       }
+        // if (isData) {
+	// if (event_run >= 278820 && muon_isMedium[i]) muonID = true; // Run2016G-H
+	// if (event_run < 278820  && muon_isICHEP[i]) muonID = true; // Run2016B-F
+       // }
        if(!muonID) continue;
        if(fabs(muon_dxy[i])>dxyMuonCut) continue;
        if(fabs(muon_dz[i])>dzMuonCut) continue;
@@ -824,6 +850,17 @@ int main(int argc, char * argv[]) {
        // now check isolation
        bool isolation = true;
        int nCloseTrks_ = 0;
+       float refDirectionEta = trk4.Eta();
+       float refDirectionPhi = trk4.Phi();       
+	if (randomCone>0.01) {
+	   rand.SetSeed((int)((trk4.Eta()+2.4)*100000));
+	   double rannum2  = rand.Rndm();
+	   float phiIso = 2*TMath::Pi()*rannum2;
+	   refDirectionEta = refDirectionEta + randomCone*TMath::Cos(phiIso);
+	   refDirectionPhi = refDirectionPhi + randomCone*TMath::Sin(phiIso);
+       }
+       
+       
        for (unsigned int jTrk=0; jTrk<track_count; ++jTrk)  {
 	 if (iTrk==jTrk) continue;
 	 if (fabs(track_charge[jTrk])<0.1) continue; // make sure we are not taking neutral stuff
@@ -831,21 +868,22 @@ int main(int argc, char * argv[]) {
 	 if (fabs(track_dz[jTrk])>dzTrkLooseCut) continue;
 	 if (fabs(track_eta[jTrk])>etaTrkCut) continue;
 	 if (fabs(track_pt[jTrk])<ptTrkLooseCut) continue;
-	 float dRtracks = deltaR(trk4.Eta(),trk4.Phi(),track_eta[jTrk],track_phi[jTrk]);
+	 float dRtracks = deltaR(refDirectionEta,refDirectionPhi,track_eta[jTrk],track_phi[jTrk]);
 	 if (dRtracks<dRIsoMuon) {
-	   isolation = false;
+	   //isolation = false;
 	   nCloseTrks_ += 1;
 	 }
        }
 
        nCloseTrksH->Fill(nCloseTrks_,weight);
        if(trackLV.Pt()<5.) nCloseTrksH_2p5to5->Fill(nCloseTrks_,weight);
-       else if(trackLV.Pt()<7.5) nCloseTrksH_5to7p5->Fill(nCloseTrks_,weight);
-       else if(trackLV.Pt()<10.) nCloseTrksH_7p5to10->Fill(nCloseTrks_,weight);
+       else if(trackLV.Pt()<10.) nCloseTrksH_5to10->Fill(nCloseTrks_,weight);
        else if(trackLV.Pt()<15.) nCloseTrksH_10to15->Fill(nCloseTrks_,weight);
        else if(trackLV.Pt()<20.) nCloseTrksH_15to20->Fill(nCloseTrks_,weight);
        else if(trackLV.Pt()>20.) nCloseTrksH_20toInf->Fill(nCloseTrks_,weight);
-
+       
+       isolation = nCloseTrks_ == 1;
+       
        if(!isolation) continue;
 
        if (trk4.Pt()>ptTrkMax) {
@@ -909,7 +947,7 @@ int main(int argc, char * argv[]) {
        float bosonPy = genBosonLV.Py();
        float lepPx = genVisBosonLV.Px();
        float lepPy = genVisBosonLV.Py();
-       recoilMetCorrector.CorrectWithHist(metx,mety,bosonPx,bosonPy,lepPx,lepPy,njets_forrecoil,metcorr_x,metcorr_y);
+       //recoilMetCorrector.CorrectWithHist(metx,mety,bosonPx,bosonPy,lepPx,lepPy,njets_forrecoil,metcorr_x,metcorr_y);
        metx = metcorr_x;
        mety = metcorr_y;
        met = TMath::Sqrt(metx*metx+mety*mety);
@@ -925,7 +963,7 @@ int main(int argc, char * argv[]) {
      float dPhiTrkMet = dPhiFrom2P(trackLV.Px(),trackLV.Py(),metx,mety);
      float mT = TMath::Sqrt(2*met*muonLV.Pt()*(1-TMath::Cos(dPhiMuMet)));
 
-     if(mT > 30) continue;
+     if(mT > 40) continue;
      
      // compute dzeta
      float dzeta = 0;
@@ -965,20 +1003,21 @@ int main(int argc, char * argv[]) {
 	   muTrigWeight = trigWeightData/trigWeightMC;
        }
        else
-	 muTrigWeight = trigWeightData;
+	 muTrigWeight = trigWeightData; 
 
-       /*
-	 std::cout << "pT(muon) = " << muonLV.Pt()
-	 << "   eta(muon) = " << muonLV.Eta() << std::endl;
-	 std::cout << "Trigger weight = " << muTrigWeight << std::endl;
-	 std::cout << "Id/Iso  weight = " << muIdWeight << std::endl;
-       */
+       
+      /* std::cout << "pT(muon) = " << muonLV.Pt()
+       << "   eta(muon) = " << muonLV.Eta() << std::endl;
+       std::cout << "Trigger weight = " << muTrigWeight << std::endl;
+       std::cout << "Id/Iso  weight = " << muIdWeight << std::endl;*/
+       
 
-     }
+    }
      muTrigWeightH->Fill(muTrigWeight,1.0);
      weight *= muTrigWeight;
      muIdWeightH->Fill(muIdWeight,1.0);
      weight *= muIdWeight;
+     checkWeights->Fill(weight);
      ptMuonH->Fill(muonLV.Pt(),weight);
      etaMuonH->Fill(muonLV.Eta(),weight);
      ptTrackH->Fill(trackLV.Pt(),weight);
@@ -993,8 +1032,10 @@ int main(int argc, char * argv[]) {
      if(njets>0) dPhiMuonJetH->Fill(dPhiMuJet,weight);
      dPhiTrkMetH->Fill(dPhiTrkMet,weight);
      nJetH->Fill(njets,weight);
+     if(trackLV.Pt()>10.) invMassMuTrkH_Gt10->Fill(invMassMuTrk,weight);
      if(trackLV.Pt()<5.){
        ptMuonH_2p5to5->Fill(muonLV.Pt(),weight);
+       ptTrkH_2p5to5->Fill(trackLV.Pt(),weight);
        mTH_2p5to5->Fill(mT,weight);
        invMassMuTrkH_2p5to5->Fill(invMassMuTrk,weight);
        metH_2p5to5->Fill(met,weight);
@@ -1004,30 +1045,21 @@ int main(int argc, char * argv[]) {
        if(njets>0) dPhiMuonJetH_2p5to5->Fill(dPhiMuJet,weight);
        dPhiTrkMetH_2p5to5->Fill(dPhiTrkMet,weight);
      }
-     else if(trackLV.Pt()<7.5){
-       ptMuonH_5to7p5->Fill(muonLV.Pt(),weight);
-       mTH_5to7p5->Fill(mT,weight);
-       invMassMuTrkH_5to7p5->Fill(invMassMuTrk,weight);
-       metH_5to7p5->Fill(met,weight);
-       dzetaH_5to7p5->Fill(dzeta,weight);
-       dPhiMuonTrkH_5to7p5->Fill(dPhiMuTrk,weight);
-       dPhiMuonMetH_5to7p5->Fill(dPhiMuMet,weight);
-       if(njets>0) dPhiMuonJetH_5to7p5->Fill(dPhiMuJet,weight);
-       dPhiTrkMetH_5to7p5->Fill(dPhiTrkMet,weight);
-     }
      else if(trackLV.Pt()<10.){
-       ptMuonH_7p5to10->Fill(muonLV.Pt(),weight);
-       mTH_7p5to10->Fill(mT,weight);
-       invMassMuTrkH_7p5to10->Fill(invMassMuTrk,weight);
-       metH_7p5to10->Fill(met,weight);
-       dzetaH_7p5to10->Fill(dzeta,weight);
-       dPhiMuonTrkH_7p5to10->Fill(dPhiMuTrk,weight);
-       dPhiMuonMetH_7p5to10->Fill(dPhiMuMet,weight);
-       if(njets>0) dPhiMuonJetH_7p5to10->Fill(dPhiMuJet,weight);
-       dPhiTrkMetH_7p5to10->Fill(dPhiTrkMet,weight);
+       ptMuonH_5to10->Fill(muonLV.Pt(),weight);
+       ptTrkH_5to10->Fill(trackLV.Pt(),weight); 
+       mTH_5to10->Fill(mT,weight);
+       invMassMuTrkH_5to10->Fill(invMassMuTrk,weight);
+       metH_5to10->Fill(met,weight);
+       dzetaH_5to10->Fill(dzeta,weight);
+       dPhiMuonTrkH_5to10->Fill(dPhiMuTrk,weight);
+       dPhiMuonMetH_5to10->Fill(dPhiMuMet,weight);
+       if(njets>0) dPhiMuonJetH_5to10->Fill(dPhiMuJet,weight);
+       dPhiTrkMetH_5to10->Fill(dPhiTrkMet,weight);
      }
      else if(trackLV.Pt()<15.){
        ptMuonH_10to15->Fill(muonLV.Pt(),weight);
+       ptTrkH_10to15->Fill(trackLV.Pt(),weight);
        mTH_10to15->Fill(mT,weight);
        invMassMuTrkH_10to15->Fill(invMassMuTrk,weight);
        metH_10to15->Fill(met,weight);
@@ -1039,6 +1071,7 @@ int main(int argc, char * argv[]) {
      }
      else if(trackLV.Pt()<20.){
        ptMuonH_15to20->Fill(muonLV.Pt(),weight);
+       ptTrkH_15to20->Fill(trackLV.Pt(),weight);
        mTH_15to20->Fill(mT,weight);
        invMassMuTrkH_15to20->Fill(invMassMuTrk,weight);
        metH_15to20->Fill(met,weight);
@@ -1050,6 +1083,7 @@ int main(int argc, char * argv[]) {
      }
      else if(trackLV.Pt()>20.){
        ptMuonH_20toInf->Fill(muonLV.Pt(),weight);
+       ptTrkH_20toInf->Fill(trackLV.Pt(),weight);
        mTH_20toInf->Fill(mT,weight);
        invMassMuTrkH_20toInf->Fill(invMassMuTrk,weight);
        metH_20toInf->Fill(met,weight);
@@ -1079,6 +1113,3 @@ int main(int argc, char * argv[]) {
   //delete file;
 
 }// int main loop 
-
- 
-

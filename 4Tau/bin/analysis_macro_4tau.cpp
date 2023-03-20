@@ -26,17 +26,63 @@
 #include "TRandom.h"
 #include "TRandom3.h"
 #include "HtoAA/Utilities/interface/json.h"
+#include "HtoAA/Utilities/interface/Jets.h"
 #include "HTT-utilities/LepEffInterface/interface/ScaleFactor.h"
 #include "HtoAA/Utilities/interface/PileUp.h"
 #include "HtoAA/Utilities/interface/functions.h"
-
+#include "CondFormats/BTauObjects/interface/BTagCalibration.h"
+#include "CondTools/BTau/interface/BTagCalibrationReader.h"
+#include "CondFormats/BTauObjects/interface/BTagEntry.h"
 
 #include "RooWorkspace.h"
 #include "RooAbsReal.h"
 #include "RooRealVar.h"
 
-
 using namespace std;
+
+float impactParameter(float * v0, float * v, float * p, float &dxy, float &dz) {
+
+  float mod = TMath::Sqrt(p[0]*p[0]+p[1]*p[1]+p[2]*p[2]);
+
+  float n[3];
+  n[0] = p[0]/mod;
+  n[1] = p[1]/mod;
+  n[2] = p[2]/mod;
+
+  float t = 
+    (v0[0]-v[0])*n[0] + 
+    (v0[1]-v[1])*n[1] +
+    (v0[2]-v[2])*n[2];
+
+  float vert[3];
+  vert[0] = v[0] + n[0]*t;
+  vert[1] = v[1] + n[1]*t;
+  vert[2] = v[2] + n[2]*t;
+
+
+
+  float ip = TMath::Sqrt(
+			 (vert[0]-v0[0])*(vert[0]-v0[0])+
+			 (vert[1]-v0[1])*(vert[1]-v0[1])+
+			 (vert[2]-v0[2])*(vert[2]-v0[2])
+			 );
+
+
+  t = (v0[0]-v[0])*n[0] + (v0[1]-v[1])*n[1];
+  vert[0] = v[0] + n[0]*t;
+  vert[1] = v[1] + n[1]*t;
+  vert[2] = v[2] + n[2]*t;
+
+  dxy = TMath::Sqrt(
+		    (vert[0]-v0[0])*(vert[0]-v0[0])+
+		    (vert[1]-v0[1])*(vert[1]-v0[1])
+		    );
+
+  dz = abs(vert[2]-v0[2]);
+
+  return ip;
+
+}
 
 int main(int argc, char * argv[]) {
   
@@ -51,6 +97,7 @@ int main(int argc, char * argv[]) {
   Config cfg(argv[1]);
 
   const bool isData = cfg.get<bool>("IsData");
+  const int era = cfg.get<int>("Era");
   const bool applyHiggsPtWeight = cfg.get<bool>("ApplyHiggsPtWeight");
 
   // kinematic cuts on muons
@@ -194,26 +241,29 @@ int main(int argc, char * argv[]) {
   Float_t genparticles_px[1000];
   Float_t genparticles_py[1000];
   Float_t genparticles_pz[1000];
+  Float_t genparticles_vx[1000];
+  Float_t genparticles_vy[1000];
+  Float_t genparticles_vz[1000];
   Int_t genparticles_pdgid[1000];
   Int_t genparticles_status[1000];
   UInt_t genparticles_info[1000];
 
-  UInt_t          pfjet_count;
-  Float_t         pfjet_e[200];   //[pfjet_count]
-  Float_t         pfjet_pt[200];    //[pfjet_count]
-  Float_t         pfjet_eta[200];   //[pfjet_count]
-  Float_t         pfjet_phi[200];   //[pfjet_count]
-  Float_t         pfjet_neutralhadronicenergy[200];   //[pfjet_count]
-  Float_t         pfjet_chargedhadronicenergy[200];   //[pfjet_count]
-  Float_t         pfjet_neutralemenergy[200];   //[pfjet_count]
-  Float_t         pfjet_chargedemenergy[200];   //[pfjet_count]
-  Float_t         pfjet_muonenergy[200];   //[pfjet_count]
-  Float_t         pfjet_chargedmuonenergy[200];   //[pfjet_count]
-  UInt_t          pfjet_chargedmulti[200];   //[pfjet_count]
-  UInt_t          pfjet_neutralmulti[200];   //[pfjet_count]
-  UInt_t          pfjet_chargedhadronmulti[200];   //[pfjet_count]
-  Int_t           pfjet_flavour[200];   //[pfjet_count]
-  Float_t         pfjet_btag[200][10];   //[pfjet_count]
+  UInt_t   pfjet_count;
+  Float_t  pfjet_e[200];   //[pfjet_count]
+  Float_t  pfjet_pt[200];    //[pfjet_count]
+  Float_t  pfjet_eta[200];   //[pfjet_count]
+  Float_t  pfjet_phi[200];   //[pfjet_count]
+  Float_t  pfjet_neutralhadronicenergy[200];   //[pfjet_count]
+  Float_t  pfjet_chargedhadronicenergy[200];   //[pfjet_count]
+  Float_t  pfjet_neutralemenergy[200];   //[pfjet_count]
+  Float_t  pfjet_chargedemenergy[200];   //[pfjet_count]
+  Float_t  pfjet_muonenergy[200];   //[pfjet_count]
+  Float_t  pfjet_chargedmuonenergy[200];   //[pfjet_count]
+  UInt_t   pfjet_chargedmulti[200];   //[pfjet_count]
+  UInt_t   pfjet_neutralmulti[200];   //[pfjet_count]
+  UInt_t   pfjet_chargedhadronmulti[200];   //[pfjet_count]
+  Int_t    pfjet_flavour[200];   //[pfjet_count]
+  Float_t  pfjet_btag[200][10];   //[pfjet_count]
 
   float genweight;
 
@@ -222,6 +272,10 @@ int main(int argc, char * argv[]) {
   float met;
   float metphi;
   
+  float primvertex_x;
+  float primvertex_y;
+  float primvertex_z;
+
    // Trigger
   unsigned int trigobject_count;
   float trigobject_px[1000];
@@ -307,6 +361,14 @@ int main(int argc, char * argv[]) {
   TH1D * InvMassTrailingH = new TH1D("InvMassTrailingH","",20,0.,20.);
   TH1D * InvMassH = new TH1D("InvMassH","",20,0.,20.);
   TH2D * InvMass2DH = new TH2D("InvMass2DH","",20,0.,20.,20,0.,20.);
+
+  // btag variations ->
+  TH1D * InvMassH_btagUp = new TH1D("InvMassH_btagUp","",20,0.,20.);
+  TH2D * InvMass2DH_btagUp = new TH2D("InvMass2DH_btagUp","",20,0.,20.,20,0.,20.);
+
+  TH1D * InvMassH_btagDown = new TH1D("InvMassH_btagDown","",20,0.,20.);
+  TH2D * InvMass2DH_btagDown = new TH2D("InvMass2DH_btagDown","",20,0.,20.,20,0.,20.);
+  
 
   TH1D * MetSelH = new TH1D("MetH","",400,0.,400.);
   TH1D * mTtotSelH = new TH1D("mTtotSelH","",400,0.,400.);
@@ -423,6 +485,10 @@ int main(int argc, char * argv[]) {
   float genmu1_Eta;
   float genmu1_P;
   float genmu1_Q;
+  unsigned int genmu1_ntrk;
+  unsigned int genmu1_npart;
+  unsigned int genmu1_ntrkIp;
+  unsigned int genmu1_npartIp;
 
   float gentrk1_Pt;
   float gentrk1_Eta;
@@ -439,6 +505,10 @@ int main(int argc, char * argv[]) {
   float genmu2_Eta;
   float genmu2_P;
   float genmu2_Q;
+  unsigned int genmu2_ntrk;
+  unsigned int genmu2_npart;
+  unsigned int genmu2_ntrkIp;
+  unsigned int genmu2_npartIp;
   
   float gentrk2_Pt;
   float gentrk2_Eta;
@@ -455,12 +525,42 @@ int main(int argc, char * argv[]) {
   float dimuons_Pt;
   float dimuons_P;
 
+  unsigned int npart;
+  unsigned int npartIp;
+  unsigned int ntrk;
+  unsigned int ntrkIp;
+
+  float npu;
+  float xvertex;
+  float yvertex;
+  float zvertex;
+
+  float vgen_x;
+  float vgen_y;
+  float vgen_z;
+
+  float puweight;
+
   TTree * dimuonsTree = new TTree("dimuonsTree","");
+
+  dimuonsTree->Branch("xvertex",&xvertex,"xvertex/F");
+  dimuonsTree->Branch("yvertex",&yvertex,"yvertex/F");
+  dimuonsTree->Branch("zvertex",&zvertex,"zvertex/F");
+
+  dimuonsTree->Branch("xvertex_gen",&vgen_x,"xvertex_gen/F");
+  dimuonsTree->Branch("yvertex_gen",&vgen_y,"yvertex_gen/F");
+  dimuonsTree->Branch("zvertex_gen",&vgen_z,"zvertex_gen/F");
+
+  dimuonsTree->Branch("puweight",&puweight,"puweight/F");
 
   dimuonsTree->Branch("genmu1_P",&genmu1_P,"genmu1_P/F");
   dimuonsTree->Branch("genmu1_Pt",&genmu1_Pt,"genmu1_Pt/F");
   dimuonsTree->Branch("genmu1_Eta",&genmu1_Eta,"genmu1_Eta/F");
   dimuonsTree->Branch("genmu1_Q",&genmu1_Q,"genmu1_Q/F");
+  dimuonsTree->Branch("genmu1_ntrk",&genmu1_ntrk,"genmu1_ntrkIp/I");
+  dimuonsTree->Branch("genmu1_npart",&genmu1_npart,"genmu1_npartIp/I");
+  dimuonsTree->Branch("genmu1_ntrkIp",&genmu1_ntrkIp,"genmu1_ntrkIp/I");
+  dimuonsTree->Branch("genmu1_npartIp",&genmu1_npartIp,"genmu1_npartIp/I");
 
   dimuonsTree->Branch("gentrk1_P",&gentrk1_P,"gentrk1_P/F");
   dimuonsTree->Branch("gentrk1_Pt",&gentrk1_Pt,"gentrk1_Pt/F");
@@ -477,6 +577,10 @@ int main(int argc, char * argv[]) {
   dimuonsTree->Branch("genmu2_Pt",&genmu2_Pt,"genmu2_Pt/F");
   dimuonsTree->Branch("genmu2_Eta",&genmu2_Eta,"genmu2_Eta/F");
   dimuonsTree->Branch("genmu2_Q",&genmu2_Q,"genmu2_Q/F");
+  dimuonsTree->Branch("genmu2_ntrk",&genmu2_ntrk,"genmu2_ntrk/i");
+  dimuonsTree->Branch("genmu2_npart",&genmu2_npart,"genmu2_npart/i");
+  dimuonsTree->Branch("genmu2_ntrkIp",&genmu2_ntrkIp,"genmu2_ntrkIp/i");
+  dimuonsTree->Branch("genmu2_npartIp",&genmu2_npartIp,"genmu2_npartIp/i");
 
   dimuonsTree->Branch("gentrk2_P",&gentrk2_P,"gentrk2_P/F");
   dimuonsTree->Branch("gentrk2_Pt",&gentrk2_Pt,"gentrk2_Pt/F");
@@ -493,6 +597,12 @@ int main(int argc, char * argv[]) {
   dimuonsTree->Branch("dimuons_Pt",&dimuons_Pt,"dimuons_Pt/F");
   dimuonsTree->Branch("dimuons_P",&dimuons_P,"dimuons_P/F");
 
+  dimuonsTree->Branch("npart",&npart,"npart/i");
+  dimuonsTree->Branch("npartIp",&npartIp,"npartIp/i");
+
+  dimuonsTree->Branch("ntrk",&ntrk,"ntrk/i");
+  dimuonsTree->Branch("ntrkIp",&ntrkIp,"ntrkIp/i");
+  dimuonsTree->Branch("npu",&npu,"npu/F");
 
   string cmsswBase = (getenv ("CMSSW_BASE"));
 
@@ -565,6 +675,42 @@ int main(int argc, char * argv[]) {
     }
   }
 
+  const bool applyBTagSF = cfg.get<bool>("ApplyBTagSF");
+
+  // BTag SF file
+  const string BtagSfFile = cfg.get<string>("BtagSfFile");
+  BTagCalibration calib;
+  BTagCalibrationReader reader_B;
+  BTagCalibrationReader reader_C;
+  BTagCalibrationReader reader_Light;
+  if (applyBTagSF) {
+    calib = BTagCalibration(bTagAlgorithm, BtagSfFile);
+    reader_B = BTagCalibrationReader(BTagEntry::OP_TIGHT, "central",{"up","down"});
+    reader_C = BTagCalibrationReader(BTagEntry::OP_TIGHT, "central",{"up","down"});
+    reader_Light = BTagCalibrationReader(BTagEntry::OP_TIGHT, "central",{"up","down"});
+    reader_B.load(calib, BTagEntry::FLAV_B, "comb");
+    reader_C.load(calib, BTagEntry::FLAV_C, "comb");
+    reader_Light.load(calib, BTagEntry::FLAV_UDSG, "comb");
+  }
+  
+  // BTAG efficiency for various flavours ->
+  TString fileBtagEff = (TString)cfg.get<string>("BtagMCeffFile");
+  TFile *fileTagging  = new TFile(fileBtagEff);
+  TH2F  *tagEff_B     = 0;
+  TH2F  *tagEff_C     = 0;
+  TH2F  *tagEff_Light = 0;
+  TRandom3 *rand = new TRandom3();
+  if (applyBTagSF) {
+    tagEff_B     = (TH2F*)fileTagging->Get("btag_eff_b");
+    tagEff_C     = (TH2F*)fileTagging->Get("btag_eff_c");
+    tagEff_Light = (TH2F*)fileTagging->Get("btag_eff_oth");
+  }
+  float MaxBJetPt = 1000.;
+  float MinBJetPt = 20.;
+  float MaxBJetEta = 2.4;
+  float MinBJetEta = 0.0;
+
+
   // Trigger efficiencies
   ScaleFactor * SF_muon17 = new ScaleFactor();
   SF_muon17->init_ScaleFactor(TString(cmsswBase)+"/src/HtoAA/data/"+TString(Muon17TriggerFile));
@@ -617,6 +763,11 @@ int main(int argc, char * argv[]) {
    tree_->SetBranchAddress("event_nr", &event_nr);
    tree_->SetBranchAddress("event_run", &event_run);
    tree_->SetBranchAddress("event_luminosityblock", &event_luminosityblock);
+
+   // Primary vertex
+   tree_->SetBranchAddress("primvertex_x",&primvertex_x);
+   tree_->SetBranchAddress("primvertex_y",&primvertex_y);
+   tree_->SetBranchAddress("primvertex_z",&primvertex_z);
 
    // Muons
    tree_->SetBranchAddress("muon_count", &muon_count);
@@ -710,6 +861,9 @@ int main(int argc, char * argv[]) {
      tree_->SetBranchAddress("genparticles_px", genparticles_px);
      tree_->SetBranchAddress("genparticles_py", genparticles_py);
      tree_->SetBranchAddress("genparticles_pz", genparticles_pz);
+     tree_->SetBranchAddress("genparticles_vx", genparticles_vx);
+     tree_->SetBranchAddress("genparticles_vy", genparticles_vy);
+     tree_->SetBranchAddress("genparticles_vz", genparticles_vz);
      tree_->SetBranchAddress("genparticles_pdgid", genparticles_pdgid);
      tree_->SetBranchAddress("genparticles_status", genparticles_status);
      tree_->SetBranchAddress("genparticles_info", genparticles_info);
@@ -733,14 +887,33 @@ int main(int argc, char * argv[]) {
        weight *= genweight;
      }
 
+     puweight = 1.0;
+     npu = 0.0;
+     if (!isData) {
+       puweight = float(PUofficial->get_PUweight(double(numtruepileupinteractions)));
+       //       std::cout << "n(true interactions) = " << numtruepileupinteractions << "   :  PU weight = " << puweight << std::endl; 
+       npu = numtruepileupinteractions;
+     }
+
      // **************************************************
      // ********* generator studies **********************
      // **************************************************
 
-     std::vector<unsigned int> posPion; posPion.clear();
-     std::vector<unsigned int> negPion; negPion.clear();
-     std::vector<unsigned int> posMuon; posMuon.clear();
-     std::vector<unsigned int> negMuon; negMuon.clear();
+     //     std::vector<unsigned int> posPion; posPion.clear();
+     //     std::vector<unsigned int> negPion; negPion.clear();
+     //     std::vector<unsigned int> posMuon; posMuon.clear();
+     //     std::vector<unsigned int> negMuon; negMuon.clear();
+     //     std::vector<unsigned int> allPions; allPions.clear();
+     std::vector<unsigned int> genMuons; genMuons.clear();
+     std::vector<unsigned int> genPions; genPions.clear();
+
+     vgen_x = 0;
+     vgen_y = 0;
+     vgen_z = 0;
+
+     xvertex = primvertex_x;
+     yvertex = primvertex_y;
+     zvertex = primvertex_z;
 
      bool HiggsFound = false;
      unsigned int higgsIndex = 0;
@@ -748,13 +921,47 @@ int main(int argc, char * argv[]) {
      bool isWminus = false;
      bool isZ = false;
      if (!isData) {
-       //       std::cout << "Generated particles = " << genparticles_count << std::endl;
+       // 
+       // std::cout << "Generated particles = " << genparticles_count << std::endl;
+       //       
+       npart = 0;
+       ntrk = 0;
+       npartIp = 0;
+       ntrkIp = 0;
+       for (unsigned int iT=0; iT<track_count; ++iT) {
+	 float chargeTrk = TMath::Abs(track_charge[iT]);
+	 if (chargeTrk>0.5) {
+	   if (track_pt[iT]>ptTrkLooseCut&&TMath::Abs(track_eta[iT])<etaTrkCut) {
+	     ntrk++;
+	     /*
+	       std::cout << "track : " << ntrk << "  pdgId = " << track_ID[iT] 
+	       << "   pT = " << track_pt[iT] 
+	       << "   eta = " << track_eta[iT]
+	       << "   dxy = " << track_dxy[iT]
+	       << "   dz  = " << track_dz[iT] 
+	       << "   purity = " << track_highPurity[iT] << std::endl;
+	     */
+	     if (abs(track_dxy[iT])<dxyTrkLooseCut&&TMath::Abs(track_dz[iT])<dzTrkLooseCut)
+	       ntrkIp++;
+	   }
+	 }
+       }
+       // std::cout << std::endl;
+
        for (unsigned int iP=0; iP<genparticles_count; ++iP) {
-	 if (genparticles_status[iP]==1&&genparticles_info[iP]==12) {
-	   if (genparticles_pdgid[iP]==13) negMuon.push_back(iP);
-	   if (genparticles_pdgid[iP]==-13) posMuon.push_back(iP);
-	   if (genparticles_pdgid[iP]==211) posPion.push_back(iP);
-	   if (genparticles_pdgid[iP]==-211) negPion.push_back(iP);
+	 //	 if (genparticles_status[iP]==1&&genparticles_info[iP]==12) {
+	 if (genparticles_status[iP]==1&&(genparticles_info[iP]==12||genparticles_info[iP]==1)) {
+	   if (genparticles_pdgid[iP]==13||genparticles_pdgid[iP]==-13) genMuons.push_back(iP);
+	   if (genparticles_pdgid[iP]==211||genparticles_pdgid[iP]==-211) { 
+	     TLorentzVector partLV; partLV.SetXYZT(genparticles_px[iP],
+                                                   genparticles_py[iP],
+                                                   genparticles_pz[iP],
+                                                   genparticles_e[iP]);
+	     float partEta = TMath::Abs(partLV.Eta());
+	     float partPt = partLV.Pt();
+	     if (partPt>ptTrkCut&&partEta<etaTrkCut)
+	       genPions.push_back(iP);
+	   }
 	 }
 	 if (genparticles_pdgid[iP]==24) isWplus = true;
 	 if (genparticles_pdgid[iP]==-24) isWminus = true;
@@ -766,9 +973,55 @@ int main(int argc, char * argv[]) {
 						   genparticles_py[iP],
 						   genparticles_pz[iP],
 						   genparticles_e[iP]);
+	   vgen_x = genparticles_vx[iP];
+	   vgen_y = genparticles_vy[iP];
+	   vgen_z = genparticles_vz[iP];
 	   
 	 }
        }
+
+       for (unsigned int iP=0; iP<genparticles_count; ++iP) {
+	 if (genparticles_status[iP]==1) {
+	   int pdgid = TMath::Abs(genparticles_pdgid[iP]);
+	   if (pdgid==11||pdgid==13||pdgid==211) {
+	     TLorentzVector partLV;
+	     partLV.SetXYZT(genparticles_px[iP],
+			    genparticles_py[iP],
+			    genparticles_pz[iP],
+			    genparticles_e[iP]);
+	     
+	     if (partLV.Pt()>ptTrkLooseCut&&TMath::Abs(partLV.Eta())<etaTrkCut) {	       
+	       //	   if (partLV.Pt()>0.0&&TMath::Abs(partLV.Eta())<5.0) {	       
+	       npart++;
+	       float v0[3];
+	       float v[3];
+	       float ppart[3];
+	       ppart[0] = partLV.Px();
+	       ppart[1] = partLV.Py();
+	       ppart[2] = partLV.Pz();
+	       v0[0] = vgen_x;
+	       v0[1] = vgen_y;
+	       v0[2] = vgen_z;
+	       v[0] = genparticles_vx[iP];
+	       v[1] = genparticles_vy[iP];
+	       v[2] = genparticles_vz[iP];
+	       float dxypart = 0;
+	       float dzpart  = 0;
+	       float ip = impactParameter(v0, v, ppart, dxypart, dzpart);
+	       //	     std::cout << npart << "  pdgId = " << genparticles_pdgid[iP] 
+	       //		       << "   pT = " << partLV.Pt() 
+	       //		       << "   eta = " << partLV.Eta()
+	       //		       << "   dxy = " << dxypart
+	       //		       << "   dz  = " << dzpart << std::endl;
+	       //	     if (dxypart<dxyTrkLooseCut&&dzpart<dzTrkLooseCut) {
+	       if (ip<dzTrkLooseCut) {
+		 npartIp++;
+	       }
+	     }
+	   }
+	 }
+       }
+       //       std::cout << std::endl;
        //       if (posMuon.size()==2||negMuon.size()==2) {
        //	 std::cout << "H->aa->4tau : " << std::endl;
        //	 std::cout << "Number of mu-   : " << negMuon.size() << std::endl;
@@ -777,175 +1030,189 @@ int main(int argc, char * argv[]) {
        //	 std::cout << "Number of pion+ : " << posPion.size() << std::endl;
        //	 std::cout << std::endl;
        //       }
+
+       //       std::vector<unsigned int> genPions; genPions.clear();
+
+       /*
+       int qmuon = 0;
        if (posMuon.size()==2&&negMuon.size()==0&&negPion.size()==2&&posPion.size()==0) {
-
-	 unsigned int muonIndex1 = posMuon.at(0);
-	 TLorentzVector muonLV1; muonLV1.SetXYZT(genparticles_px[muonIndex1],
-						 genparticles_py[muonIndex1],
-						 genparticles_pz[muonIndex1],
-						 genparticles_e[muonIndex1]);
-
-	 unsigned int muonIndex2 = posMuon.at(1);
-	 TLorentzVector muonLV2; muonLV2.SetXYZT(genparticles_px[muonIndex2],
-						 genparticles_py[muonIndex2],
-						 genparticles_pz[muonIndex2],
-						 genparticles_e[muonIndex2]);
-
-	 unsigned int muonIndexLeading = muonIndex1;
-	 if (muonLV2.Pt()>muonLV1.Pt()) {
-	   muonIndexLeading = muonIndex2;
-	 }
-
-	 for (unsigned int iPion=0; iPion<negPion.size(); ++iPion) {
-	   unsigned int pionIndex = negPion.at(iPion);
-	   TLorentzVector pionLV; pionLV.SetXYZT(genparticles_px[pionIndex],
-						 genparticles_py[pionIndex],
-						 genparticles_pz[pionIndex],
-						 genparticles_e[pionIndex]);
-	   pionPtH->Fill(pionLV.Pt(),weight);
-	   float dRMuonPion = 1e+8;
-	   TLorentzVector muLV;
-	   unsigned int muIndex = 0;
-	   for (unsigned int iMuon=0; iMuon<posMuon.size(); ++iMuon) {
-	     unsigned int muonIndex = posMuon.at(iMuon);
-	     TLorentzVector muonLV; muonLV.SetXYZT(genparticles_px[muonIndex],
-						   genparticles_py[muonIndex],
-						   genparticles_pz[muonIndex],
-						   genparticles_e[muonIndex]);
-	     float dRx = deltaR(pionLV.Eta(),pionLV.Phi(),
-				muonLV.Eta(),muonLV.Phi());
-	     if (dRx<dRMuonPion) { 
-	       dRMuonPion = dRx;
-	       muLV = muonLV;
-	       muIndex = muonIndex;
-	     }
-	   }
-	   TLorentzVector mupionLV = muLV + pionLV;
-	   if (muIndex==muonIndexLeading) {
-	     genmu1_Pt = muLV.Pt();
-	     genmu1_P = muLV.P();
-	     genmu1_Eta = muLV.Eta();
-	     genmu1_Q = 1.;
-	     gentrk1_Pt = pionLV.Pt();
-	     gentrk1_P = pionLV.P();
-	     gentrk1_Eta = pionLV.Eta();
-	     gentrk1_Q = -1.;
-	     genmutrk1_DR = dRMuonPion;
-	     genmutrk1_Pt = mupionLV.Pt();
-	     genmutrk1_P = mupionLV.P();
-	     genmutrk1_Eta = mupionLV.Eta();
-	     genmutrk1_M = mupionLV.M();
-	   }
-	   else {
-	     genmu2_Pt = muLV.Pt();
-	     genmu2_P = muLV.P();
-	     genmu2_Eta = muLV.Eta();
-	     genmu2_Q = 1.;
-	     gentrk2_Pt = pionLV.Pt();
-	     gentrk2_P = pionLV.P();
-	     gentrk2_Eta = pionLV.Eta();
-	     gentrk2_Q = -1.;
-	     genmutrk2_DR = dRMuonPion;
-	     genmutrk2_Pt = mupionLV.Pt();
-	     genmutrk2_P = mupionLV.P();
-	     genmutrk2_Eta = mupionLV.Eta();
-	     genmutrk2_M = mupionLV.M();
-	   }
-	   deltaRMuonPionH->Fill(dRMuonPion,weight);
-	   muonPtH->Fill(muLV.Pt(),weight);
-	 }
-	 TLorentzVector dimuonsLV = muonLV1 + muonLV2;
-	 dimuons_DR = deltaR(muonLV1.Eta(),muonLV1.Phi(),
-			     muonLV2.Eta(),muonLV2.Phi());
-	 dimuons_P = dimuonsLV.P();
-	 dimuons_Pt = dimuonsLV.Pt();
-	 dimuonsTree->Fill();
+	 genMuons = posMuon;
+	 genPions = negPion;
+	 qmuon = 1;
        }
-       if (posMuon.size()==0&&negMuon.size()==2&&negPion.size()==0&&posPion.size()==2) {
 
-	 unsigned int muonIndex1 = negMuon.at(0);
+       if (posMuon.size()==0&&negMuon.size()==2&&negPion.size()==0&&posPion.size()==2) {
+	 genMuons = negMuon;
+	 genPions = posPion;
+	 qmuon = -1;
+       }
+
+       for (unsigned int iM=0; iM<negMuon.size(); ++iM)
+	 genMuons.push_back(negMuon.at(iM));
+
+       for (unsigned int iM=0; iM<posMuon.size(); ++iM)
+	 genMuons.push_back(posMuon.at(iM));
+       */
+
+       //       if (genMuons.size()==2&&genPions.size()==2) {
+       if (genMuons.size()==2&&genPions.size()==2) {
+	 unsigned int muonIndex1 = genMuons.at(0);
 	 TLorentzVector muonLV1; muonLV1.SetXYZT(genparticles_px[muonIndex1],
 						 genparticles_py[muonIndex1],
 						 genparticles_pz[muonIndex1],
 						 genparticles_e[muonIndex1]);
-
-	 unsigned int muonIndex2 = negMuon.at(1);
+	 
+	 unsigned int muonIndex2 = genMuons.at(1);
 	 TLorentzVector muonLV2; muonLV2.SetXYZT(genparticles_px[muonIndex2],
 						 genparticles_py[muonIndex2],
 						 genparticles_pz[muonIndex2],
 						 genparticles_e[muonIndex2]);
-
+	 
+	 
+	 
 	 unsigned int muonIndexLeading = muonIndex1;
 	 if (muonLV2.Pt()>muonLV1.Pt()) {
 	   muonIndexLeading = muonIndex2;
 	 }
-
-	 for (unsigned int iPion=0; iPion<posPion.size(); ++iPion) {
-	   unsigned int pionIndex = posPion.at(iPion);
-	   TLorentzVector pionLV; pionLV.SetXYZT(genparticles_px[pionIndex],
-						 genparticles_py[pionIndex],
+	 /*	 
+		 for (unsigned int iPion=0; iPion<genPions.size(); ++iPion) {
+		 unsigned int pionIndex = genPions.at(iPion);
+		 TLorentzVector pionLV; pionLV.SetXYZT(genparticles_px[pionIndex],
+		 genparticles_py[pionIndex],
 						 genparticles_pz[pionIndex],
 						 genparticles_e[pionIndex]);
-	   pionPtH->Fill(pionLV.Pt(),weight);
-	   float dRMuonPion = 1e+8;
-	   TLorentzVector muLV;
-	   unsigned int muIndex = 0;
-	   for (unsigned int iMuon=0; iMuon<negMuon.size(); ++iMuon) {
-	     unsigned int muonIndex = negMuon.at(iMuon);
-	     TLorentzVector muonLV; muonLV.SetXYZT(genparticles_px[muonIndex],
-						   genparticles_py[muonIndex],
-						   genparticles_pz[muonIndex],
-						   genparticles_e[muonIndex]);
-	     float dRx = deltaR(pionLV.Eta(),pionLV.Phi(),
-				muonLV.Eta(),muonLV.Phi());
-	     if (dRx<dRMuonPion) { 
-	       dRMuonPion = dRx;
-	       muLV = muonLV;
-	       muIndex = muonIndex;
+						 pionPtH->Fill(pionLV.Pt(),weight);
+						 float dRMuonPion = 1e+8;
+						 TLorentzVector muLV;
+						 unsigned int muIndex = 0;
+	 */
+	 for (unsigned int iMuon=0; iMuon<genMuons.size(); ++iMuon) {
+	   unsigned int muonIndex = genMuons.at(iMuon);
+	   TLorentzVector muLV; muLV.SetXYZT(genparticles_px[muonIndex],
+					     genparticles_py[muonIndex],
+					     genparticles_pz[muonIndex],
+					     genparticles_e[muonIndex]);
+	   
+	   int qmuon = 1;
+	   if (genparticles_pdgid[muonIndex]==13) qmuon = -1;
+	   unsigned int nparticlesIp = 0;
+	   unsigned int nparticles = 0;
+	   unsigned int ntracks = 0;
+	   unsigned int ntracksIp = 0;
+
+	   for (unsigned int iP=0; iP<genparticles_count; ++iP) {
+	     int pdgPart = TMath::Abs(genparticles_pdgid[iP]);
+	     float v0[3];
+	     float ppart[3];
+	     float v[3];
+	     if (genparticles_status[iP]==1&&(pdgPart==211||pdgPart==11)) {
+	       TLorentzVector partLV;
+	       partLV.SetXYZT(genparticles_px[iP],
+			      genparticles_py[iP],
+			      genparticles_pz[iP],
+			      genparticles_e[iP]);
+	       
+	       v0[0] = vgen_x;
+	       v0[1] = vgen_y;
+	       v0[2] = vgen_z;
+	       
+	       ppart[0] = partLV.Px();
+	       ppart[1] = partLV.Py();
+	       ppart[2] = partLV.Pz();
+	       
+	       v[0] = genparticles_vx[iP];
+	       v[1] = genparticles_vy[iP];
+	       v[2] = genparticles_vz[iP];
+	       
+	       float ptPart = partLV.Pt();
+	       float etaPart = TMath::Abs(partLV.Eta());
+	       
+	       float dxyPart = 0;
+	       float dzPart = 0;
+	       float ipPart = impactParameter(v0, v, ppart, dxyPart, dzPart);
+	       float dRpart = deltaR(muLV.Eta(),muLV.Phi(),
+				     partLV.Eta(),partLV.Phi());
+
+	       if (ptPart>ptTrkLooseCut && 
+		   etaPart<etaTrkCut && 
+		   dRpart<dRIsoMuon &&dRpart>0.001) {
+		 nparticles++;
+		 //		   if (dxyPart<dxyTrkLooseCut&&dzPart<dzTrkLooseCut)
+		 if (ipPart<dzTrkLooseCut)
+		   nparticlesIp++;
+	       }
 	     }
 	   }
-	   TLorentzVector mupionLV = muLV + pionLV;
-	   if (muIndex==muonIndexLeading) { 
+
+	   for (unsigned int iT=0; iT<track_count; ++iT) {
+	     float chargeTrk = track_charge[iT];
+	     if (chargeTrk>0.5) {
+	       if (track_pt[iT]>ptTrkLooseCut&&TMath::Abs(track_eta[iT])<etaTrkCut) {
+		 float dRtrack = deltaR(track_eta[iT],track_phi[iT],
+					muLV.Eta(),muLV.Phi());
+		 if (dRtrack<dRIsoMuon&&dRtrack>0.001) {
+		   ntracks++;
+		   if (abs(track_dxy[iT])<dxyTrkLooseCut&&TMath::Abs(track_dz[iT])<dzTrkLooseCut)
+		     ntracksIp++;
+		 }
+	       }
+	     }
+	   }	   
+	   //	   TLorentzVector mupionLV = muLV + pionLV;
+	   if (muonIndex==muonIndexLeading) {
 	     genmu1_Pt = muLV.Pt();
 	     genmu1_P = muLV.P();
 	     genmu1_Eta = muLV.Eta();
-	     genmu1_Q = -1.;
-	     gentrk1_Pt = pionLV.Pt();
-	     gentrk1_P = pionLV.P();
-	     gentrk1_Eta = pionLV.Eta();
-	     gentrk1_Q = 1.;
-	     genmutrk1_DR = dRMuonPion;
-	     genmutrk1_Pt = mupionLV.Pt();
-	     genmutrk1_P = mupionLV.P();
-	     genmutrk1_Eta = mupionLV.Eta();
-	     genmutrk1_M = mupionLV.M();
+	     genmu1_Q = qmuon;
+	     genmu1_ntrk = ntracks; 
+	     genmu1_ntrkIp = ntracksIp;
+	     genmu1_npart = nparticles; 
+	     genmu1_npartIp = nparticlesIp;
+	     /*	     gentrk1_Pt = pionLV.Pt();
+	     	     gentrk1_P = pionLV.P();
+	     	     gentrk1_Eta = pionLV.Eta();
+	     	     gentrk1_Q = -1.;
+	     	     genmutrk1_DR = dRMuonPion;
+	     	     genmutrk1_Pt = mupionLV.Pt();
+	     	     genmutrk1_P = mupionLV.P();
+	     	     genmutrk1_Eta = mupionLV.Eta();
+	     	     genmutrk1_M = mupionLV.M();
+	     */
 	   }
 	   else {
 	     genmu2_Pt = muLV.Pt();
 	     genmu2_P = muLV.P();
 	     genmu2_Eta = muLV.Eta();
-	     genmu2_Q = -1.;
-	     gentrk2_Pt = pionLV.Pt();
-	     gentrk2_P = pionLV.P();
-	     gentrk2_Eta = pionLV.Eta();
-	     gentrk2_Q = 1.;
-	     genmutrk2_DR = dRMuonPion;
-	     genmutrk2_Pt = mupionLV.Pt();
-	     genmutrk2_P = mupionLV.P();
-	     genmutrk2_Eta = mupionLV.Eta();
-	     genmutrk2_M = mupionLV.M();
+	     genmu2_Q = qmuon;
+	     genmu2_npart = nparticles;
+	     genmu2_npartIp = nparticlesIp;
+	     genmu2_ntrk = ntracks;
+	     genmu2_ntrkIp = ntracksIp;
+	     /*
+	       gentrk2_Pt = pionLV.Pt();
+	       gentrk2_P = pionLV.P();
+	       gentrk2_Eta = pionLV.Eta();
+	       gentrk2_Q = -1.;
+	       genmutrk2_DR = dRMuonPion;
+	       genmutrk2_Pt = mupionLV.Pt();
+	       genmutrk2_P = mupionLV.P();
+	       genmutrk2_Eta = mupionLV.Eta();
+	       genmutrk2_M = mupionLV.M();
+	     */
 	   }
-	   deltaRMuonPionH->Fill(dRMuonPion,weight);
+	   //	   deltaRMuonPionH->Fill(dRMuonPion,weight);
 	   muonPtH->Fill(muLV.Pt(),weight);
+	   TLorentzVector dimuonsLV = muonLV1 + muonLV2;
+	   dimuons_DR = deltaR(muonLV1.Eta(),muonLV1.Phi(),
+			       muonLV2.Eta(),muonLV2.Phi());
+	   dimuons_P = dimuonsLV.P();
+	   dimuons_Pt = dimuonsLV.Pt();
+	   npu = numtruepileupinteractions;
+	   dimuonsTree->Fill();
 	 }
-	 TLorentzVector dimuonsLV = muonLV1 + muonLV2;
-	 dimuons_DR = deltaR(muonLV1.Eta(),muonLV1.Phi(),
-			     muonLV2.Eta(),muonLV2.Phi());
-	 dimuons_P = dimuonsLV.P();
-	 dimuons_Pt = dimuonsLV.Pt();
-	 dimuonsTree->Fill();
        }
      }
+
      // ****************************************************
      // *********** Higgs pT reweighting *******************
      // ****************************************************
@@ -1011,11 +1278,6 @@ int main(int argc, char * argv[]) {
 	}
      }
 
-     float puweight = 1;
-     if (!isData) {
-       puweight = float(PUofficial->get_PUweight(double(numtruepileupinteractions)));
-       //       std::cout << "n(true interactions) = " << numtruepileupinteractions << "   :  PU weight = " << puweight << std::endl; 
-     }
      puWeightH->Fill(puweight,1.0);
      weight *= puweight;
 
@@ -1050,11 +1312,19 @@ int main(int argc, char * argv[]) {
      // ******************
      // applying btag veto
      // ******************
+     float weight_btag = 1.0;
+     float weight_btag_up = 1.0;
+     float weight_btag_down = 1.0;
      if (ApplyBTagVeto) {
        int nBTagDiscriminant1 = -1;
        int nBTagDiscriminant2 = -1;
        int nBTagDiscriminant3 = -1;
        unsigned int num_btags = 0;
+       float Pdata = 1.;
+       float Pdata_up = 1.;
+       float Pdata_down = 1.;
+       float Pmc = 1.;
+       unsigned int nbtags = 0;
        for (unsigned int ibtag=0; ibtag<btagdiscriminators->size(); ibtag++) {
 	 TString discr(btagdiscriminators->at(ibtag));
 	 if (discr==BTagDiscriminator1) {
@@ -1085,23 +1355,87 @@ int main(int argc, char * argv[]) {
 		   << "   should be 3" << std::endl;
 	 isCorrectBTag = false;
        }
-       unsigned int nbtags = 0;
        if (isCorrectBTag) {
 	 for (unsigned int jet=0; jet<pfjet_count; ++jet) {
+	   
 	   float absEta = TMath::Abs(pfjet_eta[jet]);
+	   float JetPtForBTag = pfjet_pt[jet];
+	   float JetEtaForBTag = absEta;
+	   float jetEta = pfjet_eta[jet];
+
+	   bool jetId = tightJetID(pfjet_e[jet],
+				   pfjet_eta[jet],
+				   pfjet_neutralhadronicenergy[jet],
+				   pfjet_neutralemenergy[jet],
+				   pfjet_muonenergy[jet],
+				   pfjet_chargedhadronicenergy[jet],
+				   pfjet_chargedemenergy[jet],
+				   pfjet_neutralmulti[jet],
+				   pfjet_chargedmulti[jet],
+				   era);
+	   
+	   if (!jetId) continue;
+
+	   if (JetPtForBTag > MaxBJetPt) JetPtForBTag = MaxBJetPt - 0.1;
+	   if (JetPtForBTag < MinBJetPt) JetPtForBTag = MinBJetPt + 0.1;
+	   if (JetEtaForBTag > MaxBJetEta) JetEtaForBTag = MaxBJetEta - 0.01;
+	   if (JetEtaForBTag < MinBJetEta) JetEtaForBTag = MinBJetEta + 0.01;
+	   
 	   if (absEta>bjetEta) continue;
 	   if (pfjet_pt[jet]<bjetPt) continue;
+
 	   float btagDiscr = pfjet_btag[jet][nBTagDiscriminant1];
 	   if (BTagAlgorithm=="pfDeepFlavourJetTags"||BTagAlgorithm=="pfDeepCSVJetTags")
 	     btagDiscr += pfjet_btag[jet][nBTagDiscriminant2];
 	   if (BTagAlgorithm=="pfDeepFlavourJetTags")
 	     btagDiscr += pfjet_btag[jet][nBTagDiscriminant3];
-	   if (btagDiscr>btagCut) nbtags++;
-	   //	   std::cout << jet << ":" << btagDiscr << std::endl;
+
+	   bool tagged = btagDiscr>btagCut;
+	   
+	   // BTag correction (promote/demote)
+	   if (!isData && applyBTagSF) {
+	     int flavor = TMath::Abs(pfjet_flavour[jet]);
+	     float tageff = tagEff_Light->GetBinContent(tagEff_Light->FindBin(JetPtForBTag, JetEtaForBTag));
+	     float jet_scalefactor = reader_Light.eval_auto_bounds("central",BTagEntry::FLAV_UDSG,JetEtaForBTag,JetPtForBTag);
+	     float jet_scalefactor_up = reader_Light.eval_auto_bounds("up",BTagEntry::FLAV_UDSG,JetEtaForBTag,JetPtForBTag);
+	     float jet_scalefactor_down = reader_Light.eval_auto_bounds("down",BTagEntry::FLAV_UDSG,JetEtaForBTag,JetPtForBTag);
+	     if (flavor==4) { 
+	       tageff = tagEff_C->GetBinContent(tagEff_C->FindBin(JetPtForBTag,JetEtaForBTag));
+	       jet_scalefactor = reader_C.eval_auto_bounds("central",BTagEntry::FLAV_C,JetEtaForBTag,JetPtForBTag);
+	       jet_scalefactor_up = reader_C.eval_auto_bounds("up",BTagEntry::FLAV_C,JetEtaForBTag,JetPtForBTag);
+	       jet_scalefactor_down = reader_C.eval_auto_bounds("down",BTagEntry::FLAV_C,JetEtaForBTag,JetPtForBTag);
+	     }
+	     if (flavor==5) { 
+	       tageff = tagEff_B->GetBinContent(tagEff_B->FindBin(JetPtForBTag,JetEtaForBTag));
+	       jet_scalefactor = reader_B.eval_auto_bounds("central",BTagEntry::FLAV_B,JetEtaForBTag,JetPtForBTag);
+	       jet_scalefactor_up = reader_B.eval_auto_bounds("up",BTagEntry::FLAV_B,JetEtaForBTag,JetPtForBTag);
+	       jet_scalefactor_down = reader_B.eval_auto_bounds("down",BTagEntry::FLAV_B,JetEtaForBTag,JetPtForBTag);
+	     }
+	     if (tagged) {  
+	       nbtags++;
+	       Pmc = Pmc*tageff;
+	       Pdata = Pdata*jet_scalefactor*tageff;
+	       Pdata_up = Pdata_up*jet_scalefactor_up*tageff;
+	       Pdata_down = Pdata_down*jet_scalefactor_down*tageff;
+	     }
+	     else {
+	       Pmc = Pmc*(1-tageff);
+	       Pdata = Pdata*(1.0-jet_scalefactor*tageff);
+	       Pdata_up = Pdata_up*(1.0-jet_scalefactor_up*tageff);
+	       Pdata_down = Pdata_down*(1.0-jet_scalefactor_down*tageff);
+	     }
+	   }
 	 }
        }
        //       std::cout << "nbtags = " << nbtags << std::endl;
        if (nbtags>0) continue;
+       if (!isData) { 
+	 weight_btag = Pdata/Pmc;
+	 //	 std::cout << "weight_btag = " << weight_btag << std::endl;
+	 weight *= weight_btag;
+	 weight_btag_up = Pdata_up/Pdata;
+	 weight_btag_down = Pdata_down/Pdata;	 
+       }
      }
      
      // finding HLT filters in the HLT Filter library
@@ -1154,7 +1488,7 @@ int main(int argc, char * argv[]) {
        cout << "Filter " << DiMuonSameSignFilterName << " not found " << endl;
        exit(-1);
      }
-
+     
      // ********************
      // selecting good muons
      // ********************
@@ -1912,6 +2246,14 @@ int main(int argc, char * argv[]) {
        InvMassH->Fill(massTrkMuLeading,weight);
        InvMassH->Fill(massTrkMuTrailing,weight);
        InvMass2DH->Fill(massTrkMuLeading,massTrkMuTrailing,weight);
+       // btag variations ->
+       InvMassH_btagUp->Fill(massTrkMuLeading,weight*weight_btag_up);
+       InvMassH_btagUp->Fill(massTrkMuTrailing,weight*weight_btag_up);
+       InvMass2DH_btagUp->Fill(massTrkMuLeading,massTrkMuTrailing,weight*weight_btag_up);
+       // btag variations ->
+       InvMassH_btagDown->Fill(massTrkMuLeading,weight*weight_btag_down);
+       InvMassH_btagDown->Fill(massTrkMuTrailing,weight*weight_btag_down);
+       InvMass2DH_btagDown->Fill(massTrkMuLeading,massTrkMuTrailing,weight*weight_btag_down);
        
      }
 
@@ -2069,7 +2411,7 @@ int main(int argc, char * argv[]) {
   file->Close();
   
   //delete file;
-}// int main loop 
+  }// int main loop 
 
  
 

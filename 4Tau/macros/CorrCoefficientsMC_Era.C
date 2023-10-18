@@ -6,13 +6,12 @@
 //  TH1D * hist1Dold = (TH1D*)file->Get("ModelInvMassH");
 //  TH2D * hist2Dold = (TH2D*)file->Get("ModelInvMass2DH");
 
-void CorrCoefficientsMC_Run2(
+void CorrCoefficientsMC_Era(
+			     TString era = "2018",
 			     bool signalRegion = false,
 			     bool btagVeto = true
 			     ) {
 
-
-  int firstSample = 1;
 
   std::map<TString,double> eraLumi = {
     {"2016_preVFP", 19520},
@@ -21,30 +20,20 @@ void CorrCoefficientsMC_Run2(
     {"2018",        59830}
   };
 
-  std::map<TString,double> norm_lumi;
-  double totalLumi = 0.;
-  for (auto elumi : eraLumi) {
-    double l = elumi.second;
-    totalLumi += l;
-  }
-  for (auto elumi : eraLumi) {
-    double l = elumi.second;
-    TString e = elumi.first;
-    l /= totalLumi;
-    norm_lumi[e] = l;
-  }
 
-  std::cout << std::endl;
-  std::cout << "Normalized lumis ->" << std::endl;
-  for (auto normL : norm_lumi) {
-    TString Era = normL.first;
-    double Lumi = normL.second;
-    std::cout << Era;
-    printf("%5.3f\n",Lumi);
-  }
-  std::cout << std::endl;
 
-  TString dir("/nfs/dust/cms/user/rasp/Run/Run2016_preVFP_UL/mutrk");
+  std::map<TString,TString> eraLabel = {
+    {"2016_preVFP", "2016 (preVFP), 19.5 fb^{-1}"},
+    {"2016_postVFP","2016 (postVFP), 16.8 fb^{-1}"},
+    {"2017",        "2017 41.5 fb^{-1}"},
+    {"2018",        "2018 59.8 fb^{-1}"}
+  };
+
+  lumi_13TeV = eraLabel[era];
+
+  TString dir("/nfs/dust/cms/user/rasp/Run/Run"+era+"_UL/mutrk");
+  TH1::SetDefaultSumw2(true);
+  TH2::SetDefaultSumw2(true);
   SetStyle();
 
   TString baseName1D = "InvMass";
@@ -53,6 +42,27 @@ void CorrCoefficientsMC_Run2(
   if (signalRegion) 
     Suffix = "H";    
 
+  //  TFile * file = new TFile(dir+"/QCD_Pt-20toInf_MuEnrichedPt15.root");
+  //  TFile * file = new TFile(dir+"/QCD_Pt-15To20_MuEnrichedPt5.root");
+  TFile * file = new TFile(dir+"/QCD_Pt-20To30_MuEnrichedPt5.root");
+  TH1D * hist1Dold = (TH1D*)file->Get(baseName1D+Suffix);
+  TH2D * hist2Dold = (TH2D*)file->Get(baseName2D+Suffix);
+  TH1D * histWeightsH = (TH1D*)file->Get("histWeightsH");
+  std::cout << hist1Dold << " " << hist2Dold << " " << " " << histWeightsH << std::endl;
+
+  //  double norm = 720648000 * 0.00042/histWeightsH->GetSumOfWeights(); // QCD_Pt-20toInf_MuEnrichedPt15
+  //  double norm = 1273190000 * 0.003/histWeightsH->GetSumOfWeights(); // QCD_Pt-15To20_MuEnrichedPt5
+  double norm = 558528000 * 0.0053/histWeightsH->GetSumOfWeights(); // QCD_Pt-20To30_MuEnrichedPt5
+  int nBins = hist1Dold->GetNbinsX();
+  for (int iB=1; iB<=nBins; ++iB) {
+    hist1Dold->SetBinContent(iB,norm*hist1Dold->GetBinContent(iB));
+    hist1Dold->SetBinError(iB,norm*hist1Dold->GetBinError(iB));
+    for (int jB=1; jB<=nBins; ++jB) {
+      hist2Dold->SetBinContent(iB,jB,norm*hist2Dold->GetBinContent(iB,jB));    
+      hist2Dold->SetBinError(iB,jB,norm*hist2Dold->GetBinError(iB,jB));
+    }
+  }
+  
   TString SamplesMuEnrichedQCD[11] = {
     "QCD_Pt-15To20_MuEnrichedPt5",
     "QCD_Pt-20To30_MuEnrichedPt5",
@@ -81,24 +91,6 @@ void CorrCoefficientsMC_Run2(
     32.3486*0.14552
   };
 
-  TFile * file = new TFile(dir+"/"+SamplesMuEnrichedQCD[firstSample]+".root");
-  TH1D * hist1Dold = (TH1D*)file->Get(baseName1D+Suffix);
-  TH2D * hist2Dold = (TH2D*)file->Get(baseName2D+Suffix);
-  TH1D * histWeightsH = (TH1D*)file->Get("histWeightsH");
-  std::cout << hist1Dold << " " << hist2Dold << " " << " " << histWeightsH << std::endl;
-  
-  // first sample = QCD_Pt-20To30_MuEnrichedPt5
-  double norm = xsecMuEnrichedQCD[firstSample] * norm_lumi["2016_preVFP"]/histWeightsH->GetSumOfWeights(); 
-  int nBins = hist1Dold->GetNbinsX();
-  for (int iB=1; iB<=nBins; ++iB) {
-    hist1Dold->SetBinContent(iB,norm*hist1Dold->GetBinContent(iB));
-    hist1Dold->SetBinError(iB,norm*hist1Dold->GetBinError(iB));
-    for (int jB=1; jB<=nBins; ++jB) {
-      hist2Dold->SetBinContent(iB,jB,norm*hist2Dold->GetBinContent(iB,jB));    
-      hist2Dold->SetBinError(iB,jB,norm*hist2Dold->GetBinError(iB,jB));
-    }
-  }
-
   int nBinsNew = 6;
   double bins[7]     = {0,1,2,3,4,6,50};
   double binsCorr[7] = {0,1,2,3,4,6,12};
@@ -111,15 +103,12 @@ void CorrCoefficientsMC_Run2(
   TH1D * hist1D = (TH1D*)TH1DtoTH1D(hist1Dold,nBinsNew,bins,true,"_new");
   TH2D * hist2D = (TH2D*)TH2DtoTH2D(hist2Dold,nBinsNew,bins,nBinsNew,bins,"_new");
 
-  std::vector<TString> Eras = {"2016_postVFP","2017","2018"};
-  
-  for (auto Era : Eras) {
-    TString folder = "/nfs/dust/cms/user/rasp/Run/Run"+Era+"_UL/mutrk";
-    TFile * fileSample = new TFile(folder+"/"+SamplesMuEnrichedQCD[firstSample]+".root");
+  for (int iS=2; iS<11; ++iS) {
+    TFile * fileSample = new TFile(dir+"/"+SamplesMuEnrichedQCD[iS]+".root");
     TH1D * hist1DoldSample = (TH1D*)fileSample->Get(baseName1D+Suffix);
     TH2D * hist2DoldSample = (TH2D*)fileSample->Get(baseName2D+Suffix);
     TH1D * histWeightsSampleH = (TH1D*)fileSample->Get("histWeightsH");
-    double normSample = xsecMuEnrichedQCD[firstSample] * norm_lumi[Era]/histWeightsSampleH->GetSumOfWeights();
+    double normSample = xsecMuEnrichedQCD[iS]/histWeightsSampleH->GetSumOfWeights();
     for (int iB=1; iB<=nBins; ++iB) {
       hist1DoldSample->SetBinContent(iB,normSample*hist1DoldSample->GetBinContent(iB));
       hist1DoldSample->SetBinError(iB,normSample*hist1DoldSample->GetBinError(iB));
@@ -128,41 +117,12 @@ void CorrCoefficientsMC_Run2(
 	hist2DoldSample->SetBinError(iB,jB,normSample*hist2DoldSample->GetBinError(iB,jB));
       }
     }
-    TH1D * hist1DSample = (TH1D*)TH1DtoTH1D(hist1DoldSample,nBinsNew,bins,true,SamplesMuEnrichedQCD[firstSample]+"_new");
-    TH2D * hist2DSample = (TH2D*)TH2DtoTH2D(hist2DoldSample,nBinsNew,bins,nBinsNew,bins,SamplesMuEnrichedQCD[firstSample]+"_new");
+    TH1D * hist1DSample = (TH1D*)TH1DtoTH1D(hist1DoldSample,nBinsNew,bins,true,SamplesMuEnrichedQCD[iS]+"_new");
+    TH2D * hist2DSample = (TH2D*)TH2DtoTH2D(hist2DoldSample,nBinsNew,bins,nBinsNew,bins,SamplesMuEnrichedQCD[iS]+"_new");
     hist1D->Add(hist1D,hist1DSample);
     hist2D->Add(hist2D,hist2DSample);
+
   }
-
-  for (auto normL : norm_lumi) {
-    TString Era = normL.first;
-    double Lumi = normL.second;
-    int nbegin = firstSample+1;
-    for (int iS=nbegin; iS<11; ++iS) {
-      TString folder = "/nfs/dust/cms/user/rasp/Run/Run"+Era+"_UL/mutrk";
-      TFile * fileSample = new TFile(folder+"/"+SamplesMuEnrichedQCD[iS]+".root");
-      TH1D * hist1DoldSample = (TH1D*)fileSample->Get(baseName1D+Suffix);
-      TH2D * hist2DoldSample = (TH2D*)fileSample->Get(baseName2D+Suffix);
-      TH1D * histWeightsSampleH = (TH1D*)fileSample->Get("histWeightsH");
-      double normSample = xsecMuEnrichedQCD[iS] * Lumi/histWeightsSampleH->GetSumOfWeights();
-      for (int iB=1; iB<=nBins; ++iB) {
-	hist1DoldSample->SetBinContent(iB,normSample*hist1DoldSample->GetBinContent(iB));
-	hist1DoldSample->SetBinError(iB,normSample*hist1DoldSample->GetBinError(iB));
-	for (int jB=1; jB<=nBins; ++jB) {
-	  hist2DoldSample->SetBinContent(iB,jB,normSample*hist2DoldSample->GetBinContent(iB,jB));
-	  hist2DoldSample->SetBinError(iB,jB,normSample*hist2DoldSample->GetBinError(iB,jB));
-	}
-      }
-      TH1D * hist1DSample = (TH1D*)TH1DtoTH1D(hist1DoldSample,nBinsNew,bins,true,SamplesMuEnrichedQCD[iS]+"_new");
-      TH2D * hist2DSample = (TH2D*)TH2DtoTH2D(hist2DoldSample,nBinsNew,bins,nBinsNew,bins,SamplesMuEnrichedQCD[iS]+"_new");
-      hist1D->Add(hist1D,hist1DSample);
-      hist2D->Add(hist2D,hist2DSample);
-    }
-  }
-
-
-
-
 
   TH2D * corrCoeff = new TH2D("corrCoeff","",nBinsNew,binsCorr,nBinsNew,binsCorr);
   TH2D * corrCoeffX = new TH2D("corrCoeffX","",nBinsNew,bins,nBinsNew,bins);
@@ -200,6 +160,8 @@ void CorrCoefficientsMC_Run2(
     }
   }
 
+  
+
   corrCoeff->GetXaxis()->SetNdivisions(207);
   corrCoeff->GetYaxis()->SetNdivisions(207);
   corrCoeff->GetYaxis()->SetTitleOffset(1.0);
@@ -219,11 +181,10 @@ void CorrCoefficientsMC_Run2(
     lineX->Draw();
     lineY->Draw();
   }
-  
-  writeExtraText = "Simulation";
-  lumi_13TeV = "Run2 138 fb^{-1}";
-  CMS_lumi(canv,4,33);
 
+  writeExtraText = "Simulation";
+  CMS_lumi(canv,4,33);
+  
   canv->Update();
 
   TString suffix("control");
@@ -231,9 +192,9 @@ void CorrCoefficientsMC_Run2(
     suffix = "signal";
   suffix += "_mc";
 
-  canv->Print("CorrCoefficients_"+suffix+".png");
+  canv->Print("CorrCoefficients_"+suffix+"_"+era+".png");
 
-  TFile * fileCorr = new TFile("CorrCoefficients_"+suffix+".root","recreate");
+  TFile * fileCorr = new TFile("CorrCoefficients_"+suffix+"_"+era+".root","recreate");
   fileCorr->cd("");
   corrCoeffX->Write("corrCoeff");
   fileCorr->Close();

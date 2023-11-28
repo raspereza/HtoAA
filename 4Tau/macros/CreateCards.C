@@ -1,11 +1,10 @@
 #include "HtoH.h"
 void CreateCards(TString mass="5", // mass of pseudoscalar
 		 bool Azimov = true, // replace data by background expectations 
-		 bool correlation = true, // apply correlations
-		 bool btagVeto = false // if true => bins = {0,1,2,3,4,5,20};
-		 ) {
+		 bool correlation = true // apply correlations
+                 ) {
 
-  TString dir = "/nfs/dust/cms/user/rasp/Run/Run2018/H2aa/";
+  TString dir = "./";
   
   double massD = 4.0;
   if (mass=="4")
@@ -53,7 +52,7 @@ void CreateCards(TString mass="5", // mass of pseudoscalar
   double aF = 2*massTau/massD;
   double SF = 2*massRatio/TMath::Sqrt(1-aF*aF);
 
-  // contrinution of H->aa->(2mu)(2tau)
+  // contribution of H->aa->(2mu)(2tau)
   double xsecMMTT = (xsecGGH+xsecVBF+xsecVH+xsecTTH) * SF;
 
   TFile * file     = new TFile(dir+"/DoubleMuon_Run2018.root");
@@ -61,7 +60,7 @@ void CreateCards(TString mass="5", // mass of pseudoscalar
   TFile * fileVBF  = new TFile(dir+"/SUSYVBFToHToAA_AToTauTau_M-125_M-"+mass+".root");
   TFile * fileVH   = new TFile(dir+"/SUSYVH_HToAA_AToTauTau_M-125_M-"+mass+".root");
   TFile * fileTTH  = new TFile(dir+"/SUSYttH_HToAA_AToTauTau_M-125_M-"+mass+".root");
-  TFile * fileMMTT = new TFile(dir+"/SUSYGluGluToHToAA_AToMuMu_AToTauTau_M-"+mass+".root");
+  TFile * fileMMTT = new TFile(dir+"/SUSYGluGluToHToAA_AToMuMu_AToTauTau_M-125_M-"+mass+".root");
 
   TH2D * histOld    = (TH2D*)file->Get("InvMass2DH");
 
@@ -70,6 +69,17 @@ void CreateCards(TString mass="5", // mass of pseudoscalar
   TH2D * histVHOld   = (TH2D*)fileVH ->Get("InvMass2DH");
   TH2D * histTTHOld  = (TH2D*)fileTTH->Get("InvMass2DH");
   TH2D * histMMTTOld = (TH2D*)fileMMTT->Get("InvMass2DH");
+
+  TH2D * histGGH_btagUp_Old = (TH2D*)fileGGH->Get("InvMass2DH_btagUp");
+  TH2D * histGGH_btagDown_Old = (TH2D*)fileGGH->Get("InvMass2DH_btagDown");
+  TH2D * histVBF_btagUp_Old = (TH2D*)fileVBF->Get("InvMass2DH_btagUp");
+  TH2D * histVBF_btagDown_Old = (TH2D*)fileVBF->Get("InvMass2DH_btagDown");
+  TH2D * histVH_btagUp_Old = (TH2D*)fileVH->Get("InvMass2DH_btagUp");
+  TH2D * histVH_btagDown_Old = (TH2D*)fileVH->Get("InvMass2DH_btagDown");
+  TH2D * histTTH_btagUp_Old = (TH2D*)fileTTH->Get("InvMass2DH_btagUp");
+  TH2D * histTTH_btagDown_Old = (TH2D*)fileTTH->Get("InvMass2DH_btagDown");
+  TH2D * histMMTT_btagUp_Old = (TH2D*)fileMMTT->Get("InvMass2DH_btagUp");
+  TH2D * histMMTT_btagDown_Old = (TH2D*)fileMMTT->Get("InvMass2DH_btagDown");
 
   TH1D * histWeightsGGH = (TH1D*)fileGGH->Get("histWeightsH");
   double nGenGGH = histWeightsGGH->GetSumOfWeights();
@@ -106,9 +116,6 @@ void CreateCards(TString mass="5", // mass of pseudoscalar
 
   int nBinsNew = 6;
   double bins[7] = {0,1,2,3,4,6,20};
-  if (btagVeto)
-    bins[5] = 5;
-
 
   TH1D * hist1d    = (TH1D*)TH1DtoTH1D(hist1dN23Old,nBinsNew,bins,true,"_new");
   TH1D * hist1dN45 = (TH1D*)TH1DtoTH1D(hist1dN45Old,nBinsNew,bins,true,"_new");
@@ -128,6 +135,17 @@ void CreateCards(TString mass="5", // mass of pseudoscalar
   TH2D * histVH  = (TH2D*)TH2DtoTH2D(histVHOld,nBinsNew,bins,nBinsNew,bins,"_vhNew");
   TH2D * histTTH = (TH2D*)TH2DtoTH2D(histTTHOld,nBinsNew,bins,nBinsNew,bins,"_tthNew");
   TH2D * histMMTT = (TH2D*)TH2DtoTH2D(histMMTTOld,nBinsNew,bins,nBinsNew,bins,"_mmttNew");
+
+  TH2D * histGGH_btagUp = (TH2D*)TH2DtoTH2D(histGGH_btagUp_Old,nBinsNew,bins,nBinsNew,bins,"_ggh_btagUp_New");
+  TH2D * histGGH_btagDown = (TH2D*)TH2DtoTH2D(histGGH_btagDown_Old,nBinsNew,bins,nBinsNew,bins,"_ggh_btagDown_New");
+  TH2D * histVBF_btagUp = (TH2D*)TH2DtoTH2D(histVBF_btagUp_Old,nBinsNew,bins,nBinsNew,bins,"_vbf_btagUp_New");
+  TH2D * histVBF_btagDown = (TH2D*)TH2DtoTH2D(histVBF_btagDown_Old,nBinsNew,bins,nBinsNew,bins,"_vbf_btagDown_New");
+  TH2D * histVH_btagUp = (TH2D*)TH2DtoTH2D(histVH_btagUp_Old,nBinsNew,bins,nBinsNew,bins,"_vh_btagUp_New");
+  TH2D * histVH_btagDown = (TH2D*)TH2DtoTH2D(histVH_btagDown_Old,nBinsNew,bins,nBinsNew,bins,"_vh_btagDown_New");
+  TH2D * histTTH_btagUp = (TH2D*)TH2DtoTH2D(histTTH_btagUp_Old,nBinsNew,bins,nBinsNew,bins,"_tth_btagUp_New");
+  TH2D * histTTH_btagDown = (TH2D*)TH2DtoTH2D(histTTH_btagDown_Old,nBinsNew,bins,nBinsNew,bins,"_tth_btagDown_New");
+  TH2D * histMMTT_btagUp = (TH2D*)TH2DtoTH2D(histMMTT_btagUp_Old,nBinsNew,bins,nBinsNew,bins,"_mmtt_btagUp_New");
+  TH2D * histMMTT_btagDown = (TH2D*)TH2DtoTH2D(histMMTT_btagDown_Old,nBinsNew,bins,nBinsNew,bins,"_mmtt_btagDown_New");
 
   TH2D * histData = (TH2D*)TH2DtoTH2D(histOld,nBinsNew,bins,nBinsNew,bins,"_dataNew");
 
@@ -151,6 +169,18 @@ void CreateCards(TString mass="5", // mass of pseudoscalar
   TH1D * vh  = new TH1D("vh","",nBins1D,0.,float(nBins1D));
   TH1D * tth  = new TH1D("tth","",nBins1D,0.,float(nBins1D));
   TH1D * mmtt = new TH1D("mmtt","",nBins1D,0.,float(nBins1D));
+
+  //unrolled 1D signal systematic templates
+  TH1D * ggh_btagUp = new TH1D("ggh_btagUp","",nBins1D,0.,float(nBins1D));
+  TH1D * ggh_btagDown = new TH1D("ggh_btagDown","",nBins1D,0.,float(nBins1D));
+  TH1D * vbf_btagUp = new TH1D("vbf_btagUp","",nBins1D,0.,float(nBins1D));
+  TH1D * vbf_btagDown = new TH1D("vbf_btagDown","",nBins1D,0.,float(nBins1D));
+  TH1D * vh_btagUp = new TH1D("vh_btagUp","",nBins1D,0.,float(nBins1D));
+  TH1D * vh_btagDown = new TH1D("vh_btagDown","",nBins1D,0.,float(nBins1D));  
+  TH1D * tth_btagUp = new TH1D("tth_btagUp","",nBins1D,0.,float(nBins1D));
+  TH1D * tth_btagDown = new TH1D("tth_btagDown","",nBins1D,0.,float(nBins1D));
+  TH1D * mmtt_btagUp = new TH1D("mmtt_btagUp","",nBins1D,0.,float(nBins1D));
+  TH1D * mmtt_btagDown = new TH1D("mmtt_btagDown","",nBins1D,0.,float(nBins1D));
 
   // central template and systematic background templates
   // 1d_up - up variation of 1D background pdf (mu-trk mass)
@@ -202,20 +232,28 @@ void CreateCards(TString mass="5", // mass of pseudoscalar
       for (int itempl=0; itempl<3; ++itempl) {
 	double product = xBkgd[itempl] * yBkgd[itempl];
 	double err = exBkgd[itempl] * yBkgd[itempl] + eyBkgd[itempl] * xBkgd[itempl];
-	double corrData   = corrCoeff->GetBinContent(i,j);
-	double corrDataE  = corrCoeff->GetBinError(i,j);
-	double corrDataR  = corrDataE/corrData;
-	double corrCR   = corrCoeffCR->GetBinContent(i,j);
-	double corrCRE  = corrCoeffCR->GetBinError(i,j);
-	double corrCRR  = corrCRE/corrCR;
-	double corrSR   = corrCoeffSR->GetBinContent(i,j);
-	double corrSRE  = corrCoeffSR->GetBinError(i,j);
-	double corrSRR  = corrSRE/corrSR;
-	double corrX = corrSR * corrData / corrCR;
+
+        double m1 = hist1d->GetBinCenter(i);
+        double m2 = hist1d->GetBinCenter(j);
+
+        int corrBin = corrCoeff->FindBin(m1, m2);
+      
+        double corrData   = corrCoeff->GetBinContent(corrBin);
+        double corrDataE  = corrCoeff->GetBinError(corrBin);
+        double corrDataR  = corrDataE/corrData; 
+        double corrCR   = corrCoeffCR->GetBinContent(corrBin);
+        double corrCRE  = corrCoeffCR->GetBinError(corrBin);
+        double corrCRR  = corrCRE/corrCR;
+        double corrSR   = corrCoeffSR->GetBinContent(corrBin);
+        double corrSRE  = corrCoeffSR->GetBinError(corrBin);
+        double corrSRR  = corrSRE/corrSR;
+	
+        double corrX = corrSR * corrData / corrCR;
 	double corrUp = corrData;
 	double corrDown = corrData * (corrSR * corrSR) / (corrCR * corrCR);
 	double corrR = TMath::Sqrt(corrDataR*corrDataR+corrCRR*corrCRR+corrSRR*corrSRR);
 	double corrE = corrX * corrR;
+
 	double productUp = product;
 	double productDown = product;
 	if (i!=j) {
@@ -253,49 +291,151 @@ void CreateCards(TString mass="5", // mass of pseudoscalar
       double eTTH = histTTH->GetBinError(i,j);
       double xMMTT = histMMTT->GetBinContent(i,j);
       double eMMTT = histMMTT->GetBinError(i,j);
+
+      double xGGH_btagUp = histGGH_btagUp->GetBinContent(i,j);
+      double eGGH_btagUp = histGGH_btagUp->GetBinError(i,j);
+      double xGGH_btagDown = histGGH_btagDown->GetBinContent(i,j);
+      double eGGH_btagDown = histGGH_btagDown->GetBinError(i,j);
+      double xVBF_btagUp = histVBF_btagUp->GetBinContent(i,j);
+      double eVBF_btagUp = histVBF_btagUp->GetBinError(i,j);
+      double xVBF_btagDown = histVBF_btagDown->GetBinContent(i,j);
+      double eVBF_btagDown = histVBF_btagDown->GetBinError(i,j);
+      double xVH_btagUp = histVH_btagUp->GetBinContent(i,j);
+      double eVH_btagUp = histVH_btagUp->GetBinError(i,j);
+      double xVH_btagDown = histVH_btagDown->GetBinContent(i,j);
+      double eVH_btagDown = histVH_btagDown->GetBinError(i,j);
+      double xTTH_btagUp = histTTH_btagUp->GetBinContent(i,j);
+      double eTTH_btagUp = histTTH_btagUp->GetBinError(i,j);
+      double xTTH_btagDown = histTTH_btagDown->GetBinContent(i,j);
+      double eTTH_btagDown = histTTH_btagDown->GetBinError(i,j);
+      double xMMTT_btagUp = histMMTT_btagUp->GetBinContent(i,j);
+      double eMMTT_btagUp = histMMTT_btagUp->GetBinError(i,j);
+      double xMMTT_btagDown = histMMTT_btagDown->GetBinContent(i,j);
+      double eMMTT_btagDown = histMMTT_btagDown->GetBinError(i,j);
+
       if (i!=j) {
 
 	xGGH += histGGH->GetBinContent(j,i);
 	double err1 = eGGH;
 	double err2 = histGGH->GetBinError(j,i);
 	eGGH = TMath::Sqrt(err1*err1+err2*err2);
+
+        xGGH_btagUp += histGGH_btagUp->GetBinContent(j,i);
+        err1 = eGGH_btagUp;
+        err2 = histGGH_btagUp->GetBinError(j,i);
+        eGGH_btagUp = TMath::Sqrt(err1*err1+err2*err2); 
+
+        xGGH_btagDown += histGGH_btagDown->GetBinContent(j,i);
+        err1 = eGGH_btagDown;
+        err2 = histGGH_btagDown->GetBinError(j,i);
+        eGGH_btagDown = TMath::Sqrt(err1*err1+err2*err2); 
 	  
 	xVBF += histVBF->GetBinContent(j,i);
 	err1  = eVBF;
 	err2  = histVBF->GetBinError(j,i);
 	eVBF  = TMath::Sqrt(err1*err1+err2*err2);
-	  
+	
+        xVBF_btagUp += histVBF_btagUp->GetBinContent(j,i);
+        err1 = eVBF_btagUp;
+        err2 = histVBF_btagUp->GetBinError(j,i);
+        eVBF_btagUp = TMath::Sqrt(err1*err1+err2*err2);
+
+        xVBF_btagDown += histVBF_btagDown->GetBinContent(j,i);
+        err1 = eVBF_btagDown;
+        err2 = histVBF_btagDown->GetBinError(j,i);
+        eVBF_btagDown = TMath::Sqrt(err1*err1+err2*err2);        
+
 	xVH += histVH->GetBinContent(j,i);
 	err1 = eVH;
 	err2 = histVH->GetBinError(j,i);
 	eVH = TMath::Sqrt(err1*err1+err2*err2);
+        
+        xVH_btagUp += histVH_btagUp->GetBinContent(j,i);
+        err1 = eVH_btagUp;
+        err2 = histVH_btagUp->GetBinError(j,i);
+        eVH_btagUp = TMath::Sqrt(err1*err1+err2*err2);
+
+        xVH_btagDown += histVH_btagDown->GetBinContent(j,i);
+        err1 = eVH_btagDown;
+        err2 = histVH_btagDown->GetBinError(j,i);
+        eVH_btagDown = TMath::Sqrt(err1*err1+err2*err2);
 
 	xTTH += histTTH->GetBinContent(j,i);
 	err1 = eTTH;
 	err2 = histTTH->GetBinError(j,i);
 	eTTH = TMath::Sqrt(err1*err1+err2*err2);
+
+        xTTH_btagUp += histTTH_btagUp->GetBinContent(j,i);
+        err1 = eTTH_btagUp;
+        err2 = histTTH_btagUp->GetBinError(j,i);
+        eTTH_btagUp = TMath::Sqrt(err1*err1+err2*err2);
+
+        xTTH_btagDown += histTTH_btagDown->GetBinContent(j,i);
+        err1 = eTTH_btagDown;
+        err2 = histTTH_btagDown->GetBinError(j,i);
+        eTTH_btagDown = TMath::Sqrt(err1*err1+err2*err2);
 	  
 	xMMTT += histMMTT->GetBinContent(j,i);
 	err1 = eMMTT;
 	err2 = histMMTT->GetBinError(j,i);
 	eMMTT = TMath::Sqrt(err1*err1+err2*err2);
-	  
+        
+        xMMTT_btagUp += histMMTT_btagUp->GetBinContent(j,i);
+        err1 = eMMTT_btagUp;
+        err2 = histMMTT_btagUp->GetBinError(j,i);
+        eMMTT_btagUp = TMath::Sqrt(err1*err1+err2*err2);
+
+        xMMTT_btagDown += histMMTT_btagDown->GetBinContent(j,i);
+        err1 = eMMTT_btagDown;
+        err2 = histMMTT_btagDown->GetBinError(j,i);
+        eGGH_btagDown = TMath::Sqrt(err1*err1+err2*err2);	
+  
       }
 
       ggh->SetBinContent(iBin,gghNorm*xGGH);
       ggh->SetBinError(iBin,gghNorm*eGGH);
 
+      ggh_btagUp->SetBinContent(iBin,gghNorm*xGGH_btagUp);
+      ggh_btagUp->SetBinError(iBin,gghNorm*eGGH_btagUp); 
+
+      ggh_btagDown->SetBinContent(iBin,gghNorm*xGGH_btagDown);
+      ggh_btagDown->SetBinError(iBin,gghNorm*eGGH_btagDown);
+
       vbf->SetBinContent(iBin,vbfNorm*xVBF);
       vbf->SetBinError(iBin,vbfNorm*eVBF);
+     
+      vbf_btagUp->SetBinContent(iBin,vbfNorm*xVBF_btagUp);
+      vbf_btagUp->SetBinError(iBin,vbfNorm*eVBF_btagUp);
+
+      vbf_btagDown->SetBinContent(iBin,vbfNorm*xVBF_btagDown);
+      vbf_btagDown->SetBinError(iBin,vbfNorm*eVBF_btagDown);
 
       vh->SetBinContent(iBin,vhNorm*xVH);
       vh->SetBinError(iBin,vhNorm*eVH);
 
+      vh_btagUp->SetBinContent(iBin,vhNorm*xVH_btagUp);
+      vh_btagUp->SetBinError(iBin,vhNorm*eVH_btagUp);
+
+      vh_btagDown->SetBinContent(iBin,vhNorm*xVH_btagDown);
+      vh_btagDown->SetBinError(iBin,vhNorm*eVH_btagDown);
+
       tth->SetBinContent(iBin,tthNorm*xTTH);
       tth->SetBinError(iBin,tthNorm*eTTH);
 
+      tth_btagUp->SetBinContent(iBin,tthNorm*xTTH_btagUp);
+      tth_btagUp->SetBinError(iBin,tthNorm*eTTH_btagUp);
+
+      tth_btagDown->SetBinContent(iBin,tthNorm*xTTH_btagDown);
+      tth_btagDown->SetBinError(iBin,tthNorm*eTTH_btagDown);
+
       mmtt->SetBinContent(iBin,mmttNorm*xMMTT);
       mmtt->SetBinError(iBin,mmttNorm*eMMTT);
+
+      mmtt_btagUp->SetBinContent(iBin,mmttNorm*xMMTT_btagUp);
+      mmtt_btagUp->SetBinError(iBin,mmttNorm*eMMTT_btagUp);
+
+      mmtt_btagDown->SetBinContent(iBin,mmttNorm*xMMTT_btagDown);
+      mmtt_btagDown->SetBinError(iBin,mmttNorm*eMMTT_btagDown);
 
       double xData = histData->GetBinContent(i,j);
       double eData = histData->GetBinError(i,j);
@@ -346,13 +486,24 @@ void CreateCards(TString mass="5", // mass of pseudoscalar
   for (int i=0; i<3; ++i) {
     bkgd[i]->Write("bkgd"+sysBkgd[i]);
   }
+  
   ggh->Write("ggh");
+  ggh_btagUp->Write("ggh_CMS_btag_2018Up");
+  ggh_btagDown->Write("ggh_CMS_btag_2018Down");
   vbf->Write("vbf");
+  vbf_btagUp->Write("vbf_CMS_btag_2018Up");
+  vbf_btagDown->Write("vbf_CMS_btag_2018Down");
   vh->Write("vh");
+  vh_btagUp->Write("vh_CMS_btag_2018Up");
+  vh_btagDown->Write("vh_CMS_btag_2018Down");
   tth->Write("tth");
+  tth_btagUp->Write("tth_CMS_btag_2018Up");
+  tth_btagDown->Write("tth_CMS_btag_2018Down");
   mmtt->Write("mmtt");
-  bkgdCorrUp->Write("bkgd_CMS_uncCorr_2018Up");
-  bkgdCorrDown->Write("bkgd_CMS_uncCorr_2018Down");
+  mmtt_btagUp->Write("mmtt_CMS_btag_2018Up");
+  mmtt_btagDown->Write("mmtt_CMS_btag_2018Down");
+  bkgdCorrUp->Write("bkgd_CMS_uncCorr_Up");
+  bkgdCorrDown->Write("bkgd_CMS_uncCorr_Down");
 
   fileInputs->Close();
 
@@ -390,13 +541,13 @@ void CreateCards(TString mass="5", // mass of pseudoscalar
 	   << ggh->GetSumOfWeights() << "  " 
 	   << bkgd[0]->GetSumOfWeights() << std::endl;
   textFile << "-----------------------------" << std::endl;
-  textFile << "CMS_lumi                    lnN   1.015  1.015   1.015   1.015   1.015      -" << std::endl;
-  textFile << "CMS_lumi_2018               lnN   1.015  1.015   1.015   1.015   1.015      -" << std::endl;
-  textFile << "CMS_eff_m_2018              lnN   1.03    1.03    1.03    1.03    1.03      -" << std::endl;
+  textFile << "CMS_lumi                    lnN   1.016  1.016   1.016   1.016   1.016      -" << std::endl;
+  textFile << "CMS_lumi_2018               lnN   1.025  1.025   1.025   1.025   1.025      -" << std::endl;
+  textFile << "CMS_eff_m_2018              lnN   1.02    1.02    1.02    1.02    1.02      -" << std::endl;
   textFile << "CMS_trkiso_2018             lnN   1.12    1.12    1.12    1.12    1.12      -" << std::endl;
   textFile << "CMS_unc1d_2018            shape      -      -       -       -       -    1.00" << std::endl;
-  textFile << "CMS_uncCorr_2018          shape      -      -       -       -       -    1.00" << std::endl;
-  
+  textFile << "CMS_uncCorr_              shape      -      -       -       -       -    1.00" << std::endl;
+  textFile << "CMS_btag_2018             shape   1.00    1.00    1.00     1.00   1.00       -" << std::endl;
 
   textFile << "QCDScale_ggH                lnN   1.046/0.933   -       -       -  1.046/0.933  -" << std::endl;
   textFile << "QCDScale_vbf                lnN      -          -       -  1.004/0.997  -       -" << std::endl;
@@ -417,7 +568,7 @@ void CreateCards(TString mass="5", // mass of pseudoscalar
   textFile << "bkgNorm_2018   rateParam  haa_2018  bkgd  1  [0.5,1.5]" << std::endl;
   textFile << "* autoMCStats 0" << std::endl;
   textFile << std::endl;
-  std::cout << "Datacars production completed for mass ma=" << mass << std::endl; 
+  std::cout << "Datacards production completed for mass ma=" << mass << std::endl; 
 
 
 }

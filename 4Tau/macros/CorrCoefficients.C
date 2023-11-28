@@ -1,9 +1,10 @@
+#include "CMS_lumi.C"
 #include "HttStylesNew.cc"
 #include "HtoH.h"
 
-void CorrCoefficients(bool btagVeto = false) {
+void CorrCoefficients(bool btagVeto = true) {
 
-  TString dir("/nfs/dust/cms/user/rasp/Run/Run2018/H2aa");
+  TString dir("./");
   SetStyle();
   
   TFile * file = new TFile(dir+"/DoubleMuon_Run2018.root");
@@ -12,13 +13,22 @@ void CorrCoefficients(bool btagVeto = false) {
 
   std::cout << "Statistics : " << hist2Dold->GetSumOfWeights() << std::endl;
 
-  int nBinsNew = 6;
-  double bins[7]     = {0,1,2,3,4,6,20};
-  double binsCorr[7] = {0,1,2,3,4,6,12};
+  int nBinsNew;
+  double *bins;
+  double *binsCorr;
 
   if (btagVeto) {
-    bins[5] = 5;
-    binsCorr[5] = 5;
+    nBinsNew = 5;
+    double tempBins[6] = {0, 1, 2, 3, 4, 20};
+    double tempBinsCorr[6] = {0, 1, 2, 3, 4, 12};
+    bins = tempBins;
+    binsCorr = tempBinsCorr;
+  } else {
+    nBinsNew = 6;
+    double tempBins[7] = {0, 1, 2, 3, 4, 6, 20};
+    double tempBinsCorr[7] = {0, 1, 2, 3, 4, 6, 12};
+    bins = tempBins;
+    binsCorr = tempBinsCorr;
   }
 
   TH1D * hist1D = (TH1D*)TH1DtoTH1D(hist1Dold,nBinsNew,bins,true,"_new");
@@ -76,6 +86,10 @@ void CorrCoefficients(bool btagVeto = false) {
     lineY->Draw();
   }
   
+  writeExtraText = false;
+  extraText = "Preliminary";
+  CMS_lumi(canv,4,33);
+
   canv->Update();
   canv->Print("CorrCoefficients_data.png");
 

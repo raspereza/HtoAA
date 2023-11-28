@@ -1398,6 +1398,10 @@ int main(int argc, char * argv[]) {
 	     btagDiscr += pfjet_btag[jet][nBTagDiscriminant3];
 
 	   bool tagged = btagDiscr>btagCut;
+
+           if (isData && tagged){
+             nbtags++;
+           }
 	   
 	   // BTag correction (promote/demote)
 	   if (!isData && applyBTagSF) {

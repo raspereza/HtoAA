@@ -91,13 +91,22 @@ void CorrCoefficientsMC_Era(
     32.3486*0.14552
   };
 
-  int nBinsNew = 6;
-  double bins[7]     = {0,1,2,3,4,6,50};
-  double binsCorr[7] = {0,1,2,3,4,6,12};
+  int nBinsNew;
+  double *bins;
+  double *binsCorr;
 
   if (btagVeto) {
-    bins[5] = 5;
-    binsCorr[5] = 5;
+    nBinsNew = 5;
+    double tempBins[6] = {0, 1, 2, 3, 4, 20};
+    double tempBinsCorr[6] = {0, 1, 2, 3, 4, 12};
+    bins = tempBins;
+    binsCorr = tempBinsCorr;
+  } else {
+    nBinsNew = 6;
+    double tempBins[7] = {0, 1, 2, 3, 4, 6, 20};
+    double tempBinsCorr[7] = {0, 1, 2, 3, 4, 6, 12};
+    bins = tempBins;
+    binsCorr = tempBinsCorr;
   }
 
   TH1D * hist1D = (TH1D*)TH1DtoTH1D(hist1Dold,nBinsNew,bins,true,"_new");

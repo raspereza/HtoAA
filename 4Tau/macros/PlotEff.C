@@ -4,7 +4,7 @@
 // Eta0p9to1p2
 // Eta1p2to2p1
 // EtaGt2p1
-void PlotEff(TString era = "2018",
+void PlotEff(TString era = "2016",
 	     TString leg = "highPt",
 	     TString EtaBin = "EtaGt2p1") {
 
@@ -22,8 +22,10 @@ void PlotEff(TString era = "2018",
   };
 
   map<TString, TString> filenameMap = {
-    {"2016_highPt","HLT_Mu17Mu8_Muon17"},
-    {"2016_lowPt","HLT_Mu17Mu8_Muon8"},
+    //    {"2016_highPt","HLT_Mu17Mu8_Muon17"},
+    //    {"2016_lowPt","HLT_Mu17Mu8_Muon8"},
+    {"2016_highPt","DoubleMuon_Mu17_UL_Iso"},
+    {"2016_lowPt","DoubleMuon_Mu8_UL_Iso"},
     {"2017_highPt","HLT_Mu17Mu8_2017_Mu17_coarse"},
     {"2017_lowPt","HLT_Mu17Mu8_2017_Mu8_coarse"},
     {"2018_highPt","HLT_DoubleMu_Mu18leg"},

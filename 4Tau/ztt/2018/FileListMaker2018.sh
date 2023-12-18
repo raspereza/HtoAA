@@ -4,7 +4,11 @@
 for i in A B C D
 do
     echo creating file list for data sample SingleMuon_Run2018${i}
-    ls /pnfs/desy.de/cms/tier2/store/user/lsreelat/NTuples/2018/HtoAA/SingleMuon/SingleMuon-Run2018${i}-UL2018/*root > SingleMuon_Run2018${i}
+    ls /pnfs/desy.de/cms/tier2/store/user/lsreelat/NTuples/2018/HtoAA/SingleMuon/SingleMuon-Run2018${i}-UL2018/*0.root > SingleMuon_Run2018${i}
+    for index in {1..9}
+    do
+	ls /pnfs/desy.de/cms/tier2/store/user/lsreelat/NTuples/2018/HtoAA/SingleMuon/SingleMuon-Run2018${i}-UL2018/*${index}.root >> SingleMuon_Run2018${i}
+    done
     cp SingleMuon_Run2018${i} SingleMuon_Run2018${i}_SameSign
     ./split_filelist.sh analysisMacro_ztt.conf SingleMuon_Run2018${i} 40
     ./split_filelist.sh analysisMacro_ztt.conf SingleMuon_Run2018${i}_SameSign 40
@@ -71,13 +75,16 @@ do
     echo "Creating file list for sample" ${samples[$i]} 
 
     ls /pnfs/desy.de/cms/tier2/store/user/acardini/ntuples/Oktoberfest21/2018/mc/${samples[$i]}*/*root > ${names[$i]}
+    cp ${names[$i]} ${names[$i]}_SameSign
     ./split_filelist.sh analysisMacro_ztt.conf ${names[$i]} 30
     ./split_filelist.sh analysisMacro_ztt.conf ${names[$i]}_SameSign 30
       
     i=`expr $i + 1` 
 done
 cp DYJetsToLL_M-50 DYJetsToTT_M-50
+cp DYJetsToLL_M-50 DYJetsToTT_M-50_SameSign
 ./split_filelist.sh analysisMacro_ztt.conf DYJetsToTT_M-50 30
+./split_filelist.sh analysisMacro_ztt.conf DYJetsToTT_M-50_SameSign 30
 
 k=0
 while [ $k -lt ${#samples_VV[@]} ] 
@@ -85,6 +92,7 @@ do
     echo "Creating file list for sample" ${samples_VV[$k]} 
 
     ls /pnfs/desy.de/cms/tier2/store/user/lsreelat/NTuples/2018/HtoAA/VV_inclusive/${samples_VV[$k]}*/*root > ${names_VV[$k]}
+    cp ${names_VV[$k]} ${names_VV[$k]}_SameSign
     ./split_filelist.sh analysisMacro_ztt.conf ${names_VV[$k]} 30
     ./split_filelist.sh analysisMacro_ztt.conf ${names_VV[$k]}_SameSign 30
       

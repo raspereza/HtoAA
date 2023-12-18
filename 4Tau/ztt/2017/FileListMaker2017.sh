@@ -84,7 +84,9 @@ do
     i=`expr $i + 1` 
 done
 cp DYJetsToLL_M-50 DYJetsToTT_M-50
+cp DYJetsToLL_M-50 DYJetsToTT_M-50_SameSign
 ./split_filelist.sh analysisMacro_ztt.conf DYJetsToTT_M-50 30
+./split_filelist.sh analysisMacro_ztt.conf DYJetsToTT_M-50_SameSign 30
 
 k=0
 while [ $k -lt ${#samples_VV[@]} ] 

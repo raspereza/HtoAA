@@ -1,8 +1,10 @@
 # Running analysis_macro_ztt using grid control
 
 ## Setting up environment 
+
 Copy script SetupGrid.bash to the working directory where the code will be run.
-Execute this script with one argument - ERA (ERA = 2016_preVFP, 2016_postVFP, 2017 or 2018), for example```
+Execute this script with one argument - ERA (ERA = 2016_preVFP, 2016_postVFP, 2017 or 2018), for example
+```
 ./SetupGrid.bash 2018
 ```
 The script copies into working directory all shell scripts necessary to run grid control from ($CMSSW_BASE/src/HtoAA/4Tau/ztt). From `$CMSSW_BASE/src/HtoAA/4Tau/ztt/$ERA` it copies filelist maker `FileListMaker${ERA}.sh and configuration file `analysisMacro_ztt.conf` to run [analysis_macro_ztt.cpp](https://github.com/raspereza/HtoAA/blob/main/4Tau/bin/analysis_macro_ztt.cpp). Finally, it executes script `FileListMaker${ERA}.sh`, which not only creates filelists, but also splits them into smaller sublists (each such sublist will be process by one grid-control job), and put them in the folder with the name of the sample and appended postfix `_files`. Job splitting per sample is done by the script [split_filelist.sh](https://github.com/raspereza/HtoAA/blob/main/4Tau/ztt/split_filelist.sh).

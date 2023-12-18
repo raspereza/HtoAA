@@ -1,5 +1,9 @@
 #!/bin/bash
 
+rm parameters.txt
+
+echo "CONFIGFILE,FILELIST" > parameters.txt
+
 #File lists for 2018 legacy data:
 for i in A B C D
 do

@@ -72,7 +72,6 @@ int main(int argc, char * argv[]) {
   const string jsonFile = cfg.get<string>("jsonFile");
 
   // trigger
-  const bool applyTriggerMatch = cfg.get<bool>("ApplyTriggerMatch");
   const string dimuonTriggerName = cfg.get<string>("DiMuonTriggerName");
   const string muonHighPtFilterName = cfg.get<string>("MuonHighPtFilterName");
   const string muonLowPtFilterName1 = cfg.get<string>("MuonLowPtFilterName1");
@@ -156,7 +155,6 @@ int main(int argc, char * argv[]) {
   bool muon_isTight[1000];
   bool muon_isLoose[1000];
   bool muon_isMedium[1000];
-  bool muon_isICHEP[1000];
 
   UInt_t genparticles_count;
   Float_t genparticles_e[1000];
@@ -320,61 +318,61 @@ int main(int argc, char * argv[]) {
     MuonPartonNetChargeH->GetXaxis()->SetBinLabel(iB+1,muonPartonNetCharge[iB]);
 
   // Signal region
-  TH1D * InvMassHighMuIsoH = new TH1D("InvMassHighMuIsoH","",20,0.,20.);
-  TH1D * ModelInvMassHighMuIsoH = new TH1D("ModelInvMassHighMuIsoH","",20,0.,20.);
+  TH1D * InvMassHighMuIsoH = new TH1D("InvMassHighMuIsoH","",200,0.,20.);
+  TH1D * ModelInvMassHighMuIsoH = new TH1D("ModelInvMassHighMuIsoH","",200,0.,20.);
   TH1D * InvMassHighMuIsoFlavorChargeH[4][2];
   TH1D * ModelInvMassHighMuIsoFlavorChargeH[4][2];
   TH1D * PartonMomHighMuIsoFlavorChargeH[4][2];
   TH1D * InvMassHighMuIsoFlavorChargeMomH[4][2][10];
 
-  TH1D * InvMassLowMuIsoH = new TH1D("InvMassLowMuIsoH","",20,0.,20.);
-  TH1D * ModelInvMassLowMuIsoH = new TH1D("ModelInvMassLowMuIsoH","",20,0.,20.);
+  TH1D * InvMassLowMuIsoH = new TH1D("InvMassLowMuIsoH","",200,0.,20.);
+  TH1D * ModelInvMassLowMuIsoH = new TH1D("ModelInvMassLowMuIsoH","",200,0.,20.);
   TH1D * InvMassLowMuIsoFlavorChargeH[4][2];
   TH1D * ModelInvMassLowMuIsoFlavorChargeH[4][2];
   TH1D * PartonMomLowMuIsoFlavorChargeH[4][2];
   TH1D * InvMassLowMuIsoFlavorChargeMomH[4][2][10];
 
-  TH1D * InvMassIsoH = new TH1D("InvMassIsoH","",20,0.,20.);
-  TH1D * ModelInvMassIsoH = new TH1D("ModelInvMassIsoH","",20,0.,20.);
+  TH1D * InvMassIsoH = new TH1D("InvMassIsoH","",200,0.,20.);
+  TH1D * ModelInvMassIsoH = new TH1D("ModelInvMassIsoH","",200,0.,20.);
 
-  TH1D * InvMassDimuonIsoH = new TH1D("InvMassDimuonIsoH","",20,0.,20.);
-  TH1D * ModelInvMassDimuonIsoH = new TH1D("ModelInvMassDimuonIsoH","",20,0.,20.);
+  TH1D * InvMassDimuonIsoH = new TH1D("InvMassDimuonIsoH","",200,0.,20.);
+  TH1D * ModelInvMassDimuonIsoH = new TH1D("ModelInvMassDimuonIsoH","",200,0.,20.);
 
   // LooseIso region
-  TH1D * InvMassHighMuLooseIsoH = new TH1D("InvMassHighMuLooseIsoH","",20,0.,20.);
-  TH1D * ModelInvMassHighMuLooseIsoH = new TH1D("ModelInvMassHighMuLooseIsoH","",20,0.,20.);
-  TH1D * InvMassHighMuLooseIsoAllH = new TH1D("InvMassHighMuLooseIsoAllH","",20,0.,20.);
+  TH1D * InvMassHighMuLooseIsoH = new TH1D("InvMassHighMuLooseIsoH","",200,0.,20.);
+  TH1D * ModelInvMassHighMuLooseIsoH = new TH1D("ModelInvMassHighMuLooseIsoH","",200,0.,20.);
+  TH1D * InvMassHighMuLooseIsoAllH = new TH1D("InvMassHighMuLooseIsoAllH","",200,0.,20.);
   TH1D * InvMassHighMuLooseIsoFlavorChargeH[4][2];
   TH1D * ModelInvMassHighMuLooseIsoFlavorChargeH[4][2];
   TH1D * PartonMomHighMuLooseIsoFlavorChargeH[4][2];
   TH1D * InvMassHighMuLooseIsoFlavorChargeMomH[4][2][10];
 
-  TH1D * InvMassLowMuLooseIsoH = new TH1D("InvMassLowMuLooseIsoH","",20,0.,20.);
-  TH1D * ModelInvMassLowMuLooseIsoH = new TH1D("ModelInvMassLowMuLooseIsoH","",20,0.,20.);
-  TH1D * InvMassLowMuLooseIsoAllH = new TH1D("InvMassLowMuLooseIsoAllH","",20,0.,20.);
+  TH1D * InvMassLowMuLooseIsoH = new TH1D("InvMassLowMuLooseIsoH","",200,0.,20.);
+  TH1D * ModelInvMassLowMuLooseIsoH = new TH1D("ModelInvMassLowMuLooseIsoH","",200,0.,20.);
+  TH1D * InvMassLowMuLooseIsoAllH = new TH1D("InvMassLowMuLooseIsoAllH","",200,0.,20.);
   TH1D * InvMassLowMuLooseIsoFlavorChargeH[4][2];
   TH1D * ModelInvMassLowMuLooseIsoFlavorChargeH[4][2];
   TH1D * PartonMomLowMuLooseIsoFlavorChargeH[4][2];
   TH1D * InvMassLowMuLooseIsoFlavorChargeMomH[4][2][10];
 
-  TH1D * InvMassLooseIsoH = new TH1D("InvMassLooseIsoH","",20,0.,20.);
-  TH1D * ModelInvMassLooseIsoH = new TH1D("ModelInvMassLooseIsoH","",20,0.,20.);
+  TH1D * InvMassLooseIsoH = new TH1D("InvMassLooseIsoH","",200,0.,20.);
+  TH1D * ModelInvMassLooseIsoH = new TH1D("ModelInvMassLooseIsoH","",200,0.,20.);
 
-  TH1D * InvMassDimuonLooseIsoH = new TH1D("InvMassDimuonLooseIsoH","",20,0.,20.);
-  TH1D * ModelInvMassDimuonLooseIsoH = new TH1D("ModelInvMassDimuonLooseIsoH","",20,0.,20.);
+  TH1D * InvMassDimuonLooseIsoH = new TH1D("InvMassDimuonLooseIsoH","",200,0.,20.);
+  TH1D * ModelInvMassDimuonLooseIsoH = new TH1D("ModelInvMassDimuonLooseIsoH","",200,0.,20.);
 
   // Sb region (Signal + Background region)
-  TH1D * InvMassHighMuSbH = new TH1D("InvMassHighMuSbH","",20,0.,20.);
-  TH1D * ModelInvMassHighMuSbH = new TH1D("ModelInvMassHighMuSbH","",20,0.,20.);
-  TH1D * InvMassHighMuSbAllH = new TH1D("InvMassHighMuSbAllH","",20,0.,20.);
+  TH1D * InvMassHighMuSbH = new TH1D("InvMassHighMuSbH","",200,0.,20.);
+  TH1D * ModelInvMassHighMuSbH = new TH1D("ModelInvMassHighMuSbH","",200,0.,20.);
+  TH1D * InvMassHighMuSbAllH = new TH1D("InvMassHighMuSbAllH","",200,0.,20.);
   TH1D * InvMassHighMuSbFlavorChargeH[4][2];
   TH1D * ModelInvMassHighMuSbFlavorChargeH[4][2];
   TH1D * PartonMomHighMuSbFlavorChargeH[4][2];
   TH1D * InvMassHighMuSbFlavorChargeMomH[4][2][10];
 
-  TH1D * InvMassLowMuSbH = new TH1D("InvMassLowMuSbH","",20,0.,20.);
-  TH1D * ModelInvMassLowMuSbH = new TH1D("ModelInvMassLowMuSbH","",20,0.,20.);
-  TH1D * InvMassLowMuSbAllH = new TH1D("InvMassLowMuSbAllH","",20,0.,20.);
+  TH1D * InvMassLowMuSbH = new TH1D("InvMassLowMuSbH","",200,0.,20.);
+  TH1D * ModelInvMassLowMuSbH = new TH1D("ModelInvMassLowMuSbH","",200,0.,20.);
+  TH1D * InvMassLowMuSbAllH = new TH1D("InvMassLowMuSbAllH","",200,0.,20.);
   TH1D * InvMassLowMuSbFlavorChargeH[4][2];
   TH1D * ModelInvMassLowMuSbFlavorChargeH[4][2];
   TH1D * PartonMomLowMuSbFlavorChargeH[4][2];
@@ -429,29 +427,29 @@ int main(int argc, char * argv[]) {
   TH1D * GenJetMultiplicityMuSbH = new TH1D("GenJetMultiplicityMuSbH","",20,-0.5,19.5);
   TH1D * deltaRPartonMuSbH = new TH1D("deltaRPartonMuSbH","",100,0.,1.);
   
-  TH1D * InvMassH = new TH1D("InvMassH","",20,0.,20.);
-  TH2D * InvMass2DH = new TH2D("InvMass2DH","",20,0.,20.,20,0.,20.);
+  TH1D * InvMassH = new TH1D("InvMassH","",200,0.,20.);
+  TH2D * InvMass2DH = new TH2D("InvMass2DH","",200,0.,20.,200,0.,20.);
 
   // Correlation Plots
-  TH1D * InvMass_ControlXH = new TH1D("InvMass_ControlXH","",20,0.,20.); 
-  TH2D * InvMass2D_ControlXH = new TH2D("InvMass2D_ControlXH","",20,0.,20.,20,0.,20.);
+  TH1D * InvMass_ControlXH = new TH1D("InvMass_ControlXH","",200,0.,20.); 
+  TH2D * InvMass2D_ControlXH = new TH2D("InvMass2D_ControlXH","",200,0.,20.,200,0.,20.);
    
-  TH1D * InvMass_ControlYH = new TH1D("InvMass_ControlYH","",20,0.,20.); 
-  TH2D * InvMass2D_ControlYH = new TH2D("InvMass2D_ControlYH","",20,0.,20.,20,0.,20.);
+  TH1D * InvMass_ControlYH = new TH1D("InvMass_ControlYH","",200,0.,20.); 
+  TH2D * InvMass2D_ControlYH = new TH2D("InvMass2D_ControlYH","",200,0.,20.,200,0.,20.);
 
   for (int iM=0; iM<nMuonMomBins; ++iM) {
     InvMassLowMuIsoMomUnmatchedH[iM] = 
-      new TH1D("InvMassLowMuIso_"+muonMomRange[iM]+"_UnmatchedH","",20,0.,20.);
+      new TH1D("InvMassLowMuIso_"+muonMomRange[iM]+"_UnmatchedH","",200,0.,20.);
     InvMassLowMuLooseIsoMomUnmatchedH[iM] = 
-      new TH1D("InvMassLowMuLooseIso_"+muonMomRange[iM]+"_UnmatchedH","",20,0.,20.);
+      new TH1D("InvMassLowMuLooseIso_"+muonMomRange[iM]+"_UnmatchedH","",200,0.,20.);
     InvMassLowMuSbMomUnmatchedH[iM] = 
-      new TH1D("InvMassLowMuSb_"+muonMomRange[iM]+"_UnmatchedH","",20,0.,20.);
+      new TH1D("InvMassLowMuSb_"+muonMomRange[iM]+"_UnmatchedH","",200,0.,20.);
     InvMassHighMuIsoMomUnmatchedH[iM] = 
-      new TH1D("InvMassHighMuIso_"+muonMomRange[iM]+"_UnmatchedH","",20,0.,20.);
+      new TH1D("InvMassHighMuIso_"+muonMomRange[iM]+"_UnmatchedH","",200,0.,20.);
     InvMassHighMuLooseIsoMomUnmatchedH[iM] = 
-      new TH1D("InvMassHighMuLooseIso_"+muonMomRange[iM]+"_UnmatchedH","",20,0.,20.);
+      new TH1D("InvMassHighMuLooseIso_"+muonMomRange[iM]+"_UnmatchedH","",200,0.,20.);
     InvMassHighMuSbMomUnmatchedH[iM] = 
-      new TH1D("InvMassHighMuSb_"+muonMomRange[iM]+"_UnmatchedH","",20,0.,20.);
+      new TH1D("InvMassHighMuSb_"+muonMomRange[iM]+"_UnmatchedH","",200,0.,20.);
   }
 
   for (int iF=0; iF<4; ++iF) {
@@ -464,36 +462,36 @@ int main(int argc, char * argv[]) {
       PartonMomHighMuFlavorChargeH[iF][iQ] = new TH1D("partonMomHighMu_"+partonFlavor[iF]+"_"+muonPartonNetCharge[iQ],"",500,0.,5000.);
       PartonMomLowMuFlavorChargeH[iF][iQ] = new TH1D("partonMomLowMu_"+partonFlavor[iF]+"_"+muonPartonNetCharge[iQ],"",500,0.,5000.);
       
-      InvMassHighMuIsoFlavorChargeH[iF][iQ] = new TH1D("InvMassHighMuIso_"+partonFlavor[iF]+"_"+muonPartonNetCharge[iQ],"",20,0.,20.);
-      InvMassLowMuIsoFlavorChargeH[iF][iQ] = new TH1D("InvMassLowMuIso_"+partonFlavor[iF]+"_"+muonPartonNetCharge[iQ],"",20,0.,20.);
-      ModelInvMassHighMuIsoFlavorChargeH[iF][iQ] = new TH1D("ModelInvMassHighMuIso_"+partonFlavor[iF]+"_"+muonPartonNetCharge[iQ],"",20,0.,20.);
-      ModelInvMassLowMuIsoFlavorChargeH[iF][iQ] = new TH1D("ModelInvMassLowMuIso_"+partonFlavor[iF]+"_"+muonPartonNetCharge[iQ],"",20,0.,20.);
+      InvMassHighMuIsoFlavorChargeH[iF][iQ] = new TH1D("InvMassHighMuIso_"+partonFlavor[iF]+"_"+muonPartonNetCharge[iQ],"",200,0.,20.);
+      InvMassLowMuIsoFlavorChargeH[iF][iQ] = new TH1D("InvMassLowMuIso_"+partonFlavor[iF]+"_"+muonPartonNetCharge[iQ],"",200,0.,20.);
+      ModelInvMassHighMuIsoFlavorChargeH[iF][iQ] = new TH1D("ModelInvMassHighMuIso_"+partonFlavor[iF]+"_"+muonPartonNetCharge[iQ],"",200,0.,20.);
+      ModelInvMassLowMuIsoFlavorChargeH[iF][iQ] = new TH1D("ModelInvMassLowMuIso_"+partonFlavor[iF]+"_"+muonPartonNetCharge[iQ],"",200,0.,20.);
       PartonMomHighMuIsoFlavorChargeH[iF][iQ] = new TH1D("PartonMomHighMuIso_"+partonFlavor[iF]+"_"+muonPartonNetCharge[iQ],"",500,0.,5000.);
       PartonMomLowMuIsoFlavorChargeH[iF][iQ] = new TH1D("PartonMomLowMuIso_"+partonFlavor[iF]+"_"+muonPartonNetCharge[iQ],"",500,0.,5000.);
 
-      InvMassHighMuLooseIsoFlavorChargeH[iF][iQ] = new TH1D("InvMassHighMuLooseIso_"+partonFlavor[iF]+"_"+muonPartonNetCharge[iQ],"",20,0.,20.);
-      InvMassLowMuLooseIsoFlavorChargeH[iF][iQ] = new TH1D("InvMassLowMuLooseIso_"+partonFlavor[iF]+"_"+muonPartonNetCharge[iQ],"",20,0.,20.);
-      ModelInvMassHighMuLooseIsoFlavorChargeH[iF][iQ] = new TH1D("ModelInvMassHighMuLooseIso_"+partonFlavor[iF]+"_"+muonPartonNetCharge[iQ],"",20,0.,20.);
-      ModelInvMassLowMuLooseIsoFlavorChargeH[iF][iQ] = new TH1D("ModelInvMassLowMuLooseIso_"+partonFlavor[iF]+"_"+muonPartonNetCharge[iQ],"",20,0.,20.);
+      InvMassHighMuLooseIsoFlavorChargeH[iF][iQ] = new TH1D("InvMassHighMuLooseIso_"+partonFlavor[iF]+"_"+muonPartonNetCharge[iQ],"",200,0.,20.);
+      InvMassLowMuLooseIsoFlavorChargeH[iF][iQ] = new TH1D("InvMassLowMuLooseIso_"+partonFlavor[iF]+"_"+muonPartonNetCharge[iQ],"",200,0.,20.);
+      ModelInvMassHighMuLooseIsoFlavorChargeH[iF][iQ] = new TH1D("ModelInvMassHighMuLooseIso_"+partonFlavor[iF]+"_"+muonPartonNetCharge[iQ],"",200,0.,20.);
+      ModelInvMassLowMuLooseIsoFlavorChargeH[iF][iQ] = new TH1D("ModelInvMassLowMuLooseIso_"+partonFlavor[iF]+"_"+muonPartonNetCharge[iQ],"",200,0.,20.);
       PartonMomHighMuLooseIsoFlavorChargeH[iF][iQ] = new TH1D("PartonMomHighMuLooseIso_"+partonFlavor[iF]+"_"+muonPartonNetCharge[iQ],"",500,0.,5000.);
       PartonMomLowMuLooseIsoFlavorChargeH[iF][iQ] = new TH1D("PartonMomLowMuLooseIso_"+partonFlavor[iF]+"_"+muonPartonNetCharge[iQ],"",500,0.,5000.);
 
-      InvMassHighMuSbFlavorChargeH[iF][iQ] = new TH1D("InvMassHighMuSb_"+partonFlavor[iF]+"_"+muonPartonNetCharge[iQ],"",20,0.,20.);
-      InvMassLowMuSbFlavorChargeH[iF][iQ] = new TH1D("InvMassLowMuSb_"+partonFlavor[iF]+"_"+muonPartonNetCharge[iQ],"",20,0.,20.);
-      ModelInvMassHighMuSbFlavorChargeH[iF][iQ] = new TH1D("ModelInvMassHighMuSb_"+partonFlavor[iF]+"_"+muonPartonNetCharge[iQ],"",20,0.,20.);
-      ModelInvMassLowMuSbFlavorChargeH[iF][iQ] = new TH1D("ModelInvMassLowMuSb_"+partonFlavor[iF]+"_"+muonPartonNetCharge[iQ],"",20,0.,20.);
+      InvMassHighMuSbFlavorChargeH[iF][iQ] = new TH1D("InvMassHighMuSb_"+partonFlavor[iF]+"_"+muonPartonNetCharge[iQ],"",200,0.,20.);
+      InvMassLowMuSbFlavorChargeH[iF][iQ] = new TH1D("InvMassLowMuSb_"+partonFlavor[iF]+"_"+muonPartonNetCharge[iQ],"",200,0.,20.);
+      ModelInvMassHighMuSbFlavorChargeH[iF][iQ] = new TH1D("ModelInvMassHighMuSb_"+partonFlavor[iF]+"_"+muonPartonNetCharge[iQ],"",200,0.,20.);
+      ModelInvMassLowMuSbFlavorChargeH[iF][iQ] = new TH1D("ModelInvMassLowMuSb_"+partonFlavor[iF]+"_"+muonPartonNetCharge[iQ],"",200,0.,20.);
       PartonMomHighMuSbFlavorChargeH[iF][iQ] = new TH1D("PartonMomHighMuSb_"+partonFlavor[iF]+"_"+muonPartonNetCharge[iQ],"",500,0.,5000.);
       PartonMomLowMuSbFlavorChargeH[iF][iQ] = new TH1D("PartonMomLowMuSb_"+partonFlavor[iF]+"_"+muonPartonNetCharge[iQ],"",500,0.,5000.);
 
       for (int iM=0; iM<nPartonMomBins; ++iM) {
 
-	InvMassLowMuIsoFlavorChargeMomH[iF][iQ][iM] = new TH1D("InvMassLowMuIso_"+partonFlavor[iF]+"_"+muonPartonNetCharge[iQ]+"_"+partonMomRange[iM],"",20,0.,20.);
-	InvMassLowMuLooseIsoFlavorChargeMomH[iF][iQ][iM] = new TH1D("InvMassLowMuLooseIso_"+partonFlavor[iF]+"_"+muonPartonNetCharge[iQ]+"_"+partonMomRange[iM],"",20,0.,20.);
-	InvMassLowMuSbFlavorChargeMomH[iF][iQ][iM] = new TH1D("InvMassLowMuSb_"+partonFlavor[iF]+"_"+muonPartonNetCharge[iQ]+"_"+partonMomRange[iM],"",20,0.,20.);
+	InvMassLowMuIsoFlavorChargeMomH[iF][iQ][iM] = new TH1D("InvMassLowMuIso_"+partonFlavor[iF]+"_"+muonPartonNetCharge[iQ]+"_"+partonMomRange[iM],"",200,0.,20.);
+	InvMassLowMuLooseIsoFlavorChargeMomH[iF][iQ][iM] = new TH1D("InvMassLowMuLooseIso_"+partonFlavor[iF]+"_"+muonPartonNetCharge[iQ]+"_"+partonMomRange[iM],"",200,0.,20.);
+	InvMassLowMuSbFlavorChargeMomH[iF][iQ][iM] = new TH1D("InvMassLowMuSb_"+partonFlavor[iF]+"_"+muonPartonNetCharge[iQ]+"_"+partonMomRange[iM],"",200,0.,20.);
 
-	InvMassHighMuIsoFlavorChargeMomH[iF][iQ][iM] = new TH1D("InvMassHighMuIso_"+partonFlavor[iF]+"_"+muonPartonNetCharge[iQ]+"_"+partonMomRange[iM],"",20,0.,20.);
-	InvMassHighMuLooseIsoFlavorChargeMomH[iF][iQ][iM] = new TH1D("InvMassHighMuLooseIso_"+partonFlavor[iF]+"_"+muonPartonNetCharge[iQ]+"_"+partonMomRange[iM],"",20,0.,20.);
-	InvMassHighMuSbFlavorChargeMomH[iF][iQ][iM] = new TH1D("InvMassHighMuSb_"+partonFlavor[iF]+"_"+muonPartonNetCharge[iQ]+"_"+partonMomRange[iM],"",20,0.,20.);
+	InvMassHighMuIsoFlavorChargeMomH[iF][iQ][iM] = new TH1D("InvMassHighMuIso_"+partonFlavor[iF]+"_"+muonPartonNetCharge[iQ]+"_"+partonMomRange[iM],"",200,0.,20.);
+	InvMassHighMuLooseIsoFlavorChargeMomH[iF][iQ][iM] = new TH1D("InvMassHighMuLooseIso_"+partonFlavor[iF]+"_"+muonPartonNetCharge[iQ]+"_"+partonMomRange[iM],"",200,0.,20.);
+	InvMassHighMuSbFlavorChargeMomH[iF][iQ][iM] = new TH1D("InvMassHighMuSb_"+partonFlavor[iF]+"_"+muonPartonNetCharge[iQ]+"_"+partonMomRange[iM],"",200,0.,20.);
 
       }      
       
@@ -545,8 +543,11 @@ int main(int argc, char * argv[]) {
     }
   }
 
+  std::string qcdFileName = cfg.get<string>("qcdModelFileName");
+  TString QCDFileName(qcdFileName);
+
   // QCD Model
-  TString fileNameQCDModel = TString(cmsswBase)+TString("/src/HtoAA/data/QCDModel.root");
+  TString fileNameQCDModel = TString(cmsswBase)+TString("/src/HtoAA/data/"+QCDFileName);
   QCDModel * qcdModel = new QCDModel(fileNameQCDModel);
 
   // PU reweighting
@@ -610,7 +611,6 @@ int main(int argc, char * argv[]) {
    tree_->SetBranchAddress("muon_photonIso", muon_photonIso);
    tree_->SetBranchAddress("muon_puIso", muon_puIso);
    tree_->SetBranchAddress("muon_isMedium", muon_isMedium);
-   tree_->SetBranchAddress("muon_isICHEP", muon_isICHEP);
 
    // MET
    tree_->SetBranchAddress("pfmetcorr_ex", &metx);
@@ -863,6 +863,10 @@ int main(int argc, char * argv[]) {
 
        unsigned int index = muons.at(imu);
 
+       if (debug) {
+	 std::cout << " muon index : " << index << std::endl;
+       }
+
        bool muHighPassed = muon_pt[index]>ptMuonHighCut && 
 	 fabs(muon_eta[index])<etaMuonHighCut;
        bool muLowPassed  = !muHighPassed;
@@ -898,6 +902,10 @@ int main(int argc, char * argv[]) {
 	   matchedParton = true;
 	   matchedPartonLV = partLV;
 	 }
+       }
+
+       if (debug) {
+	 std::cout << " jet flavor : " << flavour << std::endl;
        }
 
        int net = 0;
@@ -942,6 +950,8 @@ int main(int argc, char * argv[]) {
 	   }
 	 }
        }
+
+       
 
        TLorentzVector muonTrkLV = trackLV + Muon4;
        float muonTrkMass = muonTrkLV.M();

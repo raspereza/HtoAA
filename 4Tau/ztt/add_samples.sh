@@ -12,3 +12,4 @@ do
     mv $samplename ../$samplename
     cd ..
 done    
+./hadd_data.bash

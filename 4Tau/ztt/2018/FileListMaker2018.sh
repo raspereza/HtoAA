@@ -1,6 +1,8 @@
 #!/bin/bash
 
-rm parameters.txt
+if [ -f "parameters.txt" ]; then
+    rm parameters.txt
+fi
 
 echo "CONFIGFILE,FILELIST" > parameters.txt
 
@@ -13,10 +15,7 @@ do
     do
 	ls /pnfs/desy.de/cms/tier2/store/user/lsreelat/NTuples/2018/HtoAA/SingleMuon/SingleMuon-Run2018${i}-UL2018/*${index}.root >> SingleMuon_Run2018${i}
     done
-    cp SingleMuon_Run2018${i} SingleMuon_Run2018${i}_SameSign
-    ./split_filelist.sh analysisMacro_ztt.conf SingleMuon_Run2018${i} 40
-    ./split_filelist.sh analysisMacro_ztt.conf SingleMuon_Run2018${i}_SameSign 40
-    
+    ./split_filelist.sh analysisMacro_ztt.conf SingleMuon_Run2018${i} 20
 done
 
 # TTSemileptonic sample should be split (long list for ls command)
@@ -26,9 +25,7 @@ for index in {1..9}
 do
     ls /pnfs/desy.de/cms/tier2/store/user/acardini/ntuples/Oktoberfest21/2018/mc/TTToSemiLeptonic/*${index}.root >> TTToSemiLeptonic
 done
-cp TTToSemiLeptonic TTToSemiLeptonic_SameSign
-./split_filelist.sh analysisMacro_ztt.conf TTToSemiLeptonic 20
-./split_filelist.sh analysisMacro_ztt.conf TTToSemiLeptonic_SameSign 20
+./split_filelist.sh analysisMacro_ztt.conf TTToSemiLeptonic 10
 
 # WJetsToLNu sample should be split (long list for ls command)
 echo "Creating file list for sample WJetsToLNu"
@@ -37,9 +34,7 @@ for index in {1..9}
 do
     ls /pnfs/desy.de/cms/tier2/store/user/acardini/ntuples/Oktoberfest21/2018/mc/WJetsToLNu/*${index}.root >> WJetsToLNu
 done
-cp WJetsToLNu WJetsToLNu_SameSign
-./split_filelist.sh analysisMacro_ztt.conf WJetsToLNu 40
-./split_filelist.sh analysisMacro_ztt.conf WJetsToLNu_SameSign 40
+./split_filelist.sh analysisMacro_ztt.conf WJetsToLNu 20
 
 #File lists for VV background MC samples
 samples_VV=(WW_TuneCP5_13TeV-pythia8
@@ -79,16 +74,12 @@ do
     echo "Creating file list for sample" ${samples[$i]} 
 
     ls /pnfs/desy.de/cms/tier2/store/user/acardini/ntuples/Oktoberfest21/2018/mc/${samples[$i]}*/*root > ${names[$i]}
-    cp ${names[$i]} ${names[$i]}_SameSign
-    ./split_filelist.sh analysisMacro_ztt.conf ${names[$i]} 30
-    ./split_filelist.sh analysisMacro_ztt.conf ${names[$i]}_SameSign 30
+    ./split_filelist.sh analysisMacro_ztt.conf ${names[$i]} 20
       
     i=`expr $i + 1` 
 done
 cp DYJetsToLL_M-50 DYJetsToTT_M-50
-cp DYJetsToLL_M-50 DYJetsToTT_M-50_SameSign
-./split_filelist.sh analysisMacro_ztt.conf DYJetsToTT_M-50 30
-./split_filelist.sh analysisMacro_ztt.conf DYJetsToTT_M-50_SameSign 30
+./split_filelist.sh analysisMacro_ztt.conf DYJetsToTT_M-50 20
 
 k=0
 while [ $k -lt ${#samples_VV[@]} ] 
@@ -96,9 +87,7 @@ do
     echo "Creating file list for sample" ${samples_VV[$k]} 
 
     ls /pnfs/desy.de/cms/tier2/store/user/lsreelat/NTuples/2018/HtoAA/VV_inclusive/${samples_VV[$k]}*/*root > ${names_VV[$k]}
-    cp ${names_VV[$k]} ${names_VV[$k]}_SameSign
-    ./split_filelist.sh analysisMacro_ztt.conf ${names_VV[$k]} 30
-    ./split_filelist.sh analysisMacro_ztt.conf ${names_VV[$k]}_SameSign 30
+    ./split_filelist.sh analysisMacro_ztt.conf ${names_VV[$k]} 20
       
     k=`expr $k + 1` 
 done

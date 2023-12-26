@@ -2373,11 +2373,11 @@ int main(int argc, char * argv[]) {
        InvMassH_btagDown->Fill(massTrkMuTrailing,weight*weight_btag_down);
        InvMass2DH_btagDown->Fill(massTrkMuLeading,massTrkMuTrailing,weight*weight_btag_down);
 
-       // mistag variations for heavy flavours : up ->
+       // mistag variations for light flavours : up ->
        InvMassH_mistagUp->Fill(massTrkMuLeading,weight*weight_mistag_up);
        InvMassH_mistagUp->Fill(massTrkMuTrailing,weight*weight_mistag_up);
        InvMass2DH_mistagUp->Fill(massTrkMuLeading,massTrkMuTrailing,weight*weight_mistag_up);
-       // mistag variations for heavy flavours : down ->
+       // mistag variations for light flavours : down ->
        InvMassH_mistagDown->Fill(massTrkMuLeading,weight*weight_mistag_down);
        InvMassH_mistagDown->Fill(massTrkMuTrailing,weight*weight_mistag_down);
        InvMass2DH_mistagDown->Fill(massTrkMuLeading,massTrkMuTrailing,weight*weight_mistag_down);

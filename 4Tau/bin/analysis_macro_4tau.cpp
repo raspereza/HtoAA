@@ -264,6 +264,7 @@ int main(int argc, char * argv[]) {
   UInt_t   pfjet_chargedhadronmulti[200];   //[pfjet_count]
   Int_t    pfjet_flavour[200];   //[pfjet_count]
   Float_t  pfjet_btag[200][10];   //[pfjet_count]
+  Float_t  pfjet_jecUncertainty[200]; //[pfjet_count]
 
   float genweight;
 
@@ -363,13 +364,27 @@ int main(int argc, char * argv[]) {
   TH2D * InvMass2DH = new TH2D("InvMass2DH","",20,0.,20.,20,0.,20.);
 
   // btag variations ->
+
   TH1D * InvMassH_btagUp = new TH1D("InvMassH_btagUp","",20,0.,20.);
   TH2D * InvMass2DH_btagUp = new TH2D("InvMass2DH_btagUp","",20,0.,20.,20,0.,20.);
 
   TH1D * InvMassH_btagDown = new TH1D("InvMassH_btagDown","",20,0.,20.);
   TH2D * InvMass2DH_btagDown = new TH2D("InvMass2DH_btagDown","",20,0.,20.,20,0.,20.);
-  
 
+  TH1D * InvMassH_mistagUp = new TH1D("InvMassH_mistagUp","",20,0.,20.);
+  TH2D * InvMass2DH_mistagUp = new TH2D("InvMass2DH_mistagUp","",20,0.,20.,20,0.,20.);
+
+  TH1D * InvMassH_mistagDown = new TH1D("InvMassH_mistagDown","",20,0.,20.);
+  TH2D * InvMass2DH_mistagDown = new TH2D("InvMass2DH_mistagDown","",20,0.,20.,20,0.,20.);
+
+  TH1D * InvMassH_jesUp = new TH1D("InvMassH_jesUp","",20,0.,20.);
+  TH2D * InvMass2DH_jesUp = new TH2D("InvMass2DH_jesUp","",20,0.,20.,20,0.,20.);
+
+  TH1D * InvMassH_jesDown = new TH1D("InvMassH_jesDown","",20,0.,20.);
+  TH2D * InvMass2DH_jesDown = new TH2D("InvMass2DH_jesDown","",20,0.,20.,20,0.,20.);
+
+  //
+  
   TH1D * MetSelH = new TH1D("MetH","",400,0.,400.);
   TH1D * mTtotSelH = new TH1D("mTtotSelH","",400,0.,400.);
 
@@ -403,7 +418,11 @@ int main(int argc, char * argv[]) {
   TH1D * counter_ControlEventsH=new TH1D("counter_ControlEventsH","",1,0.,2.);         
   TH1D * counter_ControlXEventsH=new TH1D("counter_ControlXEventsH","",1,0.,2.);         
   TH1D * counter_ControlYEventsH=new TH1D("counter_ControlYEventsH","",1,0.,2.);         
-  
+
+  // Counter btags
+  TH1D * counter_btagH = new TH1D("counter_btagH","",1,0.,2.);
+  TH1D * counter_btag_jesUpH = new TH1D("counter_btag_jesUpH","",1,0.,2.);
+  TH1D * counter_btag_jesDownH = new TH1D("counter_btag_jesDownH","",1,0.,2.);
 
   TH1D * histWeightsH = new TH1D("histWeightsH","",1,0.,2.);
   TH1D * histWeightsSingleMuH = new TH1D("histWeightsSingleMuH","",1,0.,2.);
@@ -733,8 +752,25 @@ int main(int argc, char * argv[]) {
    iFiles++;
    cout << "file " << iFiles << " out of " << counterFiles << " : " << filen << endl;
    
-   TFile * file_ = TFile::Open(TString(filen));
+   TString FileName = TString(filen);
+   TFile * file_ = TFile::Open(FileName);
+
    if (file_==NULL) continue;
+   
+   if (file_->GetListOfKeys()->GetSize() == 0)
+     continue; 
+
+   if (file_->GetEND() > file_->GetSize())
+     continue; 
+
+   if (file_->GetSeekKeys()<=file_->GetEND()-file_->GetSize())
+     continue;
+
+   if (file_->IsZombie()) {
+     cout << "cannot open file " << FileName << std::endl;
+     continue;
+   }
+
 
    // sum of weights (needed for normalization)
    TTree * _inittree = (TTree*)file_->Get(TString(initNtupleName));
@@ -853,6 +889,7 @@ int main(int argc, char * argv[]) {
    tree_->SetBranchAddress("pfjet_neutralmulti",pfjet_neutralmulti);
    tree_->SetBranchAddress("pfjet_flavour",pfjet_flavour);
    tree_->SetBranchAddress("pfjet_btag",pfjet_btag);
+   tree_->SetBranchAddress("pfjet_jecUncertainty",pfjet_jecUncertainty);
 
    if (!isData) {
      tree_->SetBranchAddress("genweight",&genweight);
@@ -1319,19 +1356,27 @@ int main(int argc, char * argv[]) {
 
      //     std::cout << "Ok 1" << std::endl;
 
-     float weight_btag = 1.0;
+     float weight_btag = 1.0; 
      float weight_btag_up = 1.0;
      float weight_btag_down = 1.0;
+     float weight_mistag_up = 1.0;
+     float weight_mistag_down = 1.0;
      if (ApplyBTagVeto) {
        int nBTagDiscriminant1 = -1;
        int nBTagDiscriminant2 = -1;
        int nBTagDiscriminant3 = -1;
        unsigned int num_btags = 0;
        float Pdata = 1.;
-       float Pdata_up = 1.;
-       float Pdata_down = 1.;
+       float Pdata_lf_up = 1.;
+       float Pdata_lf_down = 1.;
+       float Pdata_hf_up = 1.;
+       float Pdata_hf_down = 1.;
        float Pmc = 1.;
+       float Pmc_lf = 1.;
+       float Pmc_hf = 1.;
        unsigned int nbtags = 0;
+       unsigned int nbtags_jesUp = 0;
+       unsigned int nbtags_jesDown =0;
        for (unsigned int ibtag=0; ibtag<btagdiscriminators->size(); ibtag++) {
 	 TString discr(btagdiscriminators->at(ibtag));
 	 if (discr==BTagDiscriminator1) {
@@ -1389,7 +1434,6 @@ int main(int argc, char * argv[]) {
 	   if (JetEtaForBTag < MinBJetEta) JetEtaForBTag = MinBJetEta + 0.01;
 	   
 	   if (absEta>bjetEta) continue;
-	   if (pfjet_pt[jet]<bjetPt) continue;
 
 	   float btagDiscr = pfjet_btag[jet][nBTagDiscriminant1];
 	   if (BTagAlgorithm=="pfDeepFlavourJetTags"||BTagAlgorithm=="pfDeepCSVJetTags")
@@ -1399,12 +1443,18 @@ int main(int argc, char * argv[]) {
 
 	   bool tagged = btagDiscr>btagCut;
 
+	   //
            if (isData && tagged){
-             nbtags++;
+	     if (pfjet_pt[jet]>bjetPt)
+	       nbtags++;
            }
 	   
 	   // BTag correction (promote/demote)
 	   if (!isData && applyBTagSF) {
+
+	     float pfjet_pt_jesUp = (1.0+pfjet_jecUncertainty[jet])*pfjet_pt[jet];
+	     float pfjet_pt_jesDown = (1.0-pfjet_jecUncertainty[jet])*pfjet_pt[jet];
+
 	     int flavor = TMath::Abs(pfjet_flavour[jet]);
 	     float tageff = tagEff_Light->GetBinContent(tagEff_Light->FindBin(JetPtForBTag, JetEtaForBTag));
 	     float jet_scalefactor = reader_Light.eval_auto_bounds("central",BTagEntry::FLAV_UDSG,JetEtaForBTag,JetPtForBTag);
@@ -1423,33 +1473,76 @@ int main(int argc, char * argv[]) {
 	       jet_scalefactor_down = reader_B.eval_auto_bounds("down",BTagEntry::FLAV_B,JetEtaForBTag,JetPtForBTag);
 	     }
 	     if (tagged) {  
-	       nbtags++;
+
+	       if (pfjet_pt[jet]>bjetPt) nbtags++;
+	       if (pfjet_pt_jesUp>bjetPt) nbtags_jesUp++;
+	       if (pfjet_pt_jesDown>bjetPt) nbtags_jesDown++;
+
 	       Pmc = Pmc*tageff;
 	       Pdata = Pdata*jet_scalefactor*tageff;
-	       Pdata_up = Pdata_up*jet_scalefactor_up*tageff;
-	       Pdata_down = Pdata_down*jet_scalefactor_down*tageff;
+
+	       if (flavor==4||flavor==5) {
+		 Pmc_hf = Pmc_hf*tageff;
+		 Pdata_hf_up = Pdata_hf_up*jet_scalefactor_up*tageff;
+		 Pdata_hf_down = Pdata_hf_down*jet_scalefactor_down*tageff;
+	       }
+	       else {
+		 Pmc_lf = Pmc_lf*tageff;
+		 Pdata_lf_up = Pdata_lf_up*jet_scalefactor_up*tageff;
+		 Pdata_lf_down = Pdata_lf_down*jet_scalefactor_up*tageff;
+	       }
 	     }
 	     else {
+
 	       Pmc = Pmc*(1-tageff);
 	       Pdata = Pdata*(1.0-jet_scalefactor*tageff);
-	       Pdata_up = Pdata_up*(1.0-jet_scalefactor_up*tageff);
-	       Pdata_down = Pdata_down*(1.0-jet_scalefactor_down*tageff);
+
+	       if (flavor==4 || flavor==5) {
+		 Pmc_hf = Pmc_hf*(1-tageff);
+		 Pdata_hf_up = Pdata_hf_up*(1.0-jet_scalefactor_up*tageff);
+		 Pdata_hf_down = Pdata_hf_down*(1.0-jet_scalefactor_down*tageff);
+	       }
+	       else {
+		 Pmc_lf = Pmc_lf*(1-tageff);
+                 Pdata_lf_up = Pdata_lf_up*(1.0-jet_scalefactor_up*tageff);
+                 Pdata_lf_down = Pdata_lf_down*(1.0-jet_scalefactor_down*tageff);
+	       }
+
 	     }
 	   }
 	 }
        }
+
+       if (nbtags==0) counter_btagH->Fill(1.,weight);
+       if (nbtags_jesUp==0) counter_btag_jesUpH->Fill(1.,weight);
+       if (nbtags_jesDown==0) counter_btag_jesDownH->Fill(1.,weight);
+
+       if (ApplyBTagVeto && nbtags>0) continue;
+
+
        //       std::cout << "nbtags = " << nbtags << std::endl;
-       if (nbtags>0) continue;
        if (!isData) { 
 	 weight_btag = Pdata/Pmc;
-	 //	 std::cout << "weight_btag = " << weight_btag << std::endl;
+	 // some protection
+	 if (weight_btag<0.01) weight_btag=0.01;
+	 if (Pmc_hf<0.01) Pmc_hf=0.01;
+	 if (Pmc_lf<0.01) Pmc_lf=0.01;
+	 // std::cout << "weight_btag = " << weight_btag << std::endl;
 	 weight *= weight_btag;
-	 weight_btag_up = Pdata_up/Pdata;
-	 weight_btag_down = Pdata_down/Pdata;	 
+	 weight_btag_up = Pdata_hf_up/Pmc_hf;
+	 weight_btag_down = Pdata_hf_down/Pmc_hf;	 
+	 weight_mistag_up = Pdata_lf_up/Pmc_lf;
+	 weight_mistag_down = Pdata_lf_down/Pmc_lf;
+
+	 // relative to total btag weight
+	 weight_btag_up = weight_btag_up/weight_btag;
+	 weight_btag_down = weight_btag_down/weight_btag;
+	 weight_mistag_up = weight_mistag_up/weight_btag;
+	 weight_mistag_down = weight_mistag_down/weight_btag;
+
        }
      }
      //     std::cout << "Ok 2" << std::endl;
-     
      // finding HLT filters in the HLT Filter library
      unsigned int nMu8Leg   = 0;
      unsigned int nMu17Leg  = 0;
@@ -1817,13 +1910,12 @@ int main(int argc, char * argv[]) {
      //       weight *= trigWeight; 
      //     }
 
-     // filling histograms (muon kinematics)
      dimuonMassH->Fill(dimuonMass,weight);
      ptLeadingMuH->Fill(muon_pt[iLeading],weight);
      ptTrailingMuH->Fill(muon_pt[iTrailing],weight);
      etaLeadingMuH->Fill(muon_eta[iLeading],weight);
      etaTrailingMuH->Fill(muon_eta[iTrailing],weight);
-     counter_MuonKinematicsH->Fill(1.0,weight);                  
+     counter_MuonKinematicsH->Fill(1.0,weight); 
 
      TLorentzVector Met4; Met4.SetXYZM(metx,mety,0,0);
 
@@ -2272,14 +2364,23 @@ int main(int argc, char * argv[]) {
        InvMassH->Fill(massTrkMuLeading,weight);
        InvMassH->Fill(massTrkMuTrailing,weight);
        InvMass2DH->Fill(massTrkMuLeading,massTrkMuTrailing,weight);
-       // btag variations ->
+       // btag variations for heavy flavours : up ->
        InvMassH_btagUp->Fill(massTrkMuLeading,weight*weight_btag_up);
        InvMassH_btagUp->Fill(massTrkMuTrailing,weight*weight_btag_up);
        InvMass2DH_btagUp->Fill(massTrkMuLeading,massTrkMuTrailing,weight*weight_btag_up);
-       // btag variations ->
+       // btag variations for heavy flavours : down ->
        InvMassH_btagDown->Fill(massTrkMuLeading,weight*weight_btag_down);
        InvMassH_btagDown->Fill(massTrkMuTrailing,weight*weight_btag_down);
        InvMass2DH_btagDown->Fill(massTrkMuLeading,massTrkMuTrailing,weight*weight_btag_down);
+
+       // mistag variations for heavy flavours : up ->
+       InvMassH_mistagUp->Fill(massTrkMuLeading,weight*weight_mistag_up);
+       InvMassH_mistagUp->Fill(massTrkMuTrailing,weight*weight_mistag_up);
+       InvMass2DH_mistagUp->Fill(massTrkMuLeading,massTrkMuTrailing,weight*weight_mistag_up);
+       // mistag variations for heavy flavours : down ->
+       InvMassH_mistagDown->Fill(massTrkMuLeading,weight*weight_mistag_down);
+       InvMassH_mistagDown->Fill(massTrkMuTrailing,weight*weight_mistag_down);
+       InvMass2DH_mistagDown->Fill(massTrkMuLeading,massTrkMuTrailing,weight*weight_mistag_down);
        
      }
 

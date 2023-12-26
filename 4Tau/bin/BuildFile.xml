@@ -7,6 +7,14 @@
   <use name="root"/>
 </bin>
 
+<bin name="createCardsZtt" file="createCardsZtt.cpp">
+ <use name="rootgraphics"/>
+ <use name="root"/>
+ <use name="rootmath"/>
+ <use name="roottmva"/>
+ <use name="boost" />
+</bin>
+
 <bin name="analysis_macro_4tau" file="analysis_macro_4tau.cpp">
  <use name="rootgraphics"/>
  <use name="root"/>
@@ -78,6 +86,22 @@
 </bin>
 
 <bin name="mutrk_mass" file="mutrk_mass.cpp">
+ <use name="rootgraphics"/>
+ <use name="root"/>
+ <use name="rootmath"/>
+ <use name="roottmva"/>
+ <use name="boost" />
+ <use name="boost_program_options"/>
+ <use name="HtoAA/Utilities"/>
+ <use name="HTT-utilities/LepEffInterface"/>
+ <use name="FWCore/Framework"/>
+ <use name="FWCore/ParameterSet"/>
+ <use name="DataFormats/Common"/>
+ <use name="PhysicsTools/Utilities"/>
+ <use name="CommonTools/Utils"/>
+</bin>
+
+<bin name="mutrk_mass_new" file="mutrk_mass_new.cpp">
  <use name="rootgraphics"/>
  <use name="root"/>
  <use name="rootmath"/>

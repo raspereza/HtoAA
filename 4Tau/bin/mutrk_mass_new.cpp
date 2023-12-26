@@ -573,23 +573,8 @@ int main(int argc, char * argv[]) {
    iFiles++;
    cout << "file " << iFiles << " : " << filen << endl;
    
-   TString FileName = TString(filen);
-   TFile * file_ = TFile::Open(FileName);
+   TFile * file_ = TFile::Open(TString(filen));
    if (file_==NULL) continue;
-
-   if (file_->GetListOfKeys()->GetSize() == 0)
-     continue; 
-
-   if (file_->GetEND() > file_->GetSize())
-     continue; 
-
-   if (file_->GetSeekKeys()<=file_->GetEND()-file_->GetSize())
-     continue;
-
-   if (file_->IsZombie()) {
-     cout << "cannot open file " << FileName << std::endl;
-     continue;
-   }
 
    TTree * tree_ = (TTree*)file_->Get(TString(chainName));
    

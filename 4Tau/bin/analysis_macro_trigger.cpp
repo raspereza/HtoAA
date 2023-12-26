@@ -23,11 +23,9 @@
 #include "TRandom.h"
 
 #include "HtoAA/Utilities/interface/Config.h"
-#include "HtoAA/Utilities/interface/AC1B.h"
 #include "HtoAA/Utilities/interface/json.h"
 #include "HtoAA/Utilities/interface/functions.h"
 #include "HtoAA/Utilities/interface/PileUp.h"
-
 
 int main(int argc, char * argv[]) {
 
@@ -73,33 +71,29 @@ int main(int argc, char * argv[]) {
   const string hltDoubleMuSameSignDZ = cfg.get<string>("HLTDoubleMuSameSignDZ");
 
   const string hltIsoSingleMu   = cfg.get<string>("HLTIsoSingleMu");  
-  const string hltIsoMu18       = cfg.get<string>("HLTIsoMu18");  
-  const string hltIsoMu20       = cfg.get<string>("HLTIsoMu20");  
-  const string hltIsoMu22       = cfg.get<string>("HLTIsoMu22");  
-  const string hltMu27          = cfg.get<string>("HLTMu27");  
-  const string hltMu45Eta2p1    = cfg.get<string>("HLTMu45Eta2p1");  
-
 
   // HLT filters
   const string hltHighPtLeg   = cfg.get<string>("HLTHighPtLeg");
-  const string hltLowPtLeg1    = cfg.get<string>("HLTLowPtLeg1");
-  const string hltLowPtLeg2    = cfg.get<string>("HLTLowPtLeg2");
+  const string hltLowPtLeg1   = cfg.get<string>("HLTLowPtLeg1");
+  const string hltLowPtLeg2   = cfg.get<string>("HLTLowPtLeg2");
   const string dzFilter       = cfg.get<string>("dzFilter"); 
   const string sameSignFilter = cfg.get<string>("sameSignFilter");
 
   const string hltIsoSingleMuFilter = cfg.get<string>("HLTIsoSingleMuFilter");
-  const string hltIsoMu18Filter     = cfg.get<string>("HLTIsoMu18Filter");
-  const string hltIsoMu20Filter     = cfg.get<string>("HLTIsoMu20Filter");
-  const string hltIsoMu22Filter     = cfg.get<string>("HLTIsoMu22Filter");
-  const string hltMu27Filter        = cfg.get<string>("HLTMu27Filter");
-  const string hltMu45Eta2p1Filter  = cfg.get<string>("HLTMu45Eta2p1Filter");
-
-  const unsigned int runRangeMin = cfg.get<unsigned int>("RunRangeMin");
-  const unsigned int runRangeMax = cfg.get<unsigned int>("RunRangeMax");
 
   const string jsonFile = cfg.get<string>("jsonFile");
   const string puDataFile = cfg.get<string>("PileUpDataFile");
   const string puMCFile = cfg.get<string>("PileUpMCFile");
+
+  float dxyTrkLooseCut = cfg.get<float>("dxyTrkLooseCut");
+  float dzTrkLooseCut  = cfg.get<float>("dzTrkLooseCut");
+  float ptTrkLooseCut  = cfg.get<float>("ptTrkLooseCut");
+
+  float dxyTrkCut = cfg.get<float>("dxyTrkCut");
+  float dzTrkCut  = cfg.get<float>("dzTrkCut");
+  float ptTrkCut  = cfg.get<float>("ptTrkCut");
+
+  float etaTrkCut = cfg.get<float>("etaTrkCut"); 
 
   TString PUDataFile(puDataFile);
   TString PUMCFile(puMCFile);
@@ -111,11 +105,6 @@ int main(int argc, char * argv[]) {
   TString HLTDoubleMuSameSignDZ(hltDoubleMuSameSignDZ);
 
   TString HLTIsoSingleMu(hltIsoSingleMu);
-  TString HLTIsoMu18(hltIsoMu18);
-  TString HLTIsoMu20(hltIsoMu20);
-  TString HLTIsoMu22(hltIsoMu22);
-  TString HLTMu27(hltMu27);
-  TString HLTMu45Eta2p1(hltMu45Eta2p1);
 
   TString HLTHighPtLeg(hltHighPtLeg);
   TString HLTLowPtLeg1(hltLowPtLeg1);
@@ -125,11 +114,6 @@ int main(int argc, char * argv[]) {
   TString SameSignFilter(sameSignFilter);
 
   TString HLTIsoSingleMuFilter(hltIsoSingleMuFilter);
-  TString HLTIsoMu18Filter(hltIsoMu18Filter);
-  TString HLTIsoMu20Filter(hltIsoMu20Filter);
-  TString HLTIsoMu22Filter(hltIsoMu22Filter);
-  TString HLTMu27Filter(hltMu27Filter);
-  TString HLTMu45Eta2p1Filter(hltMu45Eta2p1Filter);
   
   // vertex cuts
   const float ndofVertexCut  = cfg.get<float>("NdofVertexCut");   
@@ -142,7 +126,7 @@ int main(int argc, char * argv[]) {
   string cmsswBase = (getenv ("CMSSW_BASE"));
 
   // Run-lumi selector
-  string fullPathToJsonFile = cmsswBase + "/src/DesyTauAnalyses/NTupleMaker/test/json/" + jsonFile;
+  string fullPathToJsonFile = cmsswBase + "/src/HtoAA/data/json/" + jsonFile;
   std::vector<Period> periods;  
   if (isData) { // read the good runs 
     std::fstream inputFileStream(fullPathToJsonFile.c_str(), std::ios::in);
@@ -174,57 +158,106 @@ int main(int argc, char * argv[]) {
   int presHLTDoubleMuSameSign = 0;
   int presHLTDoubleMuSameSignDZ = 0;
   int presHLTIsoSingleMu = 0;
-  int presHLTIsoMu18 = 0;
-  int presHLTIsoMu20 = 0;
-  int presHLTIsoMu22 = 0;
-  int presHLTMu27 = 0;
-  int presHLTMu45Eta2p1 = 0;
 
-  bool isHLTDoubleMu = 0;
-  bool isHLTDoubleMuDZ = 0;
-  bool isHLTDoubleMuSameSign = 0;
-  bool isHLTDoubleMuSameSignDZ = 0;
-  bool isHLTIsoSingleMu = 0;
-  bool isHLTIsoMu18 = 0;
-  bool isHLTIsoMu20 = 0;
-  bool isHLTIsoMu22 = 0;
-  bool isHLTMu27 = 0;
-  bool isHLTMu45Eta2p1 = 0;
+  // event info
+  ULong64_t event_nr;
+  unsigned int event_run;
+  unsigned int event_luminosityblock;
 
-  unsigned int eventNumber = 0;
-  unsigned int runNumber = 0;
-  unsigned int lumiBlock = 0;
+  // tracks 
+  UInt_t track_count;
+  int track_ID[1000];
+  float track_px[1000];
+  float track_py[1000];
+  float track_pz[1000];
+  float track_pt[1000];
+  float track_eta[1000];
+  float track_phi[1000];
+  float track_charge[1000];
+  float track_mass[1000];
+  float track_dxy[1000];
+  float track_dxyerr[1000];
+  float track_dz[1000];
+  float track_dzerr[1000];
+  bool track_highPurity[1000];
+  // muons
+  UInt_t muon_count;
+  UInt_t muon_nMuonStations[1000];
+  UInt_t muon_nMuonHits[1000];
+  UInt_t muon_nPixelHits[1000];
+  UInt_t muon_nTrackerHits[1000];
+  float muon_px[1000];
+  float muon_py[1000];
+  float muon_pz[1000];
+  float muon_pt[1000];
+  float muon_eta[1000];
+  float muon_phi[1000];
+  float muon_pterror[1000];
+  float muon_chi2[1000];
+  float muon_ndof[1000];
+  float muon_charge[1000];
+  float muon_dxy[1000];
+  float muon_dxyerr[1000];
+  float muon_dz[1000];
+  float muon_dzerr[1000];
+  float muon_chargedHadIso[1000];
+  float muon_neutralHadIso[1000];
+  float muon_photonIso[1000];
+  float muon_puIso[1000];
+  bool muon_isPF[1000];
+  bool muon_isGlobal[1000];
+  bool muon_isTracker[1000];
+  bool muon_isTight[1000];
+  bool muon_isLoose[1000];
+  bool muon_isMedium[1000];
+
+  UInt_t genparticles_count;
+  Float_t genparticles_e[1000];
+  Float_t genparticles_px[1000];
+  Float_t genparticles_py[1000];
+  Float_t genparticles_pz[1000];
+  Float_t genparticles_vx[1000];
+  Float_t genparticles_vy[1000];
+  Float_t genparticles_vz[1000];
+  Int_t genparticles_pdgid[1000];
+  Int_t genparticles_status[1000];
+  UInt_t genparticles_info[1000];
+
+  float genweight;
+
+  float metx;
+  float mety;
+  float met;
+  float metphi;
+  
+  float primvertex_x;
+  float primvertex_y;
+  float primvertex_z;
+
+   // Trigger
+  unsigned int trigobject_count;
+  float trigobject_px[1000];
+  float trigobject_py[1000];
+  float trigobject_pz[1000];
+  float trigobject_pt[1000];
+  float  trigobject_eta[1000];
+  float trigobject_phi[1000];
+  bool trigobject_filters[1000][200];
+
+  float numtruepileupinteractions;
+
+  //unsigned int iLeadingPosTrig = 0;
+  //vector<bool> trigobject_filter; trigobject_filter.clear();
+
+  std::map<std::string, int> * hltriggerresults = new std::map<std::string, int>() ;
+  std::map<std::string, int> * hltriggerprescales = new std::map<std::string, int>() ;
+  std::vector<std::string>   * hltfilters = new std::vector<std::string>();
 
   // output fileName with histograms
   TFile * file = new TFile(TStrName+TString(".root"),"recreate");
   file->cd("");
-  /*
-  TTree * treePrescales = new TTree("Prescales","Prescales");
-  treePrescales->Branch("Run",&runNumber,"Run/i");
-  treePrescales->Branch("Event",&eventNumber,"Event/i");
-  treePrescales->Branch("Lumi",&lumiBlock,"Run/i");
 
-  treePrescales->Branch("HLTDoubleMu",&isHLTDoubleMu,"HLTDoubleMu/O");
-  treePrescales->Branch("HLTDoubleMuDZ",&isHLTDoubleMuDZ,"HLTDoubleMuDZ/O");
-  treePrescales->Branch("HLTDoubleMuSameSignDZ",&isHLTDoubleMuSameSignDZ,"HLTDoubleMuSameSignDZ/O");
-  treePrescales->Branch("HLTIsoSingleMu",&isHLTIsoSingleMu,"HLTIsoSingleMu/O");
-  treePrescales->Branch("HLTIsoMu18",&isHLTIsoMu18,"HLTIsoMu18/O");
-  treePrescales->Branch("HLTIsoMu20",&isHLTIsoMu20,"HLTIsoMu20/O");
-  treePrescales->Branch("HLTIsoMu22",&isHLTIsoMu22,"HLTIsoMu22/O");
-  treePrescales->Branch("HLTMu27",&isHLTMu27,"HLTMu27/O");
-  treePrescales->Branch("HLTMu45Eta2p1",&isHLTMu45Eta2p1,"HLTMu45Eta2p1/O");
-
-  treePrescales->Branch("PrescaleHLTDoubleMu",&presHLTDoubleMu,"PrescaleHLTDoubleMu/I");
-  treePrescales->Branch("PrescaleHLTDoubleMuDZ",&presHLTDoubleMuDZ,"PrescaleHLTDoubleMuDZ/I");
-  treePrescales->Branch("PrescaleHLTDoubleMuSameSignDZ",&presHLTDoubleMuSameSignDZ,"PrescaleHLTDoubleMuSameSignDZ/I");
-  treePrescales->Branch("PrescaleHLTIsoSingleMu",&presHLTIsoSingleMu,"PrescaleHLTIsoSingleMu/I");
-  treePrescales->Branch("PrescaleHLTIsoMu18",&presHLTIsoMu18,"PrescaleHLTIsoMu18/I");
-  treePrescales->Branch("PrescaleHLTIsoMu20",&presHLTIsoMu20,"PrescaleHLTIsoMu20/I");
-  treePrescales->Branch("PrescaleHLTIsoMu22",&presHLTIsoMu22,"PrescaleHLTIsoMu22/I");
-  treePrescales->Branch("PrescaleHLTMu27",&presHLTMu27,"PrescaleHLTMu27/I");
-  treePrescales->Branch("PrescaleHLTMu45Eta2p1",&presHLTMu45Eta2p1,"PrescaleHLTMu45Eta2p1/I");
-  */
-
+  TH1F * histWeightsH = new TH1F("histWeightsH","",1,0.,2.);
   TH1F * inputEventsH = new TH1F("inputEventsH","",1,-0.5,0.5);
   TH1F * weightsH = new TH1F("weightsH","",1,-0.5,0.5);
 
@@ -234,11 +267,6 @@ int main(int argc, char * argv[]) {
   TH1F * prescaleHLTDoubleMuSameSignH = new TH1F("prescaleHLTDoubleMuSameSignH","",21,-0.5,20.5);
   TH1F * prescaleHLTDoubleMuSameSignDZH = new TH1F("prescaleHLTDoubleMuSameSignDZH","",21,-0.5,20.5);
   TH1F * prescaleHLTIsoSingleMuH = new TH1F("prescaleHLTIsoSingleMuH","",21,-0.5,20.5);
-  TH1F * prescaleHLTIsoMu18H = new TH1F("prescaleHLTIsoMu18H","",101,-0.5,100.5);
-  TH1F * prescaleHLTIsoMu20H = new TH1F("prescaleHLTIsoMu20H","",101,-0.5,100.5);
-  TH1F * prescaleHLTIsoMu22H = new TH1F("prescaleHLTIsoMu22H","",101,-0.5,100.5);
-  TH1F * prescaleHLTMu27H = new TH1F("prescaleHLTMu27H","",101,-0.5,100.5);
-  TH1F * prescaleHLTMu45Eta2p1H = new TH1F("prescaleHLTMu45Eta2p1H","",101,-0.5,100.5);
 
   // J/Psi ->
   TH1F * JPsiMassDZFilterPassH =  new TH1F("JPsiMassDZFilterPassH","",200,2,4);
@@ -298,11 +326,17 @@ int main(int argc, char * argv[]) {
 
   int nEtaBins = 4;
   float etaBins[5] = {-0.001, 0.9, 1.2, 2.1, 2.4};
+  /*
   int nPtBins = 18;
   float ptBins[19] = { 5,  7,  9, 11, 13, 
 		      15, 17, 19, 21, 23, 
 		      25, 27, 30, 40, 50,
-		      60, 80, 100, 200};
+  		      60, 80, 100, 200};
+  */
+
+  int nPtBins = 11;
+  float ptBins[12] = { 6, 10, 14, 19,  24, 30, 
+		      40, 50, 60, 80, 100, 200};
 
   int nPtBins45 = 9;
   float ptBins45[10] = {21,26,31,36,41,46,51,56,70,1000};
@@ -318,11 +352,17 @@ int main(int argc, char * argv[]) {
 
 
   TString EtaBins[4] = {"EtaLt0p9","Eta0p9to1p2","Eta1p2to2p1","EtaGt2p1"};
+  /*
   TString PtBins[18] = {"Pt5to7","Pt7to9","Pt9to11",
 			"Pt11to13","Pt13to15","Pt15to17","Pt17to19",
 			"Pt19to21","Pt21to23","Pt23to25","Pt25to27",
 			"Pt27to30","Pt30to40","Pt40to50","Pt50to60",
 			"Pt60to80","Pt80to100","PtGt100"};
+  */
+  TString PtBins[11] = {"Pt6to10" ,"Pt10to14", "Pt14to19","Pt19to24",
+			"Pt24to30","Pt30to40", "Pt40to50","Pt50to60",
+			"Pt60to80","Pt80to100","PtGt100"};
+
   TString DzBins[6] = {"Dz0to0p5","Dz0p5to1p0","Dz1p0to1p5",
 		       "Dz1p5to2p0","Dz2p0to3p0","DzGt3p0"};
   TString PtBins45[9] = {"Pt21to26","Pt26to31","Pt31to36",
@@ -372,15 +412,6 @@ int main(int argc, char * argv[]) {
   TH1F * JPsiMassDzPassH[6];
   TH1F * JPsiMassDzFailH[6];
 
-  TH1F * ZMassMu45LegPtPassH[9];
-  TH1F * ZMassMu45LegPtFailH[9];
-
-  TH1F * ZMassMu45LegEtaPassH[4];
-  TH1F * ZMassMu45LegEtaFailH[4];
-
-  TH1F * ZMassMu45LegPtEtaPassH[4][9];
-  TH1F * ZMassMu45LegPtEtaFailH[4][9];
-
   for (int iDz=0; iDz<nDzBins; ++iDz) {
     JPsiMassDzPassH[iDz] = new TH1F("JPsiMass_"+DzBins[iDz]+"_PassH","",200,2,4);
     JPsiMassDzFailH[iDz] = new TH1F("JPsiMass_"+DzBins[iDz]+"_FailH","",200,2,4);
@@ -391,8 +422,6 @@ int main(int argc, char * argv[]) {
     ZMassHighPtLegEtaFailH[iEta] = new TH1F("ZMassHighPtLeg_"+EtaBins[iEta]+"_FailH","",60,60,120);
     ZMassLowPtLegEtaPassH[iEta]  = new TH1F("ZMassLowPtLeg_"+EtaBins[iEta]+"_PassH","",60,60,120);
     ZMassLowPtLegEtaFailH[iEta]  = new TH1F("ZMassLowPtLeg_"+EtaBins[iEta]+"_FailH","",60,60,120);
-    ZMassMu45LegEtaPassH[iEta]   = new TH1F("ZMassMu45Leg_"+EtaBins[iEta]+"_PassH","",60,60,120);
-    ZMassMu45LegEtaFailH[iEta]   = new TH1F("ZMassMu45Leg_"+EtaBins[iEta]+"_FailH","",60,60,120);
   }
 
   for (int iPt=0; iPt<nPtBins; ++iPt) {
@@ -402,10 +431,6 @@ int main(int argc, char * argv[]) {
       ZMassLowPtLegPtFailH[iPt]  = new TH1F("ZMassLowPtLeg_"+PtBins[iPt]+"_FailH","",60,60,120);
   }
 
-  for (int iPt=0; iPt<nPtBins45; ++iPt) {
-      ZMassMu45LegPtPassH[iPt] = new TH1F("ZMassMu45Leg_"+PtBins45[iPt]+"_PassH","",60,60,120);
-      ZMassMu45LegPtFailH[iPt] = new TH1F("ZMassMu45Leg_"+PtBins45[iPt]+"_FailH","",60,60,120);
-  }
 
   for (int iEta=0; iEta<nEtaBins; ++iEta) {
 
@@ -414,11 +439,6 @@ int main(int argc, char * argv[]) {
       ZMassHighPtLegPtEtaFailH[iEta][iPt] = new TH1F("ZMassHighPtLeg_"+EtaBins[iEta]+"_"+PtBins[iPt]+"_FailH","",60,60,120);
       ZMassLowPtLegPtEtaPassH[iEta][iPt]  = new TH1F("ZMassLowPtLeg_"+EtaBins[iEta]+"_"+PtBins[iPt]+"_PassH","",60,60,120);
       ZMassLowPtLegPtEtaFailH[iEta][iPt]  = new TH1F("ZMassLowPtLeg_"+EtaBins[iEta]+"_"+PtBins[iPt]+"_FailH","",60,60,120);
-    }
-
-    for (int iPt=0; iPt<nPtBins45; ++iPt) {
-      ZMassMu45LegPtEtaPassH[iEta][iPt] = new TH1F("ZMassMu45Leg_"+EtaBins[iEta]+"_"+PtBins45[iPt]+"_PassH","",60,60,120);
-      ZMassMu45LegPtEtaFailH[iEta][iPt] = new TH1F("ZMassMu45Leg_"+EtaBins[iEta]+"_"+PtBins45[iPt]+"_FailH","",60,60,120);
     }
 
   }
@@ -442,17 +462,10 @@ int main(int argc, char * argv[]) {
   int selPairsHLTDoubleMuDZ = 0;
   int selPairsHLTDoubleMuSameSignDZ = 0;
 
-  unsigned int minRun = 99999999;
-  unsigned int maxRun = 0;
-
-  std::vector<unsigned int> allRuns; allRuns.clear();
-  std::vector<unsigned int> allGoodRuns; allGoodRuns.clear();
-
-
   // PileUp
   PileUp * PUofficial = new PileUp();
-  TFile * filePUOfficial_data = new TFile(TString(cmsswBase)+"/src/DesyTauAnalyses/NTupleMaker/data/PileUpDistrib/"+PUDataFile,"read");
-  TFile * filePUOfficial_MC = new TFile (TString(cmsswBase)+"/src/DesyTauAnalyses/NTupleMaker/data/PileUpDistrib/"+PUMCFile, "read");
+  TFile * filePUOfficial_data = new TFile(TString(cmsswBase)+"/src/HtoAA/data/PileUpDistrib/"+PUDataFile,"read");
+  TFile * filePUOfficial_MC = new TFile (TString(cmsswBase)+"/src/HtoAA/data/PileUpDistrib/"+PUMCFile, "read");
   TH1D * PUOfficial_data = (TH1D *)filePUOfficial_data->Get("pileup");
   TH1D * PUOfficial_mc = (TH1D *)filePUOfficial_MC->Get("pileup");
   PUofficial->set_h_data(PUOfficial_data);
@@ -469,67 +482,150 @@ int main(int argc, char * argv[]) {
     fileList >> filen;
 
     std::cout << "file " << iF+1 << " out of " << nTotalFiles << " filename : " << filen << std::endl;
-    TFile * file_ = TFile::Open(TString(filen));
+    TFile * file_ = new TFile(TString(filen),"READ");
+    if (file_==NULL) continue;
+    if (file_==0) continue;
+    if (file_->GetListOfKeys()->GetSize() == 0) continue; 
+    if (file_->GetEND() > file_->GetSize()) continue; 
+
+    if (file_->GetSeekKeys()<=file_->GetEND()-file_->GetSize())
+      continue;
+
+    if (file_->IsZombie()) {
+      cout << "cannot open file " << filen << std::endl;
+      continue;
+    }
     
-    TTree * _tree = NULL;
-    _tree = (TTree*)file_->Get(TString(ntupleName));
-  
-    if (_tree==NULL) continue;
-    
-    TH1D * histoInputEvents = NULL;
-   
-    histoInputEvents = (TH1D*)file_->Get("makeroottree/nEvents");
-    
+    // sum of weights (needed for normalization)
+    TTree * _inittree = (TTree*)file_->Get("initroottree/AC1B");
+    if (_inittree!=NULL) {
+      Float_t Genweight;
+      if (!isData)
+	_inittree->SetBranchAddress("genweight",&Genweight);
+      Long64_t numberOfEntriesInitTree = _inittree->GetEntries();
+      std::cout << "Number of entries in Init Tree = " << numberOfEntriesInitTree << std::endl;
+      for (Long64_t iEntry=0; iEntry<numberOfEntriesInitTree; iEntry++) {
+	_inittree->GetEntry(iEntry);
+	if (isData)
+	  histWeightsH->Fill(1.,1.);
+	else
+	  histWeightsH->Fill(1.,Genweight);
+      }
+    }
+
+
+    TTree * tree_ = (TTree*)file_->Get("makeroottree/AC1B");
+    if (tree_==NULL) continue;    
+
+    TH1D * histoInputEvents = (TH1D*)file_->Get("makeroottree/nEvents");    
     if (histoInputEvents==NULL) continue;
     
-    int NE = int(histoInputEvents->GetEntries());
-    
+    int NE = int(histoInputEvents->GetEntries());    
     std::cout << "      number of input events    = " << NE << std::endl;
     
     for (int iE=0;iE<NE;++iE)
       inputEventsH->Fill(0.);
 
-    AC1B analysisTree(_tree);
+    tree_->SetMaxVirtualSize(3000000);
+    // event info
+    tree_->SetBranchAddress("event_nr", &event_nr);
+    tree_->SetBranchAddress("event_run", &event_run);
+    tree_->SetBranchAddress("event_luminosityblock", &event_luminosityblock);
     
-    Long64_t numberOfEntries = analysisTree.GetEntries();
+    // Primary vertex
+    tree_->SetBranchAddress("primvertex_x",&primvertex_x);
+    tree_->SetBranchAddress("primvertex_y",&primvertex_y);
+    tree_->SetBranchAddress("primvertex_z",&primvertex_z);
+    
+    // Muons
+    tree_->SetBranchAddress("muon_count", &muon_count);
+    tree_->SetBranchAddress("muon_px", muon_px);
+    tree_->SetBranchAddress("muon_py", muon_py);
+    tree_->SetBranchAddress("muon_pz", muon_pz);
+    tree_->SetBranchAddress("muon_pt", muon_pt);
+    tree_->SetBranchAddress("muon_eta", muon_eta);
+    tree_->SetBranchAddress("muon_phi", muon_phi);
+    tree_->SetBranchAddress("muon_chi2", muon_chi2);
+    tree_->SetBranchAddress("muon_ndof", muon_ndof);
+    tree_->SetBranchAddress("muon_charge", muon_charge);
+    tree_->SetBranchAddress("muon_dxy", muon_dxy);
+    tree_->SetBranchAddress("muon_dxyerr", muon_dxyerr);
+    tree_->SetBranchAddress("muon_dz", muon_dz);
+    tree_->SetBranchAddress("muon_dzerr", muon_dzerr);
+    tree_->SetBranchAddress("muon_chargedHadIso", muon_chargedHadIso);
+    tree_->SetBranchAddress("muon_neutralHadIso", muon_neutralHadIso);
+    tree_->SetBranchAddress("muon_photonIso", muon_photonIso);
+    tree_->SetBranchAddress("muon_puIso", muon_puIso);
+    tree_->SetBranchAddress("muon_isMedium", muon_isMedium);
+
+    // Tracks
+    tree_->SetBranchAddress("track_count", &track_count);
+    tree_->SetBranchAddress("track_ID", track_ID);
+    tree_->SetBranchAddress("track_px", track_px);
+    tree_->SetBranchAddress("track_py", track_py);
+    tree_->SetBranchAddress("track_pz", track_pz);
+    tree_->SetBranchAddress("track_pt", track_pt);
+    tree_->SetBranchAddress("track_eta", track_eta);
+    tree_->SetBranchAddress("track_phi", track_phi);
+    tree_->SetBranchAddress("track_mass", track_mass);
+    tree_->SetBranchAddress("track_charge", track_charge);
+    tree_->SetBranchAddress("track_dxy", track_dxy);
+    tree_->SetBranchAddress("track_dxyerr", track_dxyerr);
+    tree_->SetBranchAddress("track_dz", track_dz);
+    tree_->SetBranchAddress("track_dzerr",track_dzerr);
+    tree_->SetBranchAddress("track_highPurity", track_highPurity);
+
+    // trigger objects
+    tree_->SetBranchAddress("trigobject_count", &trigobject_count);
+    tree_->SetBranchAddress("trigobject_px", trigobject_px);
+    tree_->SetBranchAddress("trigobject_py", trigobject_py);
+    tree_->SetBranchAddress("trigobject_pz", trigobject_pz);
+    tree_->SetBranchAddress("trigobject_pt", trigobject_pt);
+    tree_->SetBranchAddress("trigobject_eta", trigobject_eta);
+    tree_->SetBranchAddress("trigobject_phi", trigobject_phi);
+    tree_->SetBranchAddress("trigobject_filters",trigobject_filters);
+    
+    // Additional trigger objects
+    tree_->SetBranchAddress("run_hltfilters",&hltfilters);
+    tree_->SetBranchAddress("hltriggerresults",&hltriggerresults);
+    tree_->SetBranchAddress("hltriggerprescales",&hltriggerprescales);
+    
+    tree_->SetBranchAddress("numtruepileupinteractions",&numtruepileupinteractions);
+
+    if (!isData) {
+      tree_->SetBranchAddress("genweight",&genweight);
+      tree_->SetBranchAddress("genparticles_count", &genparticles_count);
+      tree_->SetBranchAddress("genparticles_e", genparticles_e);
+      tree_->SetBranchAddress("genparticles_px", genparticles_px);
+      tree_->SetBranchAddress("genparticles_py", genparticles_py);
+      tree_->SetBranchAddress("genparticles_pz", genparticles_pz);
+      tree_->SetBranchAddress("genparticles_vx", genparticles_vx);
+      tree_->SetBranchAddress("genparticles_vy", genparticles_vy);
+      tree_->SetBranchAddress("genparticles_vz", genparticles_vz);
+      tree_->SetBranchAddress("genparticles_pdgid", genparticles_pdgid);
+      tree_->SetBranchAddress("genparticles_status", genparticles_status);
+      tree_->SetBranchAddress("genparticles_info", genparticles_info);
+    }   
+
+    int numberOfEntries = tree_->GetEntries();
     
     std::cout << "      number of entries in Tree = " << numberOfEntries << std::endl;
     
-    for (Long64_t iEntry=0; iEntry<numberOfEntries; iEntry++) { 
+    for (int iEntry=0; iEntry<numberOfEntries; iEntry++) { 
     
-      analysisTree.GetEntry(iEntry);
+      tree_->GetEntry(iEntry);
       nEvents++;
-      
+
       if (nEvents%10000==0) 
 	cout << "      processed " << nEvents << " events" << endl; 
 
       float weight = 1;
 
-      if (analysisTree.event_run>maxRun)
-	maxRun = analysisTree.event_run;
-
-      if (analysisTree.event_run<minRun)
-	minRun = analysisTree.event_run;
-
-
-      bool isNewRun = true;
-      if (allRuns.size()>0) {
-	for (unsigned int iR=0; iR<allRuns.size(); ++iR) {
-	  if (analysisTree.event_run==allRuns.at(iR)) {
-	    isNewRun = false;
-	    break;
-	  }
-	}
-      }
-
-      if (isNewRun) 
-	allRuns.push_back(analysisTree.event_run);
-
       if (isData) {
 	if (applyGoodRunSelection) {
 	  bool lumi = false;
-	  int n=analysisTree.event_run;
-	  int lum = analysisTree.event_luminosityblock;
+	  int n = event_run;
+	  int lum = event_luminosityblock;
 	  
 	  std::string num = std::to_string(n);
 	  std::string lnum = std::to_string(lum);
@@ -551,104 +647,22 @@ int main(int argc, char * argv[]) {
 	    }
 	  if (!lumi) continue;
 	}
-	if (analysisTree.event_run<runRangeMin) continue;
-	if (analysisTree.event_run>runRangeMax) continue;
       }
-
-      isNewRun = true;
-      if (allGoodRuns.size()>0) {
-	for (unsigned int iR=0; iR<allGoodRuns.size(); ++iR) {
-	  if (analysisTree.event_run==allGoodRuns.at(iR)) {
-	    isNewRun = false;
-	    break;
-	  }
-	}
-      }
-
-      if (isNewRun) 
-	allGoodRuns.push_back(analysisTree.event_run);
 
       weightsH->Fill(0.0,weight);
 
       if (!isData) {
-	float puWeight =  float(PUofficial->get_PUweight(double(analysisTree.numtruepileupinteractions)));
+	float puWeight =  float(PUofficial->get_PUweight(double(numtruepileupinteractions)));
 	weight *= puWeight;
       }
  
-
-      // triggers
-      isHLTDoubleMu = false;
-      isHLTDoubleMuDZ = false;
-      isHLTDoubleMuSameSign = false;
-      isHLTDoubleMuSameSignDZ = false;
-      isHLTIsoSingleMu = false;
-      isHLTIsoMu18 = false;
-      isHLTIsoMu20 = false;
-      isHLTIsoMu22 = false;
-      isHLTMu27 = false;
-      isHLTMu45Eta2p1 = false;
-      
-      for (std::map<string,int>::iterator it=analysisTree.hltriggerresults->begin(); it!=analysisTree.hltriggerresults->end(); ++it) {
-	TString trigName(it->first);
-	if (trigName.Contains(HLTDoubleMu)) {
-	  //	  std::cout << trigName << " : " << it->second << std::endl;
-	  if (it->second==1)
-	    isHLTDoubleMu = true;
-	}
-	if (trigName.Contains(HLTDoubleMuDZ)) {
-	  //	  std::cout << trigName << " : " << it->second << std::endl;
-	  if (it->second==1)
-            isHLTDoubleMuDZ = true;
-	}
-	if (trigName.Contains(HLTDoubleMuSameSignDZ)) {
-	  //	  std::cout << trigName << " : " << it->second << std::endl;
-	  if (it->second==1)
-            isHLTDoubleMuSameSignDZ = true;
-	}
-	if (trigName.Contains(HLTDoubleMuSameSign)) {
-	  //	  std::cout << trigName << " : " << it->second << std::endl;
-	  if (it->second==1)
-            isHLTDoubleMuSameSign = true;
-	}
-	if (trigName.Contains(HLTIsoSingleMu)) {
-	  if (it->second==1)
-            isHLTIsoSingleMu = true;
-	}
-	if (trigName.Contains(HLTIsoMu18)) {
-	  if (it->second==1)
-            isHLTIsoMu18 = true;
-	}
-	if (trigName.Contains(HLTIsoMu20)) {
-	  if (it->second==1)
-            isHLTIsoMu20 = true;
-	}
-	if (trigName.Contains(HLTIsoMu22)) {
-	  if (it->second==1)
-            isHLTIsoMu22 = true;
-	}
-	if (trigName.Contains(HLTMu27)) {
-	  if (it->second==1)
-            isHLTMu27 = true;
-	}
-	if (trigName.Contains(HLTMu45Eta2p1)) {
-	  if (it->second==1)
-	    isHLTMu45Eta2p1 = true;
-	}
-
-      }
-      //      std::cout << "Filters found " << std::endl;
 
       presHLTDoubleMu = 0;
       presHLTDoubleMuDZ = 0;
       presHLTDoubleMuSameSign = 0;
       presHLTDoubleMuSameSignDZ = 0;
       presHLTIsoSingleMu = 0;
-      presHLTIsoMu18 = 0;
-      presHLTIsoMu20 = 0;
-      presHLTIsoMu22 = 0;
-      presHLTMu27 = 0;
-      presHLTMu45Eta2p1 = 0;
-      for (std::map<string,int>::iterator it=analysisTree.hltriggerprescales->begin(); it!=analysisTree.hltriggerprescales->end(); ++it) {
+      for (std::map<string,int>::iterator it=hltriggerprescales->begin(); it!=hltriggerprescales->end(); ++it) {
 	TString trigName(it->first);
 	if (trigName.Contains(HLTDoubleMu)) {
 	  //	  std::cout << trigName << " : " << it->second << std::endl;
@@ -669,43 +683,8 @@ int main(int argc, char * argv[]) {
 	if (trigName.Contains(HLTIsoSingleMu)) {
 	  presHLTIsoSingleMu = it->second;
 	}
-	if (trigName.Contains(HLTIsoMu18)) {
-	  presHLTIsoMu18 = it->second;
-	  //	  if (presHLTIsoMu18>100)
-	  //	    cout << "HLTIsoMu18 prescale : " << presHLTIsoMu18 << std::endl;
-	}
-	if (trigName.Contains(HLTIsoMu20)) {
-	  presHLTIsoMu20 = it->second;
-	  // if (presHLTIsoMu20>100)
-	  //   cout << "HLTIsoMu20 prescale : " << presHLTIsoMu20 << std::endl;
-	}
-	if (trigName.Contains(HLTIsoMu22)) {
-	  presHLTIsoMu22 = it->second;
-	  // if (presHLTIsoMu22>100)
-	  //   cout << "HLTIsoMu22 prescale : " << presHLTIsoMu22 << std::endl;
-	}
-	if (trigName.Contains(HLTMu27)) {
-	  presHLTMu27 = it->second;
-	  // if (presHLTMu27>100)
-	  //   cout << "HLTMu27 prescale : " << presHLTMu27 << std::endl;
-	}
-	if (trigName.Contains(HLTMu45Eta2p1)) {
-	  presHLTMu45Eta2p1 = it->second;
-	}
       }
       
-      runNumber = analysisTree.event_run;
-      eventNumber = analysisTree.event_nr;
-      lumiBlock = analysisTree.event_luminosityblock;
-      //      treePrescales->Fill();
-
-      if (!applyTrigger) {
-	isHLTDoubleMu = true;
-	isHLTDoubleMuDZ = true;
-	isHLTDoubleMuSameSignDZ = true;
-	isHLTIsoSingleMu = true;
-      }
-
       unsigned int nHighPtLeg = 0;
       bool isHighPtLeg = false;
       unsigned int nLowPtLeg = 0;
@@ -717,20 +696,10 @@ int main(int argc, char * argv[]) {
 
       unsigned int nIsoSingleMuFilter = 0;
       bool isIsoSingleMuFilter;
-      unsigned int nIsoMu20Filter = 0;
-      bool isIsoMu20Filter;
-      unsigned int nIsoMu18Filter = 0;
-      bool isIsoMu18Filter;
-      unsigned int nIsoMu22Filter = 0;
-      bool isIsoMu22Filter;
-      unsigned int nMu27Filter = 0;
-      bool isMu27Filter;
-      unsigned int nMu45Eta2p1Filter = 0;
-      bool isMu45Eta2p1Filter;
 
-      unsigned int nfilters = analysisTree.run_hltfilters->size();
+      unsigned int nfilters = hltfilters->size();
       for (unsigned int i=0; i<nfilters; ++i) {
-        TString HLTFilter(analysisTree.run_hltfilters->at(i));
+        TString HLTFilter(hltfilters->at(i));
 	if (HLTFilter==HLTHighPtLeg) {
 	  nHighPtLeg = i;
 	  isHighPtLeg = true;
@@ -750,26 +719,6 @@ int main(int argc, char * argv[]) {
 	if (HLTFilter==HLTIsoSingleMuFilter) {
 	  nIsoSingleMuFilter = i;
 	  isIsoSingleMuFilter = true;
-	}
-	if (HLTFilter==HLTIsoMu20Filter) {
-	  nIsoMu20Filter = i;
-	  isIsoMu20Filter = true;
-	}
-	if (HLTFilter==HLTIsoMu18Filter) {
-	  nIsoMu18Filter = i;
-	  isIsoMu18Filter = true;
-	}
-	if (HLTFilter==HLTIsoMu22Filter) {
-	  nIsoMu22Filter = i;
-	  isIsoMu22Filter = true;
-	}
-	if (HLTFilter==HLTMu27Filter) {
-	  nMu27Filter = i;
-	  isMu27Filter = true;
-	}
-	if (HLTFilter==HLTMu45Eta2p1Filter) {
-	  nMu45Eta2p1Filter = i;
-	  isMu45Eta2p1Filter = true;
 	}
       }
       if (!isHighPtLeg) {
@@ -795,137 +744,163 @@ int main(int argc, char * argv[]) {
         exit(-1);
       }
 
-      // vertex cuts
-
       prescaleHLTDoubleMuH->Fill(float(presHLTDoubleMu),weight);
       prescaleHLTDoubleMuDZH->Fill(float(presHLTDoubleMuDZ),weight);
       prescaleHLTDoubleMuSameSignH->Fill(float(presHLTDoubleMuSameSign),weight);
       prescaleHLTDoubleMuSameSignDZH->Fill(float(presHLTDoubleMuSameSignDZ),weight);
       prescaleHLTIsoSingleMuH->Fill(float(presHLTIsoSingleMu),weight);
-      prescaleHLTIsoMu18H->Fill(float(presHLTIsoMu18),weight);
-      prescaleHLTIsoMu20H->Fill(float(presHLTIsoMu20),weight);
-      prescaleHLTIsoMu22H->Fill(float(presHLTIsoMu22),weight);
-      prescaleHLTMu27H->Fill(float(presHLTMu27),weight);
-      prescaleHLTMu45Eta2p1H->Fill(float(presHLTMu45Eta2p1),weight);
       
       // muon selection
-      vector<int> muons; muons.clear();
-      for (unsigned int im = 0; im<analysisTree.muon_count; ++im) {
-	if (analysisTree.muon_pt[im]<ptMuonCut) continue;
-	if (fabs(analysisTree.muon_eta[im])>etaMuonLowCut) continue;
-	if (fabs(analysisTree.muon_dxy[im])>dxyMuonCut) continue;
-	if (fabs(analysisTree.muon_dz[im])>dzMuonCut) continue;
-	if (applyMuonId && !analysisTree.muon_isICHEP[im]) continue;
-	float absIso = analysisTree.muon_chargedHadIso[im];
-	float relIso = absIso/analysisTree.muon_pt[im];
-	if (relIso>isoMuonCut&&applyMuonIso) continue;
-	muons.push_back(im);
+      vector<unsigned int> muons; muons.clear();
+      vector<unsigned int> isoMuons; isoMuons.clear();
+
+      for (unsigned int im = 0; im<muon_count; ++im) {
+	if (muon_pt[im]<ptMuonCut) continue;
+	if (fabs(muon_eta[im])>etaMuonLowCut) continue;
+	if (fabs(muon_dxy[im])>dxyMuonCut) continue;
+	if (fabs(muon_dz[im])>dzMuonCut) continue;
+	if (applyMuonId && !muon_isMedium[im]) continue;
+	float neutralHadIsoMu = muon_neutralHadIso[im];
+	float photonIsoMu = muon_photonIso[im];
+	float chargedHadIsoMu = muon_chargedHadIso[im];
+	float puIsoMu = muon_puIso[im];
+	
+	float neutralIsoMu = neutralHadIsoMu + photonIsoMu - 0.5*puIsoMu;
+	neutralIsoMu = TMath::Max(float(0),neutralIsoMu);
+	float absIsoMu = chargedHadIsoMu + neutralIsoMu;
+	float relIsoMu = absIsoMu/muon_pt[im];
+	if (relIsoMu<isoMuonCut) {
+	  muons.push_back(im);
+	  isoMuons.push_back(im); 
+	}
+	/*
+	float muonEta = muon_eta[im];
+	float muonPhi = muon_phi[im];
+
+	unsigned int ntracks = 0;
+	unsigned int nsigtracks = 0;
+	bool isoTrk = true;
+	for (unsigned int iTrk=0; iTrk<track_count; ++iTrk) {
+	  if (fabs(track_charge[iTrk])<0.1) continue;
+	  if (fabs(track_eta[iTrk])>etaTrkCut) continue;
+	  float trackEta = track_eta[iTrk];
+	  float trackPhi = track_phi[iTrk];
+	  float dR = deltaR(muonEta,muonPhi,trackEta,trackPhi);
+	  if (dR>0.01&&dR<0.4) {
+
+	    if (fabs(track_dxy[iTrk])<dxyTrkLooseCut &&
+		fabs(track_dz[iTrk])<dzTrkLooseCut &&
+		fabs(track_pt[iTrk])>ptTrkLooseCut) ntracks++;
+
+	    if (fabs(track_dxy[iTrk])<dxyTrkCut &&
+		fabs(track_dz[iTrk])<dzTrkCut &&
+		fabs(track_pt[iTrk])>ptTrkCut) nsigtracks++;	    
+
+	  }
+	}
+	if (ntracks>1) isoTrk = false;
+	if (nsigtracks!=1) isoTrk = false;
+	if (isoTrk) isoMuons.push_back(im);
+	*/
       }
 
-      if (muons.size()<2) continue;
 
       bool isPairSelected = false;
       bool isPairSelectedHLTDoubleMu = false;
       bool isPairSelectedHLTDoubleMuDZ = false;
       bool isPairSelectedHLTDoubleMuSameSignDZ = false;
 
+      //      std::cout << "number of tag muons   = " << muons.size() << std::endl;
+      //      std::cout << "number of probe muons = " << isoMuons.size() << std::endl;
+
       // selecting muon pair
-      for (unsigned int im1=0; im1<muons.size()-1; ++im1) {
-	//	  std::cout << "Muon " << im << std::endl;
+      for (unsigned int im1=0; im1<muons.size(); ++im1) {
 	int  mu1Index = muons[im1];
 	bool mu1MatchHighPt = false;
 	bool mu1MatchLowPt  = false;
-	bool mu1MatchMu45   = false;
 	bool mu1MatchDz     = false;
 	bool mu1MatchSS     = false;
 	bool mu1MatchIsoSingleMu = false;
-	for (unsigned int iT=0; iT<analysisTree.trigobject_count; ++iT) {
-	  float dRtrig = deltaR(analysisTree.muon_eta[mu1Index],analysisTree.muon_phi[mu1Index],
-				analysisTree.trigobject_eta[iT],analysisTree.trigobject_phi[iT]);
+	for (unsigned int iT=0; iT<trigobject_count; ++iT) {
+	  float dRtrig = deltaR(muon_eta[mu1Index],muon_phi[mu1Index],
+				trigobject_eta[iT],trigobject_phi[iT]);
 	  if (dRtrig>DRTrigMatch) continue;
-	  if (analysisTree.trigobject_filters[iT][nHighPtLeg]) // Muon17 Leg
+	  if (trigobject_filters[iT][nHighPtLeg]) // Muon17 Leg
 	    mu1MatchHighPt = true;
-	  if (analysisTree.trigobject_filters[iT][nLowPtLeg]) // Muon8 Leg
+	  if (trigobject_filters[iT][nLowPtLeg]) // Muon8 Leg
 	    mu1MatchLowPt = true;
-	  if (analysisTree.trigobject_filters[iT][nDZFilter]) // DZ filter
+	  if (trigobject_filters[iT][nDZFilter]) // DZ filter
 	    mu1MatchDz = true;
-	  if (analysisTree.trigobject_filters[iT][nSameSignFilter]) // same-sign filter
+	  if (trigobject_filters[iT][nSameSignFilter]) // same-sign filter
 	    mu1MatchSS = true;
-	  if (analysisTree.trigobject_filters[iT][nIsoSingleMuFilter]) // HLT_IsoMu filter
+	  if (trigobject_filters[iT][nIsoSingleMuFilter]) // HLT_IsoMu filter
 	    mu1MatchIsoSingleMu = true;
-	  if (analysisTree.trigobject_filters[iT][nMu45Eta2p1Filter]) // HLT_Mu45Eta2p1 filter
-	    mu1MatchMu45 = true;
 	}
 
-	bool mu1HighPt = mu1MatchHighPt && analysisTree.muon_pt[mu1Index]>ptMuonHighCut && fabs(analysisTree.muon_eta[mu1Index])<etaMuonHighCut;
-	bool mu1LowPt  = mu1MatchLowPt && analysisTree.muon_pt[mu1Index]>ptMuonLowCut && fabs(analysisTree.muon_eta[mu1Index])<etaMuonLowCut;
-	bool mu1IsoSingleMu = mu1MatchIsoSingleMu && analysisTree.muon_pt[mu1Index]>ptMuonTagCut && fabs(analysisTree.muon_eta[mu1Index])<etaMuonTagCut;
-	bool mu1Mu45 = mu1MatchMu45 && analysisTree.muon_pt[mu1Index]>46 && fabs(analysisTree.muon_eta[mu1Index])<2.1;
-
-	float q1 = analysisTree.muon_charge[mu1Index];
+	bool mu1HighPt = mu1MatchHighPt && muon_pt[mu1Index]>ptMuonHighCut && fabs(muon_eta[mu1Index])<etaMuonHighCut;
+	bool mu1LowPt  = mu1MatchLowPt && muon_pt[mu1Index]>ptMuonLowCut && fabs(muon_eta[mu1Index])<etaMuonLowCut;
+	bool mu1IsoSingleMu = mu1MatchIsoSingleMu && muon_pt[mu1Index]>ptMuonTagCut && fabs(muon_eta[mu1Index])<etaMuonTagCut;
+	float q1 = muon_charge[mu1Index];
 	
-	for (unsigned int im2=im1+1; im2<muons.size(); ++im2) {
+	for (unsigned int im2=0; im2<isoMuons.size(); ++im2) {
 
-	  int  mu2Index = muons[im2];
+	  int  mu2Index = isoMuons[im2];
+	  if (mu1Index==mu2Index) continue;
 
-	  float q2 = analysisTree.muon_charge[mu2Index];
+	  float q2 = muon_charge[mu2Index];
 	  if (oppositeSign && (q1*q2>0)) continue;
 
-	  float dRmumu = deltaR(analysisTree.muon_eta[mu1Index],analysisTree.muon_phi[mu1Index],
-				analysisTree.muon_eta[mu2Index],analysisTree.muon_phi[mu2Index]);
+	  float dRmumu = deltaR(muon_eta[mu1Index],muon_phi[mu1Index],
+				muon_eta[mu2Index],muon_phi[mu2Index]);
 
 	  bool mu2MatchHighPt = false;
 	  bool mu2MatchLowPt  = false;
 	  bool mu2MatchDz   = false;
 	  bool mu2MatchSS   = false;
-	  bool mu2MatchMu45   = false;
-	  for (unsigned int iT=0; iT<analysisTree.trigobject_count; ++iT) {
-	    float dRtrig = deltaR(analysisTree.muon_eta[mu2Index],analysisTree.muon_phi[mu2Index],
-				  analysisTree.trigobject_eta[iT],analysisTree.trigobject_phi[iT]);
+
+	  for (unsigned int iT=0; iT<trigobject_count; ++iT) {
+	    float dRtrig = deltaR(muon_eta[mu2Index],muon_phi[mu2Index],
+				  trigobject_eta[iT],trigobject_phi[iT]);
 	    if (dRtrig>DRTrigMatch) continue;
-	    if (analysisTree.trigobject_filters[iT][nHighPtLeg]) // Muon17 Leg
+	    if (trigobject_filters[iT][nHighPtLeg]) // Muon17 Leg
               mu2MatchHighPt = true;
-	    if (analysisTree.trigobject_filters[iT][nLowPtLeg]) // Muon8 Leg
+	    if (trigobject_filters[iT][nLowPtLeg]) // Muon8 Leg
               mu2MatchLowPt = true;
-	    if (analysisTree.trigobject_filters[iT][nDZFilter]) // DZ filter
+	    if (trigobject_filters[iT][nDZFilter]) // DZ filter
               mu2MatchDz = true;
-	    if (analysisTree.trigobject_filters[iT][nSameSignFilter]) // same-sign filter
+	    if (trigobject_filters[iT][nSameSignFilter]) // same-sign filter
               mu2MatchSS = true;
-	    if (analysisTree.trigobject_filters[iT][nMu45Eta2p1Filter]) // HLT_Mu45Eta2p1 filter
-	      mu2MatchMu45 = true;
-
 	  }
-	  bool mu2HighPt = mu2MatchHighPt && analysisTree.muon_pt[mu2Index]>ptMuonHighCut && fabs(analysisTree.muon_eta[mu2Index])<etaMuonHighCut;
-	  bool mu2LowPt  = mu2MatchLowPt && analysisTree.muon_pt[mu2Index]>ptMuonLowCut && fabs(analysisTree.muon_eta[mu2Index])<etaMuonLowCut;
-
-	  bool mu2Mu45 = mu2MatchMu45 && analysisTree.muon_pt[mu2Index]>46 && fabs(analysisTree.muon_eta[mu2Index])<2.1;
+	  bool mu2HighPt = mu2MatchHighPt && muon_pt[mu2Index]>ptMuonHighCut && fabs(muon_eta[mu2Index])<etaMuonHighCut;
+	  bool mu2LowPt  = mu2MatchLowPt && muon_pt[mu2Index]>ptMuonLowCut && fabs(muon_eta[mu2Index])<etaMuonLowCut;
 
 	  bool triggerMatch = (mu1HighPt&&mu2LowPt) || (mu1LowPt&&mu2HighPt);
 	  bool triggerMatchDz = triggerMatch && mu1MatchDz && mu2MatchDz;
 	  bool triggerMatchSS = triggerMatchDz && mu1MatchSS && mu2MatchSS;
 
-	  float dZ = fabs(analysisTree.muon_dz[mu1Index]-analysisTree.muon_dz[mu2Index]);
 
-	  TLorentzVector mu1lv; mu1lv.SetXYZM(analysisTree.muon_px[mu1Index],
-					      analysisTree.muon_py[mu1Index],
-					      analysisTree.muon_pz[mu1Index],
+	  float dZ = fabs(muon_dz[mu1Index]-muon_dz[mu2Index]);
+
+	  TLorentzVector mu1lv; mu1lv.SetXYZM(muon_px[mu1Index],
+					      muon_py[mu1Index],
+					      muon_pz[mu1Index],
 					      MuMass);
-	  TLorentzVector mu2lv; mu2lv.SetXYZM(analysisTree.muon_px[mu2Index],
-                                              analysisTree.muon_py[mu2Index],
-                                              analysisTree.muon_pz[mu2Index],
+	  TLorentzVector mu2lv; mu2lv.SetXYZM(muon_px[mu2Index],
+                                              muon_py[mu2Index],
+                                              muon_pz[mu2Index],
                                               MuMass);
 
 	  float mass = (mu1lv+mu2lv).M();
 
-	  float absIso1 = analysisTree.muon_chargedHadIso[mu1Index];
-	  float relIso1 = absIso1/analysisTree.muon_pt[mu1Index];
+	  float absIso1 = muon_chargedHadIso[mu1Index];
+	  float relIso1 = absIso1/muon_pt[mu1Index];
 
-	  float absIso2 = analysisTree.muon_chargedHadIso[mu2Index];
-	  float relIso2 = absIso2/analysisTree.muon_pt[mu2Index];
+	  float absIso2 = muon_chargedHadIso[mu2Index];
+	  float relIso2 = absIso2/muon_pt[mu2Index];
 
 	  float mu1RelIso = relIso1;
 
-	  if (analysisTree.muon_pt[mu2Index]>analysisTree.muon_pt[mu1Index]) {
+	  if (muon_pt[mu2Index]>muon_pt[mu1Index]) {
 	    float temp = relIso1;
 	    relIso1 = relIso2;
 	    relIso2 = temp;
@@ -938,10 +913,8 @@ int main(int argc, char * argv[]) {
 
 	  float DZ = TMath::Min(float(dZ),float(0.5));
 	  int DZBin  = binNumber(DZ,nDzBins,dzBins);
-	  
-	  //	  std::cout << "dZ = " << dZ << "  ->  " << DZBin << std::endl;
 
-	  if (isHLTDoubleMu && triggerMatch) { // pass HLT_HighPt_LowPt
+	  if (mu1MatchIsoSingleMu && triggerMatch) { // pass HLT_HighPt_LowPt and HLT_SingleMuon
 	    isPairSelectedHLTDoubleMu = true;
 	    selPairsHLTDoubleMu++;
 	    if (mass>3.0&&mass<3.2) {
@@ -990,7 +963,7 @@ int main(int argc, char * argv[]) {
 	    }
 	  }
 
-	  if (isHLTDoubleMuDZ && triggerMatchDz) { // pass HLT_HighPt_LowPt_DZ
+	  if (triggerMatchDz && mu1MatchIsoSingleMu) { // pass HLT_HighPt_LowPt_DZ
 	    isPairSelectedHLTDoubleMuDZ = true;
             selPairsHLTDoubleMuDZ++;
 	    if (mass>3.0&&mass<3.2) {
@@ -1029,60 +1002,59 @@ int main(int argc, char * argv[]) {
             }
 	  }
 
-	  if (isHLTDoubleMuSameSignDZ && triggerMatchSS) {
+	  if (triggerMatchSS && mu1MatchIsoSingleMu) {
 	    isPairSelectedHLTDoubleMuSameSignDZ = true;
             selPairsHLTDoubleMuSameSignDZ++;
 	  }
 
-	  if (isHLTIsoSingleMu && mu1IsoSingleMu && mu1RelIso<isoMuonCut && dZ<dZleptonsCut && dRmumu>dRleptonsCut) { // Single muon selection
+	  if (mu1IsoSingleMu && mu1RelIso<isoMuonCut && dZ<dZleptonsCut && dRmumu>dRleptonsCut) { // Single muon selection
 
-	    float mu2AbsEta = fabs(analysisTree.muon_eta[mu2Index]);
-	    float mu2Pt = TMath::Max(float(5.01),TMath::Min(float(analysisTree.muon_pt[mu2Index]),float(99.9)));
+	    float mu2AbsEta = fabs(muon_eta[mu2Index]);
+	    float mu2Pt = TMath::Max(float(5.01),TMath::Min(float(muon_pt[mu2Index]),float(99.9)));
 	    int etaBin = binNumber(mu2AbsEta,nEtaBins,etaBins);
 	    int ptBin  = binNumber(mu2Pt,nPtBins,ptBins);
-	    int ptBin45 = binNumber(mu2Pt,nPtBins45,ptBins45);
 
 	    bool chargeTagPassed = true;
-	    if (chargeTagMuon<0 && analysisTree.muon_charge[mu1Index]>0) chargeTagPassed = false;
-	    if (chargeTagMuon>0 && analysisTree.muon_charge[mu1Index]<0) chargeTagPassed = false;
+	    if (chargeTagMuon<0 && muon_charge[mu1Index]>0) chargeTagPassed = false;
+	    if (chargeTagMuon>0 && muon_charge[mu1Index]<0) chargeTagPassed = false;
 
 	    if (chargeTagPassed) {
 
 	      if (mu2MatchLowPt) { // LowPt Leg
-		if (analysisTree.muon_pt[mu2Index]>ptMuonLowCut&&mu2AbsEta<etaMuonLowCut) 
+		if (muon_pt[mu2Index]>ptMuonLowCut&&mu2AbsEta<etaMuonLowCut) 
 		  ZMassLowPtLegPassH->Fill(mass,weight);
-		if (analysisTree.muon_pt[mu2Index]>ptMuonLowCut)
+		if (muon_pt[mu2Index]>ptMuonLowCut)
 		  ZMassLowPtLegEtaPassH[etaBin]->Fill(mass,weight);
 		if (mu2AbsEta<etaMuonLowCut)
 		  ZMassLowPtLegPtPassH[ptBin]->Fill(mass,weight);
 	      }
 	      else {
-		if (analysisTree.muon_pt[mu2Index]>ptMuonLowCut&&mu2AbsEta<etaMuonLowCut)
+		if (muon_pt[mu2Index]>ptMuonLowCut&&mu2AbsEta<etaMuonLowCut)
 		  ZMassLowPtLegFailH->Fill(mass,weight);
-		if (analysisTree.muon_pt[mu2Index]>ptMuonLowCut)
+		if (muon_pt[mu2Index]>ptMuonLowCut)
 		  ZMassLowPtLegEtaFailH[etaBin]->Fill(mass,weight);
 		if (mu2AbsEta<etaMuonLowCut)
 		  ZMassLowPtLegPtFailH[ptBin]->Fill(mass,weight);
 	      }
 	     
 	      if (mu2MatchHighPt) { // HighPt Leg
-		if (analysisTree.muon_pt[mu2Index]>ptMuonHighCut&&mu2AbsEta<etaMuonHighCut)  
+		if (muon_pt[mu2Index]>ptMuonHighCut&&mu2AbsEta<etaMuonHighCut)  
 		  ZMassHighPtLegPassH->Fill(mass,weight);
-		if (analysisTree.muon_pt[mu2Index]>ptMuonHighCut) 
+		if (muon_pt[mu2Index]>ptMuonHighCut) 
 		  ZMassHighPtLegEtaPassH[etaBin]->Fill(mass,weight);
 		if (mu2AbsEta<etaMuonHighCut)
 		  ZMassHighPtLegPtPassH[ptBin]->Fill(mass,weight);
 	      }
 	      else {
-		if (analysisTree.muon_pt[mu2Index]>ptMuonHighCut&&mu2AbsEta<etaMuonHighCut)
+		if (muon_pt[mu2Index]>ptMuonHighCut&&mu2AbsEta<etaMuonHighCut)
 		  ZMassHighPtLegFailH->Fill(mass,weight);
-		if (analysisTree.muon_pt[mu2Index]>ptMuonHighCut) 
+		if (muon_pt[mu2Index]>ptMuonHighCut) 
 		  ZMassHighPtLegEtaFailH[etaBin]->Fill(mass,weight);
 		if (mu2AbsEta<etaMuonHighCut)
 		  ZMassHighPtLegPtFailH[ptBin]->Fill(mass,weight);
 	      }
 
-	      if (mu2AbsEta<2.4) { // bins in (eta,pt)
+	      if (mu2AbsEta<etaMuonHighCut) { // bins in (eta,pt)
 
 		if (mu2MatchLowPt)
 		  ZMassLowPtLegPtEtaPassH[etaBin][ptBin]->Fill(mass,weight);
@@ -1096,34 +1068,12 @@ int main(int argc, char * argv[]) {
 
 	      }
 
-	      if (mu2MatchMu45) { // Mu45 Leg
-		if (analysisTree.muon_pt[mu2Index]>46) 
-		  ZMassMu45LegEtaPassH[etaBin]->Fill(mass,weight);
-		if (mu2AbsEta<2.1)
-		  ZMassMu45LegPtPassH[ptBin45]->Fill(mass,weight);
-	      }
-	      else {
-		if (analysisTree.muon_pt[mu2Index]>46) 
-		  ZMassMu45LegEtaFailH[etaBin]->Fill(mass,weight);
-		if (mu2AbsEta<2.1)
-		  ZMassMu45LegPtFailH[ptBin45]->Fill(mass,weight);
-	      }
-
-
-	      if (mu2AbsEta<2.1) { // Mu45 Leg bins in (eta,pt)
-
-		if (mu2MatchMu45)
-                  ZMassMu45LegPtEtaPassH[etaBin][ptBin45]->Fill(mass,weight);
-                else
-                  ZMassMu45LegPtEtaFailH[etaBin][ptBin45]->Fill(mass,weight);
-
-	      }
-
 	    }
 
 	  }
 
 	}
+
       }
     
       if (isPairSelected)
@@ -1138,7 +1088,6 @@ int main(int argc, char * argv[]) {
       
     } // end of file processing (loop over events in one file)
     nFiles++;
-    delete _tree;
     file_->Close();
     delete file_;
   }
@@ -1158,19 +1107,6 @@ int main(int argc, char * argv[]) {
   std::cout << std::endl;
   std::cout << "Total number of selected events (HLT_Dimuon_SameSign_DZ) = " << selEventsHLTDoubleMuSameSignDZ << std::endl;
   std::cout << "Total number of selected pairs  (HLT_Dimuon_SameSign_DZ) = " << selPairsHLTDoubleMuSameSignDZ << std::endl;
-  std::cout << std::endl;
-  std::cout << "Run range " << minRun << ":" << maxRun << std::endl;
-  std::cout << std::endl;
-  // using object as comp
-  //  std::sort (allRuns.begin(), allRuns.end(), myobject);
-  //  std::cout << "runs      : ";
-  //  for (unsigned int iR=0; iR<allRuns.size(); ++iR)
-  //    std::cout << " " << allRuns.at(iR);
-  //  std::cout << std::endl;
-  //  std::sort (allGoodRuns.begin(), allGoodRuns.end(), myobject);
-  //  std::cout << "good runs : ";
-  //  for (unsigned int iR=0; iR<allGoodRuns.size(); ++iR)
-  //   std::cout << " " << allGoodRuns.at(iR);
   std::cout << std::endl;
   file->cd("");
   file->Write();

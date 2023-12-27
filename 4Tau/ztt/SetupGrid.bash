@@ -1,6 +1,16 @@
 #!/bin/bash
 #$1 - era (2016_preVFP, 2016_postVFP, 2017 and 2018)
+n=$#
+
+if [ $n -ne 1 ]; then
+    echo Usage : ./SetupGrid.bash [ERA]
+    echo ERA = 2016_preVFP, 2016_postVFP, 2017 and 2018
+    exit
+fi
+
 ERA=$1
+
+if [ ]
 if [ $ERA != "2016_preVFP" ] && [ $ERA != "2016_postVFP" ] && [ $ERA != "2017" ] && [ $ERA != "2018" ]; then
     echo Unavailable option for era specified : $ERA
     echo Run script with one of available choices for era : 2016_preVFP, 2016_postVFP, 2017, 2018

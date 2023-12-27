@@ -10,7 +10,6 @@ fi
 
 ERA=$1
 
-if [ ]
 if [ $ERA != "2016_preVFP" ] && [ $ERA != "2016_postVFP" ] && [ $ERA != "2017" ] && [ $ERA != "2018" ]; then
     echo Unavailable option for era specified : $ERA
     echo Run script with one of available choices for era : 2016_preVFP, 2016_postVFP, 2017, 2018

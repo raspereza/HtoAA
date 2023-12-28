@@ -32,8 +32,8 @@ std::map<TString,double> eraLumi = {
 
 std::map<TString, TString> LUMI_label = {
   {"2016"     ,"2016, 36.3 fb^{-1}"},
-  {"2016_pre" ,"2016, preVFP, 19.5 fb^{-1}"},
-  {"2016_post","2016, postVFP, 16.8 fb^{-1}"},
+  {"2016_preVFP" ,"2016, preVFP, 19.5 fb^{-1}"},
+  {"2016_postVFP","2016, postVFP, 16.8 fb^{-1}"},
   {"2017"     ,"2017, 41.5 fb^{-1}"},
   {"2018"     ,"2018, 59.8 fb^{-1}"}
 };
@@ -42,16 +42,15 @@ std::map<TString,std::vector<TString>> groups = {
   {"EWK",{"WW_13TeV-pythia8",
 	  "WZ_13TeV-pythia8",
 	  "ZZ_13TeV-pythia8",
-	  "ST_t-channel_top",
-	  "ST_t-channel_antitop",
-	  "ST_tW_top",
-	  "ST_tW_antitop"}},
-
-  {"WJ",{"WJetsToLNu"}},
+	  "WJetsToLNu"}},
 
   {"TT",{"TTTo2L2Nu",
 	 "TTToSemiLeptonic",
-	 "TTToHadronic"}},
+	 "TTToHadronic",
+	 "ST_t-channel_top",
+	 "ST_t-channel_antitop",
+	 "ST_tW_top",
+	 "ST_tW_antitop" }},
 
   {"ZLL",{"DYJetsToLL_M-10to50",
 	  "DYJetsToLL_M-50"}},
@@ -60,7 +59,7 @@ std::map<TString,std::vector<TString>> groups = {
   
 };
 
-std::map<TString, double> sample_xsec = {
+std::map<TString, double> sample_xsec_2016pre = {
   {"WW_13TeV-pythia8",118.7},
   {"WZ_13TeV-pythia8",27.68},
   {"ZZ_13TeV-pythia8",12.19},
@@ -73,9 +72,78 @@ std::map<TString, double> sample_xsec = {
   {"TTToSemiLeptonic",365.35},
   {"TTToHadronic",377.96},
   {"DYJetsToLL_M-10to50",21610.0},
+  //  {"DYJetsToLL_M-50",1.16*6077.22}, // scale factor from Z->mumu
+  //  {"DYJetsToTT_M-50",1.16*6077.22}, // scale factor from Z->mumu
   {"DYJetsToLL_M-50",6077.22},
-  {"DYJetsToTT_M-50",6077.22}, 
+  {"DYJetsToTT_M-50",6077.22}
   
+};
+
+std::map<TString, double> sample_xsec_2016post = {
+  {"WW_13TeV-pythia8",118.7},
+  {"WZ_13TeV-pythia8",27.68},
+  {"ZZ_13TeV-pythia8",12.19},
+  {"WJetsToLNu",61526.7},
+  {"ST_t-channel_top",136.02},
+  {"ST_t-channel_antitop",80.95},
+  {"ST_tW_top",35.85}, 
+  {"ST_tW_antitop",35.85},
+  {"TTTo2L2Nu",88.29},
+  {"TTToSemiLeptonic",365.35},
+  {"TTToHadronic",377.96},
+  {"DYJetsToLL_M-10to50",21610.0},
+  //  {"DYJetsToLL_M-50",1.16*6077.22}, // scale factor from Z->mumu
+  //  {"DYJetsToTT_M-50",1.16*6077.22}, // scale factor from Z->mumu
+  {"DYJetsToLL_M-50",6077.22},
+  {"DYJetsToTT_M-50",6077.22},
+  
+};
+
+std::map<TString, double> sample_xsec_2017 = {
+  {"WW_13TeV-pythia8",118.7},
+  {"WZ_13TeV-pythia8",27.68},
+  {"ZZ_13TeV-pythia8",12.19},
+  {"WJetsToLNu",61526.7},
+  {"ST_t-channel_top",136.02},
+  {"ST_t-channel_antitop",80.95},
+  {"ST_tW_top",35.85}, 
+  {"ST_tW_antitop",35.85},
+  {"TTTo2L2Nu",88.29},
+  {"TTToSemiLeptonic",365.35},
+  {"TTToHadronic",377.96},
+  {"DYJetsToLL_M-10to50",21610.0},
+  //  {"DYJetsToLL_M-50",0.95*6077.22}, // scale factor from Z->mumu
+  //  {"DYJetsToTT_M-50",0.95*6077.22}, // scale factor from Z->mumu
+  {"DYJetsToLL_M-50",6077.22}, // scale factor from Z->mumu
+  {"DYJetsToTT_M-50",6077.22}, // scale factor from Z->mumu
+  
+};
+
+std::map<TString, double> sample_xsec_2018 = {
+  {"WW_13TeV-pythia8",118.7},
+  {"WZ_13TeV-pythia8",27.68},
+  {"ZZ_13TeV-pythia8",12.19},
+  {"WJetsToLNu",61526.7},
+  {"ST_t-channel_top",136.02},
+  {"ST_t-channel_antitop",80.95},
+  {"ST_tW_top",35.85}, 
+  {"ST_tW_antitop",35.85},
+  {"TTTo2L2Nu",88.29},
+  {"TTToSemiLeptonic",365.35},
+  {"TTToHadronic",377.96},
+  {"DYJetsToLL_M-10to50",21610.0},
+  //  {"DYJetsToLL_M-50",1.07*6077.22}, // scale factor from Z->mumu
+  //  {"DYJetsToTT_M-50",1.07*6077.22}, // scale factor from Z->mumu
+  {"DYJetsToLL_M-50",6077.22}, // scale factor from Z->mumu
+  {"DYJetsToTT_M-50",6077.22}, // scale factor from Z->mumu
+  
+};
+
+std::map<TString, std::map<TString,double> > sample_xsec_ERA = {
+  {"2016_preVFP",sample_xsec_2016pre},
+  {"2016_postVFP",sample_xsec_2016post},
+  {"2017",sample_xsec_2017},
+  {"2018",sample_xsec_2018}
 };
 
 // systematic uncertainties
@@ -85,7 +153,6 @@ std::map<TString,double> sysSamples = {
   {"ZLL",1.5},
   {"ZTT",0.15},
   {"EWK",0.3},
-  {"WJ" ,0.5},
   {"TT" ,0.3},
   {"QCD",0.2}
 };
@@ -95,10 +162,10 @@ std::map<TString,TString> colorSamples = {
   {"ZLL","#4496C8"},
   {"ZTT","#FFCC66"},
   {"EWK","#DE5A6A"},
-  {"WJ" ,"#c6f74a"},
   {"TT" ,"#9999CC"},
   {"QCD","#FFCCFF"}
 };
+
 
 std::vector<TString> eras = {"2016","2017","2018"};
 
@@ -121,6 +188,7 @@ std::vector<TString> eras = {"2016","2017","2018"};
 
 std::map<TString,TString> legend_pt = {
   {"5to10","p_{T}=[5,10] GeV"},
+  {"5to15","p_{T}=[5,15] GeV"},
   {"10to15","p_{T}=[10,15] GeV"},
   {"15to20","p_{T}=[15,20] GeV"},
   {"20toInf","p_{T}>20 GeV"},
@@ -130,6 +198,48 @@ std::map<TString,TString> legend_mt = {
   {"lowMT","low m_{T}"},
   {"highMT","high m_{T}"},
 };
+
+// accessing files 
+std::map<TString, TFile*> accessFiles(TString dir,
+				      TString era) {
+
+  std::map<TString, TFile*> files;
+  TString filename = dir+"/"+era+"/Data.root";
+  files["Data"] = new TFile(filename);
+  if (files["Data"]==NULL || files["Data"]->IsZombie()) {
+    std::cout << "file " << filename << "does not exist " << std::endl;
+    exit(-1);
+  }
+  for (auto group : groups) {
+    TString name = group.first;
+    std::vector<TString> samples = group.second;
+    for (auto sample : samples) {
+      filename = dir+"/"+era+"/"+sample+".root";
+      files[sample] = new TFile(filename);
+      if (files[sample]==NULL || files[sample]->IsZombie()) {
+	std::cout << "file " << filename << "does not exist " << std::endl;
+	exit(-1);
+      }
+    }
+  }
+
+  return files;
+
+}
+
+
+// adding histograms 
+void addHistograms(std::map<TString, TH1D*> histograms,
+		   std::map<TString, TH1D*> added_histograms) {
+
+  for (auto histogram : histograms) {
+    TString name = histogram.first;
+    TH1D * hist = histogram.second;
+    TH1D * added_hist = added_histograms[name];
+    hist->Add(hist,added_hist,1.,1.);
+  }
+
+}
 
 // removing negative bins
 void fixNegativeBins(TH1D * hist) {
@@ -156,7 +266,7 @@ std::map<TString, TH1D*> GetHistos(TString histName,
 				   double * bins) {
   
   std::map<TString, TH1D*> histograms;
-
+  std::map<TString, double> sample_xsec = sample_xsec_ERA[era];
   std::cout << std::endl;
   std::cout << "+++++++++++++++++++++++++++++++++++++" << std::endl;
   std::cout << std::endl;
@@ -178,8 +288,7 @@ std::map<TString, TH1D*> GetHistos(TString histName,
   double xMin = histDataOld->GetBinLowEdge(1);
   double xMax = histDataOld->GetBinLowEdge(nBins+1);
 
-  std::cout << std::endl;
-  std::cout << "Histogram " << histName << " : " << "nbins = " << nBins
+    std::cout << "Histogram " << histName << " : " << "nbins = " << nBins
 	    << " , min = " << xMin
 	    << " , max = " << xMax << std::endl;
   std::cout << std::endl;
@@ -191,7 +300,6 @@ std::map<TString, TH1D*> GetHistos(TString histName,
   
   histograms["Data"] = TH1DtoTH1D(histDataOld,nbins,bins,true,"_Data_"+region+"_"+era);
 
-  std::cout << std::endl;
   for (auto group : groups) {
     TString name = group.first; 
     histograms[name] = new TH1D(name+"_"+region+"_"+era,"",nbins,bins);
@@ -243,13 +351,14 @@ std::map<TString, TH1D*> GetHistosFromTree(TString treeName,
   TCanvas * canv = new TCanvas("canv","",500,500);
 
   std::map<TString, TH1D*> histograms;
+  std::map<TString, double> sample_xsec = sample_xsec_ERA[era];
 
   double lumi = eraLumi[era];
 
   std::cout << "+++++++++++++++++++++++++++++++++++++" << std::endl;
   std::cout << std::endl;
   std::cout << "Filling histograms from " << treeName << std::endl;
-  std::cout << "Region " << region << std::endl;
+  std::cout << "Era : " << era << "   Region " << region << std::endl;
   std::cout << std::endl;
 
   TString cutsOS  = "weight*("+cuts+"&&os>0.5)";
@@ -327,6 +436,7 @@ std::map<TString, TH1D*> GetHistosFromTree(TString treeName,
   double yield_data_ss = histograms["Data_SS"]->GetSumOfWeights();
   double yield_total = 0.0;
   double yield_total_ss = 0.0;
+  double yield_total_jet = 0.0;
   for (auto group : groups) {
     nameOS = group.first;
     nameSS = nameOS + "_SS";
@@ -338,10 +448,13 @@ std::map<TString, TH1D*> GetHistosFromTree(TString treeName,
 	   nameOS.Data(),yield_sample,yield_sample_jet,yield_sample_ss);
     yield_total += yield_sample;
     yield_total_ss += yield_sample_ss;
+    yield_total_jet += yield_sample_jet;
   }
 
-  TString name="Data";
   printf("--------------------------------------+\n");
+  TString name="Total";
+  printf("%7s = %7.0f : %7.0f : %7.0f |\n",name.Data(),yield_total,yield_total_jet,yield_total_ss);
+  name="Data";
   printf("%7s = %7.0f :         : %7.0f |\n",name.Data(),yield_data,yield_data_ss);
   std::cout << std::endl;
 
@@ -355,14 +468,26 @@ std::map<TString, TH1D*> GetHistosFromTree(TString treeName,
 // === Getting QCD OS/SS scale factor ================
 // ===================================================
 
-std::map<TString,double> GetNormQCD(std::map<TString,TH1D*> histograms) {
+std::map<TString,double> GetNormQCD(
+				    std::map<TString,TH1D*> histograms,
+				    TString region,
+				    TString era,
+				    TString plotdir
+				    ) {
 
   double norm[2];
   double xOS = histograms["DataSubtr"]->GetSumOfWeights();
   double xSS = histograms["DataSubtr_SS"]->GetSumOfWeights();
   // uncertainty is 50% of subtracted non-QCD MC 
-  double eOS = 0.5*(histograms["Data"]->GetSumOfWeights() - histograms["DataSubtr"]->GetSumOfWeights());
-  double eSS = 0.5*(histograms["Data_SS"]->GetSumOfWeights() - histograms["DataSubtr_SS"]->GetSumOfWeights());
+  double eOS = 0.2*(histograms["Data"]->GetSumOfWeights() - histograms["DataSubtr"]->GetSumOfWeights());
+  double eSS = 0.2*(histograms["Data_SS"]->GetSumOfWeights() - histograms["DataSubtr_SS"]->GetSumOfWeights());
+
+  TString filename = plotdir+"/QCD_"+region+"_"+era+".root";
+  TFile * file = new TFile(filename+".root","recreate");
+  file->cd("");
+  histograms["DataSubtr"]->Write("QCD_OS");
+  histograms["DataSubtr_SS"]->Write("QCD_SS");
+  file->Close();
 
   double scale = xOS/xSS;
   double rOS = eOS/xOS;
@@ -376,6 +501,7 @@ std::map<TString,double> GetNormQCD(std::map<TString,TH1D*> histograms) {
   results["error"]=escale;
 
   std::cout << std::endl;
+  std::cout << "Era = " << era << "  Region = " << region << std::endl; 
   printf("QCD OS/SS ratio = %4.2f +/- %4.2f\n",scale,escale);
   std::cout << std::endl;
 
@@ -423,7 +549,8 @@ void Plot(std::map<TString, TH1D*> histograms,
 	  TString plotdir) {
 
   std::cout << std::endl;
-  std::cout << "Plotting distributions in region " << region << std::endl;
+  std::cout << "Plotting distributions " << region << std::endl;
+  std::cout << "Era = " << era << "  Region " << region << std::endl;
   std::cout << std::endl;
 
   SetStyle();
@@ -451,20 +578,17 @@ void Plot(std::map<TString, TH1D*> histograms,
   TH1D * ZTT = plot_sample["ZTT"];
   TH1D * TT  = plot_sample["TT"];
   TH1D * EWK = plot_sample["EWK"];
-  TH1D * WJ  = plot_sample["WJ"];
   TH1D * QCD = plot_sample["QCD"];
 
   printf("ZLL   : %7.0f\n",ZLL->GetSumOfWeights());
   printf("EWK   : %7.0f\n",EWK->GetSumOfWeights());
   printf("TT    : %7.0f\n",TT->GetSumOfWeights());
-  printf("WJ    : %7.0f\n",WJ->GetSumOfWeights());
   printf("QCD   : %7.0f\n",QCD->GetSumOfWeights());
   printf("ZTT   : %7.0f\n",ZTT->GetSumOfWeights());
 
-  TT->Add(TT,EWK,1.,1.);
-  QCD->Add(QCD,TT,1.,1.);
-  WJ->Add(WJ,QCD,1.,1.);
-  ZLL->Add(ZLL,WJ,1.,1.);
+  TT->Add(TT,QCD,1.,1.);
+  EWK->Add(EWK,TT,1.,1.);
+  ZLL->Add(ZLL,EWK,1.,1.);
   ZTT->Add(ZTT,ZLL,1.,1.);
 
   TH1D * bkgdErr = (TH1D*)ZTT->Clone("bkgdErr");
@@ -481,7 +605,6 @@ void Plot(std::map<TString, TH1D*> histograms,
   for (int iB=1; iB<=nBins; ++iB) {
     TT->SetBinError(iB,0);
     EWK->SetBinError(iB,0);
-    WJ->SetBinError(iB,0);
     ZLL->SetBinError(iB,0);
     ZTT->SetBinError(iB,0);
     QCD->SetBinError(iB,0);
@@ -502,12 +625,22 @@ void Plot(std::map<TString, TH1D*> histograms,
 
   TCanvas * canv = MakeCanvas("canv","",600,600);
 
-  ZTT->Draw("h");
-  ZLL->Draw("hsame");
-  WJ->Draw("hsame");
-  QCD->Draw("hsame");
-  TT->Draw("hsame");
-  EWK->Draw("hsame");
+  if (region=="zll") {
+    ZLL->Draw("h");
+    EWK->Draw("hsame");
+    TT->Draw("hsame");
+  }
+  else {
+    ZTT->Draw("h");
+    ZLL->Draw("hsame");
+  }
+  if (region=="zll") {
+    TT->Draw("hsame");
+  }
+  else {
+    TT->Draw("hsame");
+    QCD->Draw("hsame");
+  }
   bkgdErr->Draw("e2same");
   Data->Draw("e1same");
     
@@ -516,12 +649,18 @@ void Plot(std::map<TString, TH1D*> histograms,
   leg->SetHeader(legend);
   leg->SetTextSize(0.03);
   leg->AddEntry(Data,"Data","lp");
-  leg->AddEntry(ZTT,"Z#rightarrow#tau#tau","f");
-  leg->AddEntry(ZLL,"Z#rightarrow#mu#mu","f");
-  leg->AddEntry(WJ,"W+jets","f");
-  leg->AddEntry(QCD,"QCD","f");
-  leg->AddEntry(TT,"t#bar{t}","f");
-  leg->AddEntry(EWK,"electroweak","f");
+  if (region=="zll") {
+    leg->AddEntry(ZLL,"Z#rightarrow#mu#mu","f");
+    leg->AddEntry(EWK,"electroweak","f");
+    leg->AddEntry(TT,"t#bar{t}","f");    
+  }
+  else {
+    leg->AddEntry(ZTT,"Z#rightarrow#tau#tau","f");
+    leg->AddEntry(ZLL,"Z#rightarrow#mu#mu","f");
+    leg->AddEntry(EWK,"electroweak","f");
+    leg->AddEntry(TT,"t#bar{t}","f");
+    leg->AddEntry(QCD,"QCD","f");
+  }
   leg->Draw();
 
   lumi_13TeV = LUMI_label[era];
@@ -565,9 +704,6 @@ void WriteDatacardsSimple(std::map<TString, TH1D*> histograms,
   TH1D * QCD = histograms["QCD"];
   fixNegativeBins(QCD);
 
-  TH1D * W = histograms["WJ"];
-  fixNegativeBins(W);
-
   TString baseName = folder+"/"+region + "_" + era + "_simple";
   // Creating datacards ->
   TString fileName = baseName + ".root";
@@ -585,7 +721,6 @@ void WriteDatacardsSimple(std::map<TString, TH1D*> histograms,
   ZTT->Write("ZTT");
   ZLL->Write("ZLL");
   QCD->Write("QCD");
-  W->Write("W");
 
   fileOutput->Close();
 
@@ -613,28 +748,27 @@ void WriteDatacardsSimple(std::map<TString, TH1D*> histograms,
   textFile << "shapes * * "  << fileName << "     $PROCESS       $PROCESS_$SYSTEMATIC " << std::endl;
   textFile << "-----------------" << std::endl;
   textFile << "bin  ";
-  for (int i=0; i<6; ++i)
+  for (int i=0; i<5; ++i)
     textFile << "  " << region;
   textFile << std::endl;
-  textFile << "process           ZTT     EWK      TT       W     ZLL     QCD" << std::endl;
-  textFile << "process             0       1       2       3       4       5" << std::endl;
+  textFile << "process           ZTT     EWK      TT     ZLL     QCD" << std::endl;
+  textFile << "process             0       1       2       3       4" << std::endl;
   textFile << "rate  ";
 
   textFile << ZTT->GetSumOfWeights() << "  "
 	   << EWK->GetSumOfWeights() << "  "
 	   << TT->GetSumOfWeights() << "  "
-	   << W->GetSumOfWeights() << "  "
 	   << ZLL->GetSumOfWeights() << "  "
 	   << QCD->GetSumOfWeights() << std::endl;  
 
-  textFile << "eff_m     lnN    1.03    1.03    1.03    1.03    1.03       -" << std::endl;
-  textFile << "ewkNorm   lnN       -     1.3       -       -       -       -" << std::endl;
-  textFile << "ttjNorm   lnN       -       -     1.3       -       -       -" << std::endl;
-  textFile << "wjNorm    lnN       -       -       -     1.3       -       -" << std::endl;
-  textFile << "zllNorm   lnN       -       -       -       -     2.0       -" << std::endl;
-  textFile << "qcdNorm   lnN       -       -       -       -       -    " << QCDErr << std::endl;
-  textFile << "lumi      lnN   1.025   1.025   1.025   1.025   1.025       -" << std::endl;
-  textFile << "zjXsec    lnN    1.05       -       -       -       -       -" << std::endl;
+  textFile << "eff_m     lnN    1.03    1.03    1.03    1.03       -" << std::endl;
+  textFile << "jetFake   lnN       -     1.1     1.1       -       -" << std::endl;
+  textFile << "ewkXsec   lnN       -    1.05       -       -       -" << std::endl;
+  textFile << "tjXsec    lnN       -       -    1.07       -       -" << std::endl;
+  textFile << "zllNorm   lnN       -       -       -     2.0       -" << std::endl;
+  textFile << "qcdNorm   lnN       -       -       -       -   " << QCDErr << std::endl;
+  textFile << "lumi      lnN    1.02    1.02    1.02    1.02       -" << std::endl;
+  textFile << "zjXsec    lnN    1.05       -       -       -       -" << std::endl;
   textFile << "* autoMCStats 0" << std::endl;
   
   std::cout << "Datacards " << cardName << " are created " << std::endl;
@@ -682,17 +816,14 @@ void WriteDatacards(std::map<TString, TH1D*> histograms,
   TH1D * QCD = histograms["QCD"];
   fixNegativeBins(QCD);
 
-  TH1D * W_Jet = histograms["WJ"];
-  fixNegativeBins(W_Jet);
-
   TString baseName = folder+"/"+region + "_" + era;
   // Creating datacards ->
-  TString fileName = baseName + ".root";
+  TString fileName = region + "_" + era + ".root";
 
   std::cout << std::endl;
   std::cout << "Writing shapes to " << fileName << std::endl;
 
-  TFile * fileOutput = new TFile(fileName,"recreate");
+  TFile * fileOutput = new TFile(folder+"/"+fileName,"recreate");
   fileOutput->cd("");
 
   histograms["Data"]->Write("data_obs");
@@ -711,8 +842,6 @@ void WriteDatacards(std::map<TString, TH1D*> histograms,
 
   QCD->Write("QCD");
   
-  W_Jet->Write("W_Jet");
-
   fileOutput->Close();
 
   double qcdErr = 1 + norm["error"];
@@ -729,6 +858,10 @@ void WriteDatacards(std::map<TString, TH1D*> histograms,
   string nn = str.str();
   const char * p = nn.c_str();
 
+  bool lowpt = (era=="2018" || era=="2016") &&
+    (region.Contains("_5to15") || region.Contains("_5to10") || region.Contains("_10to15"));
+
+
   std::ofstream textFile(p);
   textFile << "imax 1   number of channels" << std::endl;
   textFile << "jmax *   number of backgrounds" << std::endl;
@@ -739,11 +872,11 @@ void WriteDatacards(std::map<TString, TH1D*> histograms,
   textFile << "shapes * * "  << fileName << "     $PROCESS       $PROCESS_$SYSTEMATIC " << std::endl;
   textFile << "-----------------" << std::endl;
   textFile << "bin  ";
-  for (int i=0; i<10; ++i)
+  for (int i=0; i<9; ++i)
     textFile << "  " << region;
   textFile << std::endl;
-  textFile << "process       ZTT_Tau EWK_Tau TT_Tau ZTT_Jet EWK_Jet TT_Jet  W_Jet ZLL_Jet ZLL_Mu   QCD" << std::endl;
-  textFile << "process            -2      -1      0       1       2      3      4       5      6     7" << std::endl;
+  textFile << "process  ZTT_Tau EWK_Tau TT_Tau ZTT_Jet EWK_Jet TT_Jet ZLL_Jet ZLL_Mu   QCD" << std::endl;
+  textFile << "process       -2      -1      0       1       2      3       4      5     6" << std::endl;
   textFile << "rate "
 	   << ZTT_Tau->GetSumOfWeights() << " "
 	   << EWK_Tau->GetSumOfWeights() << " "
@@ -751,30 +884,32 @@ void WriteDatacards(std::map<TString, TH1D*> histograms,
 	   << ZTT_Jet->GetSumOfWeights() << " "
 	   << EWK_Jet->GetSumOfWeights() << " "
 	   << TT_Jet->GetSumOfWeights() << " "
-	   << W_Jet->GetSumOfWeights() << " "
 	   << ZLL_Jet->GetSumOfWeights() << " "
 	   << ZLL_Mu->GetSumOfWeights() << " "
 	   << QCD->GetSumOfWeights() << std::endl;
-  textFile << "eff_m     lnN    1.03    1.03   1.03    1.03    1.03   1.03   1.03    1.03   1.06     -" << std::endl;
-  textFile << "ttjXsec   lnN       -       -   1.07       -       -   1.07      -       -      -     -" << std::endl;
-  textFile << "ewkXsec   lnN       -    1.10      -       -    1.10      -      -       -      -     -" << std::endl;
-  textFile << "wjXSec    lnN       -       -      -       -       -      -   1.04       -      -     -" << std::endl;
-  textFile << "qcdNorm   lnN       -       -      -       -       -      -      -       -      -  " << QCDErr << std::endl;
-  textFile << "lumi      lnN       -    1.02   1.02       -    1.02   1.02   1.02       -      -     -" << std::endl;
-
-  //  textFile << "ZNorm rateParam " << region << " ZTT_Tau 1.0 [0.5,1.5]" << std::endl;
-  //  textFile << "ZNorm rateParam " << region << " ZLL_Mu  1.0 [0.5,1.5]" << std::endl;
-  //  textFile << "ZNorm rateParam " << region << " ZTT_Jet 1.0 [0.5,1.5]" << std::endl;
-  //  textFile << "ZNorm rateParam " << region << " ZLL_Jet 1.0 [0.5,1.5]" << std::endl;
-
-  textFile << "JFake rateParam " << region << " ZTT_Jet 1.0 [0.0,5.0]" << std::endl;
-  textFile << "JFake rateParam " << region << " ZLL_Jet 1.0 [0.0,5.0]" << std::endl;
-  textFile << "JFake rateParam " << region << " TT_Jet  1.0 [0.0,5.0]" << std::endl;
-  textFile << "JFake rateParam " << region << " EWK_Jet 1.0 [0.0,5.0]" << std::endl;
-  textFile << "JFake rateParam " << region << " W_Jet   1.0 [0.0,5.0]" << std::endl;  
-
-  textFile << "MuonVeto rateParam " << region << " ZLL_Mu 1.0 [0.0,5.0]" << std::endl;
-
+  textFile << "eff_m     lnN  1.03   1.03   1.03   1.03   1.03   1.03   1.03   1.06     -" << std::endl;
+  textFile << "ttjXsec   lnN     -      -   1.07      -      -   1.07      -      -     -" << std::endl;
+  textFile << "ewkXsec   lnN     -   1.10      -      -   1.10      -      -      -     -" << std::endl;
+  textFile << "zjXSec    lnN  1.05      -      -   1.05      -      -      -      -     -" << std::endl;
+  // to make fit more stable in low pt bin for eras 2016 and 2018
+  if (lowpt) 
+    textFile << "qcdNorm   lnN     -      -      -      -      -      -      -      -  1.01" << std::endl;
+  else 
+    textFile << "qcdNorm   lnN     -      -      -      -      -      -      -      - " << QCDErr << std::endl;
+  textFile << "lumi      lnN     -   1.02   1.02      -   1.02   1.02   1.02      -     -" << std::endl;
+  // to make fit more stable in low pt bin for eras 2016 and 2018
+  if (lowpt) {
+    textFile << "JFake rateParam " << region << " ZTT_Jet 1.0 [0.0,5.0]" << std::endl;
+    textFile << "JFake rateParam " << region << " TT_Jet  1.0 [0.0,5.0]" << std::endl;
+    textFile << "JFake rateParam " << region << " EWK_Jet 1.0 [0.0,5.0]" << std::endl;
+  }
+  else {
+    textFile << "JFake rateParam " << region << " ZTT_Jet 1.0 [0.0,5.0]" << std::endl;
+    textFile << "JFake rateParam " << region << " TT_Jet  1.0 [0.0,5.0]" << std::endl;
+    textFile << "JFake rateParam " << region << " EWK_Jet 1.0 [0.0,5.0]" << std::endl;
+    textFile << "JFake rateParam " << region << " ZLL_Jet 1.0 [0.0,5.0]" << std::endl;
+    textFile << "MuonVeto rateParam " << region << " ZLL_Mu 1.0 [0.0,5.0]" << std::endl;
+  }
   textFile << "* autoMCStats 0" << std::endl;
   
   std::cout << "Datacards " << cardName << " are created " << std::endl;
@@ -814,6 +949,7 @@ int main (int argc, char * argv[])
   TString dir(inputdir);
 
   std::map<TString,TString> ptcuts = {
+    {"5to15","trkpt>5.0&&trkpt<15.0"},
     {"5to10","trkpt>5.0&&trkpt<10.0"},
     {"10to15","trkpt>10.0&&trkpt<15.0"},
     {"15to20","trkpt>15.0&&trkpt<20.0"},
@@ -845,23 +981,13 @@ int main (int argc, char * argv[])
   
   // accessing files 
   std::map<TString,TFile*> files;
-  TString filename = dir+"/"+era+"/Data.root";
-  files["Data"] = new TFile(filename);
-  if (files["Data"]==NULL || files["Data"]->IsZombie()) {
-    std::cout << "file " << filename << "does not exist " << std::endl;
-    exit(-1);
-  }
-  for (auto group : groups) {
-    TString name = group.first;
-    std::vector<TString> samples = group.second;
-    for (auto sample : samples) {
-      filename = dir+"/"+era+"/"+sample+".root";
-      files[sample] = new TFile(filename);
-      if (files[sample]==NULL || files[sample]->IsZombie()) {
-	std::cout << "file " << filename << "does not exist " << std::endl;
-	exit(-1);
-      }
-    }
+  std::map<TString,TFile*> filesX;
+  TString era_current = era;
+  if (era=="2016") era_current = "2016_preVFP";
+  files = accessFiles(dir,era_current);
+  if (era=="2016") {
+    era_current = "2016_postVFP";
+    filesX = accessFiles(dir,era_current);
   }
 
   // binning of m(mu,trk) histograms
@@ -871,58 +997,112 @@ int main (int argc, char * argv[])
   for (int iB=0; iB<=nbins; ++iB)
     bins[iB] = x0 + width*double(iB);
 
-  std::vector<TString> pT_bins = {"5to10", "10to15", "15to20", "20toInf"};
-  //  std::vector<TString> pT_bins = {"20toInf"};
-  //  std::vector<TString> pT_bins = {"5to10"};
+  std::vector<TString> pT_bins = {"5to15"};
+  //  std::vector<TString> pT_bins = {"5to15","15to20","20toInf"};
   std::vector<TString> mT_regions = {"lowMT", "highMT"};
   //  std::vector<TString> mT_regions = {"lowMT"};
-  //  std::vector<TString> mT_regions = {"highMT"};
 
   // Checking ZLL sample
+  
   int nbins_Zmm = 1;
   double bins_Zmm[2] = {80.,102.};
   TString region_Zmm = "zmm";
   TString histName("massMuMuH");
+  era_current = era;
+  if (era=="2016") era_current = "2016_preVFP";
   std::map<TString, TH1D*> histsZmm = GetHistos(histName,
-						era,
+						era_current,
 						region_Zmm,
 						files,
 						nbins_Zmm,
 						bins_Zmm);
+  if (era=="2016") {
+    era_current = "2016_postVFP";
+    std::map<TString, TH1D*> histsZmmX = GetHistos(histName,
+						   era_current,
+						   region_Zmm,
+						   filesX,
+						   nbins_Zmm,
+						   bins_Zmm);
+  }
+  exit(1);
 
-  for (auto pt : pT_bins) {
-    for (auto mt : mT_regions) {
+  //
+  // muon+track selection
+  //
+  for (auto pt : pT_bins) { // track pT bins
+    for (auto mt : mT_regions) { // low and high MT regions
 
       // antiisolated muon region
       // computing OS/SS extrapolation factors for QCD
       TString region = "ztt_" + mt + "_" + pt + "_antiiso";
       TString baseCuts = "muiso>0.2&&"+mtcuts[mt]+"&&"+ptcuts[pt];
       TString var("massmutrk");
-      std::map<TString,TH1D*> histosInvIso = GetHistosFromTree(
-							       treeName,
-							       baseCuts,
-							       var,
-							       era,
-							       region,
-							       files,
-							       nbins,
-							       bins);
-      
-      std::map<TString, double> norm = GetNormQCD(histosInvIso);
+      era_current = era;
+      if (era=="2016") era_current = "2016_preVFP";
+      std::map<TString,TH1D*> histosInvIso = 
+	GetHistosFromTree(treeName,
+			  baseCuts,
+			  var,
+			  era_current,
+			  region,
+			  files,
+			  nbins,
+			  bins);
+      if (era=="2016") {
+	era_current = "2016_postVFP";
+	std::map<TString,TH1D*> histosInvIsoX = 
+	  GetHistosFromTree(treeName,
+			    baseCuts,
+			    var,
+			    era_current,
+			    region,
+			    filesX,
+			    nbins,
+			    bins);
+	addHistograms(histosInvIso,histosInvIsoX);
+      }
+
+      // computing OS/SS extrapolation
+      // factors for QCD background
+      std::map<TString, double> norm = 
+	GetNormQCD(histosInvIso,
+		   region,
+		   era,
+		   PlotDir);
 
       // isolated muon region 
       // building templates for datacards
       region = "ztt_" + mt + "_" + pt;
       baseCuts = "muiso<0.15&&"+mtcuts[mt]+"&&"+ptcuts[pt];
-      std::map<TString,TH1D*> histos = GetHistosFromTree(
-							 treeName,
-							 baseCuts,
-							 var,
-							 era,
-							 region,
-							 files,
-							 nbins,
-							 bins);
+      era_current = era;
+      if (era=="2016") era_current = "2016_preVFP";
+      std::map<TString,TH1D*> histos = 
+	GetHistosFromTree(
+			  treeName,
+			  baseCuts,
+			  var,
+			  era_current,
+			  region,
+			  files,
+			  nbins,
+			  bins);
+      if (era=="2016") {
+	era_current = "2016_postVFP";
+	std::map<TString,TH1D*> histosX = 
+	  GetHistosFromTree(
+			    treeName,
+			    baseCuts,
+			    var,
+			    era_current,
+			    region,
+			    filesX,
+			    nbins,
+			    bins);
+      
+	addHistograms(histos,histosX);
+      }
+
       TH1D * histQCD = GetTemplateQCD(era,
 				      region,
 				      histos,
@@ -930,9 +1110,9 @@ int main (int argc, char * argv[])
       histos["QCD"] = histQCD;      
       TString legend = legend_mt[mt] + " " + legend_pt[pt];
       TString xtitle("m_{#mu,trk} [GeV]");
-      WriteDatacardsSimple(histos,norm,region,era,DatacardsDir);
+      //      WriteDatacardsSimple(histos,norm,region,era,DatacardsDir);
       WriteDatacards(histos,norm,region,era,DatacardsDir);
-      Plot(histos,xtitle,region,legend,era,plotdir);
+      Plot(histos,xtitle,region,legend,era,PlotDir);
 
     }
   }

@@ -535,7 +535,6 @@ int main(int argc, char * argv[]) {
      continue;
    }
 
-
    TTree * tree_ = (TTree*)file_->Get(TString(chainName));
    TTree * inittree_ = (TTree*)file_->Get(TString(initNtupleName));
    if (tree_==NULL) continue;

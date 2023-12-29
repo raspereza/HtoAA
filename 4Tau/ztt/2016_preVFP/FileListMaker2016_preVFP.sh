@@ -7,12 +7,18 @@ fi
 echo "CONFIGFILE,FILELIST" > parameters.txt
 
 #File lists for 2016APV legacy data:
-for i in B-ver1 B-ver2 C D E F 
+for i in B-ver1 B-ver2 C D E  
 do
     echo creating file list for data sample SingleMuon_Run2016APV${i}
-    ls /pnfs/desy.de/cms/tier2/store/user/lsreelat/NTuples/2016APV/HtoAA/SingleMuon/SingleMuon-Run2016${i}-UL2016APV/*root > SingleMuon_Run2016APV${i}
-    ./split_filelist.sh analysisMacro_ztt.conf SingleMuon_Run2016APV${i} 20
+    ls /pnfs/desy.de/cms/tier2/store/user/acardini/ntuples/Oktoberfest21/2016_preVFP/data/SingleMuon_Run2016${i}/*.root > SingleMuon_Run2016APV${i}
+
+    ./split_filelist.sh analysisMacro_ztt.conf SingleMuon_Run2016APV${i} 15
 done
+
+echo creating file list for data sample SingleMuon_Run2016APVF
+ls /pnfs/desy.de/cms/tier2/store/user/lsreelat/NTuples/2016APV/HtoAA/SingleMuon/SingleMuon-Run2016F-UL2016APV/*root > SingleMuon_Run2016APVF
+./split_filelist.sh analysisMacro_ztt.conf SingleMuon_Run2016APVF 15
+
 
 # TTSemileptonic sample should be split (long list for ls command)
 echo "Creating file list for sample TTToSemiLeptonic_TuneCP5_13TeV-powheg-pythia8"

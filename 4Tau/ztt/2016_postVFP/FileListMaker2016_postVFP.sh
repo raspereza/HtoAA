@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if [ -f "parameters.txt" ];
+if [ -f "parameters.txt" ]; then
     rm parameters.txt
 fi
 

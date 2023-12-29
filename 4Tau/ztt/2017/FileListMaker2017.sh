@@ -1,6 +1,8 @@
 #!/bin/bash
 
-rm parameters.txt
+if [ -f "parameters.txt" ]; then
+    rm parameters.txt
+fi
 
 echo "CONFIGFILE,FILELIST" > parameters.txt
 
@@ -75,6 +77,7 @@ do
       
     i=`expr $i + 1` 
 done
+echo "Creating file list for sample DYJetsToTT_M-50"
 cp DYJetsToLL_M-50 DYJetsToTT_M-50
 ./split_filelist.sh analysisMacro_ztt.conf DYJetsToTT_M-50 20
 

@@ -10,10 +10,10 @@ echo "CONFIGFILE,FILELIST" > parameters.txt
 for i in A B C D
 do
     echo creating file list for data sample SingleMuon_Run2018${i}
-    ls /pnfs/desy.de/cms/tier2/store/user/lsreelat/NTuples/2018/HtoAA/SingleMuon/SingleMuon-Run2018${i}-UL2018/*0.root > SingleMuon_Run2018${i}
+    ls /pnfs/desy.de/cms/tier2/store/user/lsreelat/NTuples/2018/HtoAA/SingleMuon_v2/SingleMuon-Run2018${i}-UL2018/*0.root > SingleMuon_Run2018${i}
     for index in {1..9}
     do
-	ls /pnfs/desy.de/cms/tier2/store/user/lsreelat/NTuples/2018/HtoAA/SingleMuon/SingleMuon-Run2018${i}-UL2018/*${index}.root >> SingleMuon_Run2018${i}
+	ls /pnfs/desy.de/cms/tier2/store/user/lsreelat/NTuples/2018/HtoAA/SingleMuon_v2/SingleMuon-Run2018${i}-UL2018/*${index}.root >> SingleMuon_Run2018${i}
     done
     ./split_filelist.sh analysisMacro_ztt.conf SingleMuon_Run2018${i} 20
 done
@@ -78,6 +78,7 @@ do
       
     i=`expr $i + 1` 
 done
+echo "Creating file list for sample DYJetsToTT_M-50"
 cp DYJetsToLL_M-50 DYJetsToTT_M-50
 ./split_filelist.sh analysisMacro_ztt.conf DYJetsToTT_M-50 20
 

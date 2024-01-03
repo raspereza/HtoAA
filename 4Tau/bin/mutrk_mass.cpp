@@ -27,24 +27,30 @@
 #include "HtoAA/Utilities/interface/json.h"
 #include "HTT-utilities/LepEffInterface/interface/ScaleFactor.h"
 #include "HtoAA/Utilities/interface/PileUp.h"
+
+#include "HtoAA/Utilities/interface/Jets.h"
+#include "HtoAA/Utilities/interface/QCDModelDefinitions.h"
 #include "HtoAA/Utilities/interface/QCDModel.h"
 #include "HtoAA/Utilities/interface/functions.h"
+
+#include "CondFormats/BTauObjects/interface/BTagCalibration.h"
+#include "CondTools/BTau/interface/BTagCalibrationReader.h"
+#include "CondFormats/BTauObjects/interface/BTagEntry.h"
 
 using namespace std;
 
 int main(int argc, char * argv[]) {
-  
+
   if (argc<2) {
     std::cout << "Usage of the program : mutrk_mass [config_file] [file_list]" << std::endl;
     exit(1);
   }
 
-
   // **** configuration
   Config cfg(argv[1]);
 
-  const bool isData = cfg.get<bool>("IsData");
-  const bool debug  = cfg.get<bool>("Debug");
+  const int  debug  = cfg.get<int>("Debug");
+  const int  era = cfg.get<int>("Era");
 
   // kinematic cuts on muons
   const float ptMuonLowCut   = cfg.get<float>("ptMuonLowCut");
@@ -68,9 +74,6 @@ int main(int argc, char * argv[]) {
   const float dzTrkLooseCut   = cfg.get<float>("dzTrkLooseCut");
   const float dzTrkCut        = cfg.get<float>("dzTrkCut");
 
-  const bool applyGoodRunSelection = cfg.get<bool>("ApplyGoodRunSelection");
-  const string jsonFile = cfg.get<string>("jsonFile");
-
   // trigger
   const string dimuonTriggerName = cfg.get<string>("DiMuonTriggerName");
   const string muonHighPtFilterName = cfg.get<string>("MuonHighPtFilterName");
@@ -78,11 +81,8 @@ int main(int argc, char * argv[]) {
   const string muonLowPtFilterName2 = cfg.get<string>("MuonLowPtFilterName2");
   const string dimuonDzFilterName = cfg.get<string>("DimuonDzFilterName");
   const string dimuonSameSignFilterName = cfg.get<string>("DimuonSameSignFilterName");
-  // trigger matching
-  const float DRTrigMatch    = cfg.get<float>("DRTrigMatch"); 
-  const float effDzSS        = cfg.get<float>("effDzSS");
-  const unsigned int numberOfMuons = cfg.get<unsigned int>("NumberOfMuons");
 
+  // trigger info
   TString DiMuonTriggerName(dimuonTriggerName);
   TString MuonHighPtFilterName(muonHighPtFilterName);
   TString MuonLowPtFilterName1(muonLowPtFilterName1);
@@ -99,6 +99,45 @@ int main(int argc, char * argv[]) {
   const string MuonHighPtTriggerFile = cfg.get<string>("MuonHighPtTriggerEff");
   const string MuonLowPtTriggerFile = cfg.get<string>("MuonLowPtTriggerEff");
 
+  // 
+  const bool ApplyBTagVeto = cfg.get<bool>("ApplyBTagVeto");
+  const string bTagAlgorithm = cfg.get<string>("BTagAlgorithm");
+  const string bTagDiscriminator1 = cfg.get<string>("BTagDiscriminator1");
+  const string bTagDiscriminator2 = cfg.get<string>("BTagDiscriminator2");
+  const string bTagDiscriminator3 = cfg.get<string>("BTagDiscriminator3");
+  const float btagCut = cfg.get<float>("BTagCut");
+  const float bjetEta = cfg.get<float>("BJetEta");
+  const float bjetPt = cfg.get<float>("BJetPt");
+
+  TString BTagAlgorithm(bTagAlgorithm);
+  TString BTagDiscriminator1(bTagDiscriminator1);
+  TString BTagDiscriminator2(bTagDiscriminator2);
+  TString BTagDiscriminator3(bTagDiscriminator3);
+
+  const bool applyBTagSF = cfg.get<bool>("ApplyBTagSF");
+
+  // BTag SF file
+  const string BtagSfFile = cfg.get<string>("BtagSfFile");
+  BTagCalibration calib = BTagCalibration(bTagAlgorithm, BtagSfFile);
+  BTagCalibrationReader reader_B = BTagCalibrationReader(BTagEntry::OP_TIGHT, "central",{"up","down"});
+  BTagCalibrationReader reader_C = BTagCalibrationReader(BTagEntry::OP_TIGHT, "central",{"up","down"});
+  BTagCalibrationReader reader_Light = BTagCalibrationReader(BTagEntry::OP_TIGHT, "central",{"up","down"});
+  reader_B.load(calib, BTagEntry::FLAV_B, "comb");
+  reader_C.load(calib, BTagEntry::FLAV_C, "comb");
+  reader_Light.load(calib, BTagEntry::FLAV_UDSG, "comb");
+  
+  // BTAG efficiency for various flavours ->
+  TString fileBtagEff = (TString)cfg.get<string>("BtagMCeffFile");
+  TFile *fileTagging  = new TFile(fileBtagEff);
+  TH2F  *tagEff_B     = (TH2F*)fileTagging->Get("btag_eff_b");
+  TH2F  *tagEff_C     = (TH2F*)fileTagging->Get("btag_eff_c");
+  TH2F  *tagEff_Light = (TH2F*)fileTagging->Get("btag_eff_oth");
+  TRandom3 *rand = new TRandom3();
+
+  float MaxBJetPt = 1000.;
+  float MinBJetPt = 20.;
+  float MaxBJetEta = 2.4;
+  float MinBJetEta = 0.0;
 
   // ********** end of configuration *******************
 
@@ -192,7 +231,18 @@ int main(int argc, char * argv[]) {
   float pfjet_pt[200];
   float pfjet_eta[200];
   float pfjet_phi[200];
-  int pfjet_flavour[200];
+  float pfjet_neutralhadronicenergy[200];
+  float pfjet_chargedhadronicenergy[200];
+  float pfjet_neutralemenergy[200];
+  float pfjet_chargedemenergy[200];
+  float pfjet_muonenergy[200];
+  float pfjet_chargedmuonenergy[200];
+  UInt_t pfjet_chargedmulti[200];
+  UInt_t pfjet_neutralmulti[200];
+  UInt_t pfjet_chargedhadronmulti[200];
+  Int_t  pfjet_flavour[200];
+  float pfjet_btag[200][10];
+  float pfjet_jecUncertainty[200];
   
    // Trigger
   unsigned int trigobject_count;
@@ -212,19 +262,13 @@ int main(int argc, char * argv[]) {
   std::map<std::string, int> * hltriggerresults = new std::map<std::string, int>() ;
   std::map<std::string, int> * hltriggerprescales = new std::map<std::string, int>() ;
   std::vector<std::string>   * hltfilters = new std::vector<std::string>();
+  std::vector<std::string>   * btagdiscriminators = new std::vector<std::string>();
 
   std::string rootFileName(argv[2]);
   
   std::string chainName("makeroottree/AC1B");
   TString TStrName(rootFileName);
   std::cout <<TStrName <<std::endl;
-  if (TStrName.Contains("Signal")) {
-    std::cout << "=============================" << std::endl;
-    std::cout << "=== Running on Signal MC ====" << std::endl;
-    std::cout << "=============================" << std::endl;
-    std::cout << std::endl;
-  }
-
   TString FullName = TStrName;      
   
   TFile * file = new TFile(FullName+TString(".root"),"recreate");
@@ -294,112 +338,46 @@ int main(int argc, char * argv[]) {
 
   TH1D * deltaRMuTrkSbH = new TH1D("deltaRMuTrkSbH","",100,0,1.0);
 
-  int nPartonMomBins = 3;
-  float partonMomBins[4] = {0,50,100,150};
-
-  int nMuonMomBins = 3;
-  float muonMomBins[4] = {0,30,50,150};
-
-  TString partonFlavor[4] = {"uds","g","c","b"};
-  TString muonPartonNetCharge[2] = {"opposite","same"};
-  TString partonMomRange[3] = {"Lt50","50to100","Gt100"};
-  TString muonMomRange[3] = {"Lt30","30to50","Gt50"};
-  TString RegionNames[3] = {"Iso","LooseIso","Sb"};
-  TString MuTypes[2] = {"HighMu","LowMu"};
-
+  // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+  // ++++ Definitions are in HtoAA/Utilities/interface/functions.h ++++
+  // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
   TH1D * PartonMomBinsH = new TH1D("PartonMomBinsH","",nPartonMomBins,partonMomBins);
-  TH1D * MuonPartonNetChargeH = new TH1D("MuonPartonNetChargeH","",2,0,2);
-  TH1D * PartonFlavorH = new TH1D("PartonFlavorH","",4,0,4);
-  for (int iB=0; iB<nPartonMomBins; ++iB)
+  TH1D * MuonMomBinsH = new TH1D("MuonMomBinsH","",nMuonMomBins,muonMomBins);
+  TH1D * MuonPartonNetChargeH = new TH1D("MuonPartonNetChargeH","",nMuonPartonNetCharge,0.,float(nMuonPartonNetCharge));
+  TH1D * PartonFlavorH = new TH1D("PartonFlavorH","",nPartonFlavours,0.,float(nPartonFlavours));
+  TH1D * RegionsH = new TH1D("Regions","",nRegions,0.,float(nRegions));
+
+  for (unsigned int iB=0; iB<nMuonMomBins; ++iB)
+    MuonMomBinsH->GetXaxis()->SetBinLabel(iB+1,muonMomRange[iB]);
+  for (unsigned int iB=0; iB<nPartonMomBins; ++iB)
     PartonMomBinsH->GetXaxis()->SetBinLabel(iB+1,partonMomRange[iB]);
-  for (int iB=0; iB<4; ++iB)
+  for (unsigned int iB=0; iB<nPartonFlavours; ++iB)
     PartonFlavorH->GetXaxis()->SetBinLabel(iB+1,partonFlavor[iB]);
-  for (int iB=0; iB<2; ++iB)
+  for (unsigned int iB=0; iB<nMuonPartonNetCharge; ++iB)
     MuonPartonNetChargeH->GetXaxis()->SetBinLabel(iB+1,muonPartonNetCharge[iB]);
+  for (unsigned int iB=0; iB<nRegions; ++iB)
+    RegionsH->GetXaxis()->SetBinLabel(iB+1,Regions[iB]);
 
-  // Signal region
-  TH1D * InvMassHighMuIsoH = new TH1D("InvMassHighMuIsoH","",200,0.,20.);
-  TH1D * ModelInvMassHighMuIsoH = new TH1D("ModelInvMassHighMuIsoH","",200,0.,20.);
-  TH1D * InvMassHighMuIsoFlavorChargeH[4][2];
-  TH1D * ModelInvMassHighMuIsoFlavorChargeH[4][2];
-  TH1D * PartonMomHighMuIsoFlavorChargeH[4][2];
-  TH1D * InvMassHighMuIsoFlavorChargeMomH[4][2][10];
+  double binWidth = (xMax-xMin)/double(nBins);
 
-  TH1D * InvMassLowMuIsoH = new TH1D("InvMassLowMuIsoH","",200,0.,20.);
-  TH1D * ModelInvMassLowMuIsoH = new TH1D("ModelInvMassLowMuIsoH","",200,0.,20.);
-  TH1D * InvMassLowMuIsoFlavorChargeH[4][2];
-  TH1D * ModelInvMassLowMuIsoFlavorChargeH[4][2];
-  TH1D * PartonMomLowMuIsoFlavorChargeH[4][2];
-  TH1D * InvMassLowMuIsoFlavorChargeMomH[4][2][10];
+  // testing model in inclusive muon sample
+  // single muon passing selection
+  TH1D * InvMassIsoH = new TH1D("InvMassIsoH","",nBins,xMin,xMax);
+  TH1D * ModelInvMassIsoH = new TH1D("ModelInvMassIsoH","",nBins,xMin,xMax);
 
-  TH1D * InvMassIsoH = new TH1D("InvMassIsoH","",200,0.,20.);
-  TH1D * ModelInvMassIsoH = new TH1D("ModelInvMassIsoH","",200,0.,20.);
+  TH1D * InvMassLooseIsoH = new TH1D("InvMassLooseIsoH","",nBins,xMin,xMax);
+  TH1D * ModelInvMassLooseIsoH = new TH1D("ModelInvMassLooseIsoH","",nBins,xMin,xMax);
 
-  TH1D * InvMassDimuonIsoH = new TH1D("InvMassDimuonIsoH","",200,0.,20.);
-  TH1D * ModelInvMassDimuonIsoH = new TH1D("ModelInvMassDimuonIsoH","",200,0.,20.);
+  // testing model in sample of SS muons
+  TH1D * InvMassDimuonIsoH = new TH1D("InvMassDimuonIsoH","",nBins,xMin,xMax);
+  TH1D * HybridModelInvMassDimuonIsoH = new TH1D("HybridModelInvMassDimuonIsoH","",nBins,xMin,xMax);
+  TH1D * InclusiveModelInvMassDimuonIsoH = new TH1D("InclusiveModelInvMassDimuonIsoH","",nBins,xMin,xMax);
+  TH1D * ClosureInvMassDimuonIsoH = new TH1D("ClosureInvMassDimuonIsoH","",nBins,xMin,xMax);
 
-  // LooseIso region
-  TH1D * InvMassHighMuLooseIsoH = new TH1D("InvMassHighMuLooseIsoH","",200,0.,20.);
-  TH1D * ModelInvMassHighMuLooseIsoH = new TH1D("ModelInvMassHighMuLooseIsoH","",200,0.,20.);
-  TH1D * InvMassHighMuLooseIsoAllH = new TH1D("InvMassHighMuLooseIsoAllH","",200,0.,20.);
-  TH1D * InvMassHighMuLooseIsoFlavorChargeH[4][2];
-  TH1D * ModelInvMassHighMuLooseIsoFlavorChargeH[4][2];
-  TH1D * PartonMomHighMuLooseIsoFlavorChargeH[4][2];
-  TH1D * InvMassHighMuLooseIsoFlavorChargeMomH[4][2][10];
-
-  TH1D * InvMassLowMuLooseIsoH = new TH1D("InvMassLowMuLooseIsoH","",200,0.,20.);
-  TH1D * ModelInvMassLowMuLooseIsoH = new TH1D("ModelInvMassLowMuLooseIsoH","",200,0.,20.);
-  TH1D * InvMassLowMuLooseIsoAllH = new TH1D("InvMassLowMuLooseIsoAllH","",200,0.,20.);
-  TH1D * InvMassLowMuLooseIsoFlavorChargeH[4][2];
-  TH1D * ModelInvMassLowMuLooseIsoFlavorChargeH[4][2];
-  TH1D * PartonMomLowMuLooseIsoFlavorChargeH[4][2];
-  TH1D * InvMassLowMuLooseIsoFlavorChargeMomH[4][2][10];
-
-  TH1D * InvMassLooseIsoH = new TH1D("InvMassLooseIsoH","",200,0.,20.);
-  TH1D * ModelInvMassLooseIsoH = new TH1D("ModelInvMassLooseIsoH","",200,0.,20.);
-
-  TH1D * InvMassDimuonLooseIsoH = new TH1D("InvMassDimuonLooseIsoH","",200,0.,20.);
-  TH1D * ModelInvMassDimuonLooseIsoH = new TH1D("ModelInvMassDimuonLooseIsoH","",200,0.,20.);
-
-  // Sb region (Signal + Background region)
-  TH1D * InvMassHighMuSbH = new TH1D("InvMassHighMuSbH","",200,0.,20.);
-  TH1D * ModelInvMassHighMuSbH = new TH1D("ModelInvMassHighMuSbH","",200,0.,20.);
-  TH1D * InvMassHighMuSbAllH = new TH1D("InvMassHighMuSbAllH","",200,0.,20.);
-  TH1D * InvMassHighMuSbFlavorChargeH[4][2];
-  TH1D * ModelInvMassHighMuSbFlavorChargeH[4][2];
-  TH1D * PartonMomHighMuSbFlavorChargeH[4][2];
-  TH1D * InvMassHighMuSbFlavorChargeMomH[4][2][10];
-
-  TH1D * InvMassLowMuSbH = new TH1D("InvMassLowMuSbH","",200,0.,20.);
-  TH1D * ModelInvMassLowMuSbH = new TH1D("ModelInvMassLowMuSbH","",200,0.,20.);
-  TH1D * InvMassLowMuSbAllH = new TH1D("InvMassLowMuSbAllH","",200,0.,20.);
-  TH1D * InvMassLowMuSbFlavorChargeH[4][2];
-  TH1D * ModelInvMassLowMuSbFlavorChargeH[4][2];
-  TH1D * PartonMomLowMuSbFlavorChargeH[4][2];
-  TH1D * InvMassLowMuSbFlavorChargeMomH[4][2][10];
-
-  // momentum
-  TH1D * PartonMomFlavorH[4];
-  TH1D * PartonMomHighMuFlavorChargeH[4][2];
-  TH1D * PartonMomLowMuFlavorChargeH[4][2];
-
-  // Unmatched muons
-  TH1D * MuonMomHighMuUnmatchedH = new TH1D("MuonMomHighMuUnmatchedH","",500,0.,500.);
-  TH1D * MuonMomLowMuUnmatchedH = new TH1D("MuonMomLowMuUnmatchedH","",500,0.,500.);
-
-  TH1D * MuonMomHighMuIsoUnmatchedH = new TH1D("MuonMomHighMuIsoUnmatchedH","",500,0.,500.);
-  TH1D * MuonMomHighMuLooseIsoUnmatchedH = new TH1D("MuonMomHighMuLooseIsoUnmatchedH","",500,0.,500.);
-  TH1D * MuonMomHighMuSbUnmatchedH = new TH1D("MuonMomHighMuSbUnmatchedH","",500,0.,500.);
-  TH1D * InvMassHighMuIsoMomUnmatchedH[10];
-  TH1D * InvMassHighMuLooseIsoMomUnmatchedH[10];
-  TH1D * InvMassHighMuSbMomUnmatchedH[10];
-
-  TH1D * MuonMomLowMuIsoUnmatchedH = new TH1D("MuonMomLowMuIsoUnmatchedH","",500,0.,500.);
-  TH1D * MuonMomLowMuLooseIsoUnmatchedH = new TH1D("MuonMomLowMuLooseIsoUnmatchedH","",500,0.,500.);
-  TH1D * MuonMomLowMuSbUnmatchedH = new TH1D("MuonMomLowMuSbUnmatchedH","",500,0.,500.);
-  TH1D * InvMassLowMuIsoMomUnmatchedH[10];
-  TH1D * InvMassLowMuLooseIsoMomUnmatchedH[10];
-  TH1D * InvMassLowMuSbMomUnmatchedH[10];  
+  TH1D * InvMassDimuonLooseIsoH = new TH1D("InvMassDimuonLooseIsoH","",nBins,xMin,xMax);
+  TH1D * HybridModelInvMassDimuonLooseIsoH = new TH1D("HybridModelInvMassDimuonLooseIsoH","",nBins,xMin,xMax);
+  TH1D * InclusiveModelInvMassDimuonLooseIsoH = new TH1D("InclusiveModelInvMassDimuonLooseIsoH","",nBins,xMin,xMax);
+  TH1D * ClosureInvMassDimuonLooseIsoH = new TH1D("ClosureInvMassDimuonLooseIsoH","",nBins,xMin,xMax);
 
 
   // other distributions 
@@ -422,101 +400,66 @@ int main(int argc, char * argv[]) {
   TH1D * GenJetMultiplicityMuLooseIsoH = new TH1D("GenJetMultiplicityMuLooseIsoH","",20,-0.5,19.5);
   TH1D * deltaRPartonMuLooseIsoH = new TH1D("deltaRPartonMuLooseIsoH","",100,0.,1.);
 
-  TH1D * PartonMultiplicityMuSbH = new TH1D("PartonMultiplicityMuSbH","",20,-0.5,19.5);
-  TH1D * PFJetMultiplicityMuSbH  = new TH1D("PFJetMultiplicityMuSbH","",20,-0.5,19.5);
-  TH1D * GenJetMultiplicityMuSbH = new TH1D("GenJetMultiplicityMuSbH","",20,-0.5,19.5);
-  TH1D * deltaRPartonMuSbH = new TH1D("deltaRPartonMuSbH","",100,0.,1.);
-  
-  TH1D * InvMassH = new TH1D("InvMassH","",200,0.,20.);
-  TH2D * InvMass2DH = new TH2D("InvMass2DH","",200,0.,20.,200,0.,20.);
 
-  // Correlation Plots
-  TH1D * InvMass_ControlXH = new TH1D("InvMass_ControlXH","",200,0.,20.); 
-  TH2D * InvMass2D_ControlXH = new TH2D("InvMass2D_ControlXH","",200,0.,20.,200,0.,20.);
-   
-  TH1D * InvMass_ControlYH = new TH1D("InvMass_ControlYH","",200,0.,20.); 
-  TH2D * InvMass2D_ControlYH = new TH2D("InvMass2D_ControlYH","",200,0.,20.,200,0.,20.);
+  // Signal region 
+  TH1D * InvMassH = new TH1D("InvMassH","",nBins,xMin,xMax);
+  TH2D * InvMass2DH = new TH2D("InvMass2DH","",nBins,xMin,xMax,nBins,xMin,xMax);
 
-  for (int iM=0; iM<nMuonMomBins; ++iM) {
-    InvMassLowMuIsoMomUnmatchedH[iM] = 
-      new TH1D("InvMassLowMuIso_"+muonMomRange[iM]+"_UnmatchedH","",200,0.,20.);
-    InvMassLowMuLooseIsoMomUnmatchedH[iM] = 
-      new TH1D("InvMassLowMuLooseIso_"+muonMomRange[iM]+"_UnmatchedH","",200,0.,20.);
-    InvMassLowMuSbMomUnmatchedH[iM] = 
-      new TH1D("InvMassLowMuSb_"+muonMomRange[iM]+"_UnmatchedH","",200,0.,20.);
-    InvMassHighMuIsoMomUnmatchedH[iM] = 
-      new TH1D("InvMassHighMuIso_"+muonMomRange[iM]+"_UnmatchedH","",200,0.,20.);
-    InvMassHighMuLooseIsoMomUnmatchedH[iM] = 
-      new TH1D("InvMassHighMuLooseIso_"+muonMomRange[iM]+"_UnmatchedH","",200,0.,20.);
-    InvMassHighMuSbMomUnmatchedH[iM] = 
-      new TH1D("InvMassHighMuSb_"+muonMomRange[iM]+"_UnmatchedH","",200,0.,20.);
-  }
+  TH1D * HybridModelInvMassH = new TH1D("HybridModelInvMassH","",nBins,xMin,xMax);
+  TH2D * HybridModelInvMass2DH = new TH2D("HybridModelInvMass2DH","",nBins,xMin,xMax,nBins,xMin,xMax);
 
-  for (int iF=0; iF<4; ++iF) {
+  TH1D * InclusiveModelInvMassH = new TH1D("InclusiveModelInvMassH","",nBins,xMin,xMax);
+  TH2D * InclusiveModelInvMass2DH = new TH2D("InclusiveModelInvMass2DH","",nBins,xMin,xMax,nBins,xMin,xMax);
 
-    PartonMomFlavorH[iF] = new TH1D("partonMomFlavor_"+partonFlavor[iF],"",500,0.,5000.);
-    
+  // Background sideband   
+  TH1D * InvMass_CRH = new TH1D("InvMass_CRH","",nBins,xMin,xMax); 
+  TH2D * InvMass2D_CRH = new TH2D("InvMass2D_CRH","",nBins,xMin,xMax,nBins,xMin,xMax);
 
-    for (int iQ=0; iQ<2; ++iQ) {
+  TH1D * HybridModelInvMass_CRH = new TH1D("HybridModelInvMass_CRH","",nBins,xMin,xMax); 
+  TH2D * HybridModelInvMass2D_CRH = new TH2D("HybridModelInvMass2D_CRH","",nBins,xMin,xMax,nBins,xMin,xMax);
 
-      PartonMomHighMuFlavorChargeH[iF][iQ] = new TH1D("partonMomHighMu_"+partonFlavor[iF]+"_"+muonPartonNetCharge[iQ],"",500,0.,5000.);
-      PartonMomLowMuFlavorChargeH[iF][iQ] = new TH1D("partonMomLowMu_"+partonFlavor[iF]+"_"+muonPartonNetCharge[iQ],"",500,0.,5000.);
-      
-      InvMassHighMuIsoFlavorChargeH[iF][iQ] = new TH1D("InvMassHighMuIso_"+partonFlavor[iF]+"_"+muonPartonNetCharge[iQ],"",200,0.,20.);
-      InvMassLowMuIsoFlavorChargeH[iF][iQ] = new TH1D("InvMassLowMuIso_"+partonFlavor[iF]+"_"+muonPartonNetCharge[iQ],"",200,0.,20.);
-      ModelInvMassHighMuIsoFlavorChargeH[iF][iQ] = new TH1D("ModelInvMassHighMuIso_"+partonFlavor[iF]+"_"+muonPartonNetCharge[iQ],"",200,0.,20.);
-      ModelInvMassLowMuIsoFlavorChargeH[iF][iQ] = new TH1D("ModelInvMassLowMuIso_"+partonFlavor[iF]+"_"+muonPartonNetCharge[iQ],"",200,0.,20.);
-      PartonMomHighMuIsoFlavorChargeH[iF][iQ] = new TH1D("PartonMomHighMuIso_"+partonFlavor[iF]+"_"+muonPartonNetCharge[iQ],"",500,0.,5000.);
-      PartonMomLowMuIsoFlavorChargeH[iF][iQ] = new TH1D("PartonMomLowMuIso_"+partonFlavor[iF]+"_"+muonPartonNetCharge[iQ],"",500,0.,5000.);
+  TH1D * InclusiveModelInvMass_CRH = new TH1D("InclusiveModelInvMass_CRH","",nBins,xMin,xMax); 
+  TH2D * InclusiveModelInvMass2D_CRH = new TH2D("InclusiveModelInvMass2D_CRH","",nBins,xMin,xMax,nBins,xMin,xMax);
 
-      InvMassHighMuLooseIsoFlavorChargeH[iF][iQ] = new TH1D("InvMassHighMuLooseIso_"+partonFlavor[iF]+"_"+muonPartonNetCharge[iQ],"",200,0.,20.);
-      InvMassLowMuLooseIsoFlavorChargeH[iF][iQ] = new TH1D("InvMassLowMuLooseIso_"+partonFlavor[iF]+"_"+muonPartonNetCharge[iQ],"",200,0.,20.);
-      ModelInvMassHighMuLooseIsoFlavorChargeH[iF][iQ] = new TH1D("ModelInvMassHighMuLooseIso_"+partonFlavor[iF]+"_"+muonPartonNetCharge[iQ],"",200,0.,20.);
-      ModelInvMassLowMuLooseIsoFlavorChargeH[iF][iQ] = new TH1D("ModelInvMassLowMuLooseIso_"+partonFlavor[iF]+"_"+muonPartonNetCharge[iQ],"",200,0.,20.);
-      PartonMomHighMuLooseIsoFlavorChargeH[iF][iQ] = new TH1D("PartonMomHighMuLooseIso_"+partonFlavor[iF]+"_"+muonPartonNetCharge[iQ],"",500,0.,5000.);
-      PartonMomLowMuLooseIsoFlavorChargeH[iF][iQ] = new TH1D("PartonMomLowMuLooseIso_"+partonFlavor[iF]+"_"+muonPartonNetCharge[iQ],"",500,0.,5000.);
-
-      InvMassHighMuSbFlavorChargeH[iF][iQ] = new TH1D("InvMassHighMuSb_"+partonFlavor[iF]+"_"+muonPartonNetCharge[iQ],"",200,0.,20.);
-      InvMassLowMuSbFlavorChargeH[iF][iQ] = new TH1D("InvMassLowMuSb_"+partonFlavor[iF]+"_"+muonPartonNetCharge[iQ],"",200,0.,20.);
-      ModelInvMassHighMuSbFlavorChargeH[iF][iQ] = new TH1D("ModelInvMassHighMuSb_"+partonFlavor[iF]+"_"+muonPartonNetCharge[iQ],"",200,0.,20.);
-      ModelInvMassLowMuSbFlavorChargeH[iF][iQ] = new TH1D("ModelInvMassLowMuSb_"+partonFlavor[iF]+"_"+muonPartonNetCharge[iQ],"",200,0.,20.);
-      PartonMomHighMuSbFlavorChargeH[iF][iQ] = new TH1D("PartonMomHighMuSb_"+partonFlavor[iF]+"_"+muonPartonNetCharge[iQ],"",500,0.,5000.);
-      PartonMomLowMuSbFlavorChargeH[iF][iQ] = new TH1D("PartonMomLowMuSb_"+partonFlavor[iF]+"_"+muonPartonNetCharge[iQ],"",500,0.,5000.);
-
-      for (int iM=0; iM<nPartonMomBins; ++iM) {
-
-	InvMassLowMuIsoFlavorChargeMomH[iF][iQ][iM] = new TH1D("InvMassLowMuIso_"+partonFlavor[iF]+"_"+muonPartonNetCharge[iQ]+"_"+partonMomRange[iM],"",200,0.,20.);
-	InvMassLowMuLooseIsoFlavorChargeMomH[iF][iQ][iM] = new TH1D("InvMassLowMuLooseIso_"+partonFlavor[iF]+"_"+muonPartonNetCharge[iQ]+"_"+partonMomRange[iM],"",200,0.,20.);
-	InvMassLowMuSbFlavorChargeMomH[iF][iQ][iM] = new TH1D("InvMassLowMuSb_"+partonFlavor[iF]+"_"+muonPartonNetCharge[iQ]+"_"+partonMomRange[iM],"",200,0.,20.);
-
-	InvMassHighMuIsoFlavorChargeMomH[iF][iQ][iM] = new TH1D("InvMassHighMuIso_"+partonFlavor[iF]+"_"+muonPartonNetCharge[iQ]+"_"+partonMomRange[iM],"",200,0.,20.);
-	InvMassHighMuLooseIsoFlavorChargeMomH[iF][iQ][iM] = new TH1D("InvMassHighMuLooseIso_"+partonFlavor[iF]+"_"+muonPartonNetCharge[iQ]+"_"+partonMomRange[iM],"",200,0.,20.);
-	InvMassHighMuSbFlavorChargeMomH[iF][iQ][iM] = new TH1D("InvMassHighMuSb_"+partonFlavor[iF]+"_"+muonPartonNetCharge[iQ]+"_"+partonMomRange[iM],"",200,0.,20.);
-
-      }      
-      
-    }
-  }
   // for muons selected with same-sign requirement
-  TH1D * partonMuSS[2][4][2][10];
-  TH1D * partonMuSSPass[2][4][2][10]; // 3 bins : SR, SB, SR+SB
-  // unmatched
-  TH1D * unmatchedMuSS[2][10];
-  TH1D * unmatchedMuSSPass[2][10];
+  // probability to pass selection as a function of
+  // flavour, net charged (mu,parton), parton P, muon pT
+  TH1D * partonMu_SS = new TH1D("partonMuSS","",1,0.,1.); 
+  TH1D * partonMuPass_SS[5][2][4][4][2]; // 2 bins : Iso, LooseIso
+
+  // inclusive muon region
+  TH1D * partonMu = new TH1D("partonMu","",1,0.,1.); 
+  TH1D * partonMuPass[5][2][4][4][2]; // 2 bins : Iso, LooseIso
+
+  TH1D * MassMuTrk[5][2][4][4][2];
+  TH1D * MassMuTrk_SS[5][2][4][4][2];
  
-  for (unsigned int mu=0; mu<2; ++mu) {
-    for (int iMom=0; iMom<nMuonMomBins; ++iMom) {
-      TString histName = "unmatchedMuSS_" + MuTypes[mu] + muonMomRange[iMom];
-      unmatchedMuSS[mu][iMom] = new TH1D(histName,"",1,0.,1.);
-      unmatchedMuSSPass[mu][iMom] = new TH1D(histName+"_passed","",3,-1.,2.);
-    }
-    for (int iMom=0; iMom<nPartonMomBins; ++iMom) {
-      for (unsigned int iF=0; iF<4; ++iF) {
-	for (unsigned int iQ=0; iQ<2; ++iQ) {
-	  TString histName = "partonMuSS_" + MuTypes[mu] + partonFlavor[iF] + muonPartonNetCharge[iQ] + muonMomRange[iMom];
+  for (unsigned int iF=0; iF<nPartonFlavours; ++iF) {
+    for (unsigned int iQ=0; iQ<nMuonPartonNetCharge; ++iQ) {
+      for (unsigned int iMom=0; iMom<nPartonMomBins; ++iMom) {
+	for (unsigned int mu=0; mu<nMuonMomBins; ++mu) {
+	  for (unsigned int iR=0; iR<nRegions; ++iR) {
+	    TString name  = 
+	      partonFlavor[iF] + "_" + 
+	      muonPartonNetCharge[iQ] + "_" +
+	      partonMomRange[iMom] + "_" +
+	      muonMomRange[mu] + "_" +
+	      Regions[iR] ;
 	  
-	  partonMuSS[mu][iF][iQ][iMom] = new TH1D(histName,"",1,0.,1.);
-	  partonMuSSPass[mu][iF][iQ][iMom] = new TH1D(histName+"_passed","",3,-1.,2.);
+	    // mass distributions
+	    TString histName = "MuTrkMass_" + name + "_SS";
+	    MassMuTrk_SS[iF][iQ][iMom][mu][iR] = new TH1D(histName,"",nBins,xMin,xMax);
+      
+	    histName = "MuTrkMass_" + name;
+	    MassMuTrk[iF][iQ][iMom][mu][iR] = new TH1D(histName,"",nBins,xMin,xMax);
+	    
+	    // probability to pass selection
+	    histName = "partonMu_" + name + "_SS";
+	    partonMuPass_SS[iF][iQ][iMom][mu][iR] = new TH1D(histName+"_passed","",1,0.,1.);
+	    
+	    histName = "partonMu_" + name;
+	    partonMuPass[iF][iQ][iMom][mu][iR] = new TH1D(histName+"_passed","",1,0.,1.);
+	  }
 	}
       }
     }
@@ -525,30 +468,15 @@ int main(int argc, char * argv[]) {
   string cmsswBase = (getenv ("CMSSW_BASE"));
 
   // Run-lumi selector
-  string fullPathToJsonFile = cmsswBase + "/src/HtoAA/data/json/" + jsonFile;
-  std::vector<Period> periods;  
-  if (isData) { // read the good runs 
-    std::fstream inputFileStream(fullPathToJsonFile.c_str(), std::ios::in);
-    if (inputFileStream.fail() ) {
-      std::cout << "Error: cannot find json file " << fullPathToJsonFile << std::endl;
-      std::cout << "please check" << std::endl;
-      std::cout << "quitting program" << std::endl;
-      exit(-1);
-    }
-    
-    for(std::string s; std::getline(inputFileStream, s); ) {
-      periods.push_back(Period());
-      std::stringstream ss(s);
-      ss >> periods.back();
-    }
-  }
-
   std::string qcdFileName = cfg.get<string>("qcdModelFileName");
   TString QCDFileName(qcdFileName);
 
   // QCD Model
-  TString fileNameQCDModel = TString(cmsswBase)+TString("/src/HtoAA/data/"+QCDFileName);
-  QCDModel * qcdModel = new QCDModel(fileNameQCDModel);
+  TString fileNameQCDModel = TString(cmsswBase)+TString("/src/HtoAA/data/")+QCDFileName;
+  QCDModel * qcdModel = NULL;
+  bool applyQCDModel = QCDFileName.Contains(".root");
+  if (applyQCDModel) 
+    qcdModel = new QCDModel(fileNameQCDModel);
 
   // PU reweighting
   PileUp * PUofficial = new PileUp();
@@ -671,6 +599,17 @@ int main(int argc, char * argv[]) {
    tree_->SetBranchAddress("pfjet_eta", pfjet_eta);
    tree_->SetBranchAddress("pfjet_phi", pfjet_phi);
    tree_->SetBranchAddress("pfjet_flavour", pfjet_flavour);
+   tree_->SetBranchAddress("pfjet_neutralhadronicenergy",pfjet_neutralhadronicenergy);
+   tree_->SetBranchAddress("pfjet_chargedhadronicenergy",pfjet_chargedhadronicenergy);
+   tree_->SetBranchAddress("pfjet_neutralemenergy",pfjet_neutralemenergy);
+   tree_->SetBranchAddress("pfjet_chargedemenergy",pfjet_chargedemenergy);
+   tree_->SetBranchAddress("pfjet_muonenergy",pfjet_muonenergy);
+   tree_->SetBranchAddress("pfjet_chargedmuonenergy",pfjet_chargedmuonenergy);
+   tree_->SetBranchAddress("pfjet_chargedmulti",pfjet_chargedmulti);
+   tree_->SetBranchAddress("pfjet_neutralmulti",pfjet_neutralmulti);
+   tree_->SetBranchAddress("pfjet_btag",pfjet_btag);
+   tree_->SetBranchAddress("pfjet_jecUncertainty",pfjet_jecUncertainty);
+
 
    // genjets
    tree_->SetBranchAddress("genjets_count",&genjets_count);
@@ -684,159 +623,220 @@ int main(int argc, char * argv[]) {
    tree_->SetBranchAddress("genjets_pdgid",genjets_pdgid);
    tree_->SetBranchAddress("genjets_status",genjets_status);
 
-   // Additional trigger objects
+   // Additional objects
    tree_->SetBranchAddress("run_hltfilters",&hltfilters);
-   //   tree_->SetBranchAddress("run_btagdiscriminators", &run_btagdiscriminators);
+   tree_->SetBranchAddress("run_btagdiscriminators", &btagdiscriminators);
    tree_->SetBranchAddress("hltriggerresults",&hltriggerresults);
    tree_->SetBranchAddress("hltriggerprescales",&hltriggerprescales);
 
    tree_->SetBranchAddress("numtruepileupinteractions",&numtruepileupinteractions);
 
-   if (!isData) {
-     tree_->SetBranchAddress("genweight",&genweight);
-     tree_->SetBranchAddress("genparticles_count", &genparticles_count);
-     tree_->SetBranchAddress("genparticles_e", genparticles_e);
-     tree_->SetBranchAddress("genparticles_px", genparticles_px);
-     tree_->SetBranchAddress("genparticles_py", genparticles_py);
-     tree_->SetBranchAddress("genparticles_pz", genparticles_pz);
-     tree_->SetBranchAddress("genparticles_pdgid", genparticles_pdgid);
-     tree_->SetBranchAddress("genparticles_status", genparticles_status);
-     tree_->SetBranchAddress("genparticles_info", genparticles_info);
-   }   
+   tree_->SetBranchAddress("genweight",&genweight);
+   tree_->SetBranchAddress("genparticles_count", &genparticles_count);
+   tree_->SetBranchAddress("genparticles_e", genparticles_e);
+   tree_->SetBranchAddress("genparticles_px", genparticles_px);
+   tree_->SetBranchAddress("genparticles_py", genparticles_py);
+   tree_->SetBranchAddress("genparticles_pz", genparticles_pz);
+   tree_->SetBranchAddress("genparticles_pdgid", genparticles_pdgid);
+   tree_->SetBranchAddress("genparticles_status", genparticles_status);
+   tree_->SetBranchAddress("genparticles_info", genparticles_info);
 
    int numberOfCandidates = tree_->GetEntries();
 
    std::cout << "number of events = " << numberOfCandidates << std::endl;
    
-   TRandom3 rand;
-
    for (int iCand=0; iCand<numberOfCandidates; iCand++) {
      
      tree_->GetEntry(iCand);
 
      events++;
      if (events%10000==0) cout << "   processed events : " << events << endl;
-
-     float weight = 1;
-     if (!isData) {
-       weight *= genweight;
-     }
-
-
+     
+     float weight = genweight;
+     
      histWeightsH->Fill(1.0,weight);
-
-     if (isData) {
-	if (applyGoodRunSelection) {
-	  bool lumi = false;
-	  int n=event_run;
-	  int lum = event_luminosityblock;
-	  
-	  std::string num = std::to_string(n);
-	  std::string lnum = std::to_string(lum);
-	  for(const auto& a : periods)
-	    {
-	      if ( num.c_str() ==  a.name ) {
-		//	      std::cout<< " Eureka "<<num<<"  "<<a.name<<" ";
-		//std::cout <<"min "<< last->lower << "- max last " << last->bigger << std::endl;
-		
-		for(auto b = a.ranges.begin(); b != std::prev(a.ranges.end()); ++b) {
-		  
-		  //   cout<<b->lower<<"  "<<b->bigger<<endl;
-		  if (lum  >= b->lower && lum <= b->bigger ) lumi = true;
-		}
-		auto last = std::prev(a.ranges.end());
-		// std::cout <<"min "<< last->lower << "- max last " << last->bigger << std::endl;
-		if (  (lum >=last->lower && lum <= last->bigger )) lumi=true;
-	      }
-	    }
-	  if (!lumi) continue;
-	}
-     }
-
-     float puweight = 1;
-     if (!isData) {
-       puweight = float(PUofficial->get_PUweight(double(numtruepileupinteractions)));
-       //       std::cout << "n(true interactions) = " << numtruepileupinteractions << "   :  PU weight = " << puweight << std::endl; 
-     }
+     
+     float puweight = float(PUofficial->get_PUweight(double(numtruepileupinteractions)));
      puWeightH->Fill(puweight,1.0);
      weight *= puweight;
-
-     if (debug) {
+     
+     if (debug>2) {
        std::cout << std::endl;
-       std::cout << "+++++++++++++++++++++++++++++" << std::endl;
+       std::cout << "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
        std::cout << std::endl;
-       std::cout << "genjets : " << genjets_count << std::endl;
+       std::cout << "run = " << event_run << "  number = " << event_nr << std::endl;
+       std::cout << std::endl;
+       std::cout << "B-tagging " << std::endl;
      }
-     int partons = 0;
-     int pfjets  = 0;
-     int genjets = 0;
-     if (!isData) {
-       for (unsigned int igen=0; igen<genjets_count; ++igen) {
-	 int pdgId = genjets_pdgid[igen];
-	 TLorentzVector genjetLV; genjetLV.SetXYZT(genjets_px[igen],
-						   genjets_py[igen],
-						   genjets_pz[igen],
-						   genjets_e[igen]);
+     
+     if (ApplyBTagVeto) {
+
+       int nBTagDiscriminant1 = -1;
+       int nBTagDiscriminant2 = -1;
+       int nBTagDiscriminant3 = -1;
+
+       unsigned int num_btags = 0;
+       unsigned int nbtags = 0;
+       float Pdata = 1.;
+       float Pmc = 1.;
        
-	 if (genjetLV.Pt()>10&&fabs(genjetLV.Eta())<3.0) {
-	   genjets++;
-	   if (debug)
-	     printf("  flavor = %3i   pT = %7.2f   eta = %5.2f   phi = %5.2f   status = %3i\n",
-		    genjets_pdgid[igen],genjetLV.Pt(),genjetLV.Eta(),genjetLV.Phi(),genjets_status[igen]);
+       for (unsigned int ibtag=0; ibtag<btagdiscriminators->size(); ibtag++) {
+	 TString discr(btagdiscriminators->at(ibtag));
+	 if (discr==BTagDiscriminator1) {
+	   nBTagDiscriminant1 = ibtag;
+	   num_btags++;
+	 }
+	 if ((BTagAlgorithm == "pfDeepCSVJetTags" || BTagAlgorithm == "pfDeepFlavourJetTags") && discr == BTagDiscriminator2) {
+	   nBTagDiscriminant2 = ibtag;
+	   num_btags++;
+	 }
+	 if (BTagAlgorithm == "pfDeepFlavourJetTags" && discr == BTagDiscriminator3) {
+	   nBTagDiscriminant3 = ibtag;
+	   num_btags++;
 	 }
        }
+       
+       if (num_btags==0) {
+	 std::cout << "No discriminants are found for " << BTagAlgorithm << std::endl;
+	 exit(-1);
+       }
+       if (BTagAlgorithm=="pfDeepCSVJetTags" && num_btags!=2) {
+	 std::cout << "Numbers of discriminators for " << BTagAlgorithm << " = " << num_btags 
+		   << "   should be 2 " << std::endl;
+	 exit(-1);
+       }
+       if (BTagAlgorithm=="pfDeepFlavourJetTags" && num_btags!=3) {
+	 std::cout << "Numbers of discriminators for " << BTagAlgorithm << " = " << num_btags 
+		   << "   should be 3" << std::endl;
+	 exit(-1);
+       }
+       
+       for (unsigned int jet=0; jet<pfjet_count; ++jet) {
+	   
+	 float absEta = TMath::Abs(pfjet_eta[jet]);
+	 float JetPtForBTag = pfjet_pt[jet];
+	 float JetEtaForBTag = absEta;
+	 float jetEta = pfjet_eta[jet];
+	 
+	 if (JetEtaForBTag>bjetEta) continue;
+	 if (JetPtForBTag<bjetPt) continue;
+
+	 bool jetId = tightJetID(pfjet_e[jet],
+				 pfjet_eta[jet],
+				 pfjet_neutralhadronicenergy[jet],
+				 pfjet_neutralemenergy[jet],
+				 pfjet_muonenergy[jet],
+				 pfjet_chargedhadronicenergy[jet],
+				 pfjet_chargedemenergy[jet],
+				 pfjet_neutralmulti[jet],
+				 pfjet_chargedmulti[jet],
+				 era);
+	 
+	 if (!jetId) continue;
+	 
+	 if (JetPtForBTag > MaxBJetPt) JetPtForBTag = MaxBJetPt - 0.1;
+	 if (JetPtForBTag < MinBJetPt) JetPtForBTag = MinBJetPt + 0.1;
+	 if (JetEtaForBTag > MaxBJetEta) JetEtaForBTag = MaxBJetEta - 0.01;
+	 if (JetEtaForBTag < MinBJetEta) JetEtaForBTag = MinBJetEta + 0.01;
+	 
+	 float btagDiscr = pfjet_btag[jet][nBTagDiscriminant1];
+	 if (BTagAlgorithm=="pfDeepFlavourJetTags"||BTagAlgorithm=="pfDeepCSVJetTags")
+	   btagDiscr += pfjet_btag[jet][nBTagDiscriminant2];
+	 if (BTagAlgorithm=="pfDeepFlavourJetTags")
+	   btagDiscr += pfjet_btag[jet][nBTagDiscriminant3];
+	 
+	 bool tagged = btagDiscr>btagCut;
+	 if (tagged) nbtags++;
+	 
+	 if (debug>2) 
+	   printf("jet pT = %6.2f  eta = %6.2f  discr = %5.3f  : tagged = %1i\n",
+		  pfjet_pt[jet],pfjet_eta[jet],btagDiscr,tagged);
+
+	 // BTag scale factors
+	 if (applyBTagSF) {
+	   
+	   int flavor = TMath::Abs(pfjet_flavour[jet]);
+	   float tageff = tagEff_Light->GetBinContent(tagEff_Light->FindBin(JetPtForBTag, JetEtaForBTag));
+	   float jet_scalefactor = reader_Light.eval_auto_bounds("central",BTagEntry::FLAV_UDSG,JetEtaForBTag,JetPtForBTag);
+	   if (flavor==4) { 
+	     tageff = tagEff_C->GetBinContent(tagEff_C->FindBin(JetPtForBTag,JetEtaForBTag));
+	     jet_scalefactor = reader_C.eval_auto_bounds("central",BTagEntry::FLAV_C,JetEtaForBTag,JetPtForBTag);
+	   }
+	   if (flavor==5) { 
+	     tageff = tagEff_B->GetBinContent(tagEff_B->FindBin(JetPtForBTag,JetEtaForBTag));
+	     jet_scalefactor = reader_B.eval_auto_bounds("central",BTagEntry::FLAV_B,JetEtaForBTag,JetPtForBTag);
+	   }
+
+	   if (tagged) {  
+	     Pmc = Pmc*tageff;
+	     Pdata = Pdata*jet_scalefactor*tageff;	     
+	   }
+	   else {
+	     Pmc = Pmc*(1-tageff);
+	     Pdata = Pdata*(1.0-jet_scalefactor*tageff);
+	   }
+	 }	 
+       }
+       if (debug>2) {
+	 std::cout << std::endl;
+	 std::cout << "Number of tagged jets = " << nbtags << std::endl;
+       }
+       
+       if (nbtags>0) continue;
+       float weight_btag = Pdata/Pmc;
+       weight *= weight_btag;
+
      }
-     if (debug) {
+     // 
+     // end of btag veto
+     //
+
+     std::vector<int> partonPdgId; partonPdgId.clear();
+     std::vector<TLorentzVector> partonLV; partonLV.clear();
+     unsigned int partons = 0;
+     unsigned int pfjets = 0;
+
+     if (debug>2) {
        std::cout << std::endl;
        std::cout << "jets -> " << std::endl;
      }
-     std::vector<int> partonPdgId; partonPdgId.clear();
-     std::vector<TLorentzVector> partonLV; partonLV.clear();
+
      for (unsigned ijet=0; ijet<pfjet_count; ++ijet) {
-       if (pfjet_pt[ijet]>10&&fabs(pfjet_eta[ijet])<3.0) {
+       if (fabs(pfjet_eta[ijet])<5.0) {
 	 pfjets++;
-	 //	 if (pfjet_flavour[ijet]==0)
-	 //	   cout << "++++++++++++++ " << pfjet_flavour[ijet] << endl;
-	 if (pfjet_flavour[ijet]!=0&&!isData) { 
+	 int absPdgId = TMath::Abs(pfjet_flavour[ijet]);
+	 if (pfjet_flavour[ijet]!=0) 
 	   partons++;
-	   int absPdgId = TMath::Abs(pfjet_flavour[ijet]);
-	   int iflav = 0;
-	   if (absPdgId==21) iflav = 1;
-	   if (absPdgId==4)  iflav = 2;
-	   if (absPdgId==5)  iflav = 3;
-	   TLorentzVector jetLV; jetLV.SetXYZT(pfjet_px[ijet],
-					       pfjet_py[ijet],
-					       pfjet_pz[ijet],
-					       pfjet_e[ijet]);
-	   TLorentzVector partLV = jetLV;
-	   float dRMin = 0.5;
-	   for (unsigned int igen=0; igen<genjets_count; ++igen) {
-	     TLorentzVector genjetLV; genjetLV.SetXYZT(genjets_px[igen],
-						       genjets_py[igen],
-						       genjets_pz[igen],
-						       genjets_e[igen]);
-	     float dRJets = deltaR(jetLV.Eta(),jetLV.Phi(),
-				   genjetLV.Eta(),genjetLV.Phi());
-	     if (dRJets<dRMin) {
-	       dRMin = dRJets;
-	       partLV = genjetLV;
-	     }	     
-	   }
-	   partonPdgId.push_back(pfjet_flavour[ijet]);
-	   partonLV.push_back(partLV);
-	   PartonMomFlavorH[iflav]->Fill(partLV.P(),weight);
+
+	 TLorentzVector jetLV; jetLV.SetXYZT(pfjet_px[ijet],
+					     pfjet_py[ijet],
+					     pfjet_pz[ijet],
+					     pfjet_e[ijet]);
+	 TLorentzVector partLV = jetLV;
+	 float dRMin = 0.5;
+	 for (unsigned int igen=0; igen<genjets_count; ++igen) {
+	   TLorentzVector genjetLV; genjetLV.SetXYZT(genjets_px[igen],
+						     genjets_py[igen],
+						     genjets_pz[igen],
+						     genjets_e[igen]);
+	   float dRJets = deltaR(jetLV.Eta(),jetLV.Phi(),
+				 genjetLV.Eta(),genjetLV.Phi());
+	   if (dRJets<dRMin) {
+	     dRMin = dRJets;
+	     partLV = genjetLV;
+	   }	     
 	 }
-	 if (debug)
-	   printf("  flavor = %3i   pT = %7.2f   eta = %5.2f   phi = %5.2f\n",
-		  pfjet_flavour[ijet],pfjet_pt[ijet],pfjet_eta[ijet],pfjet_phi[ijet]);
-       
-       }
+	 partonPdgId.push_back(pfjet_flavour[ijet]);
+	 partonLV.push_back(partLV);
+	 if (debug>2)
+	   printf("%2i  flavor = %3i   pT = %7.2f   eta = %5.2f\n",
+		  pfjets,pfjet_flavour[ijet],pfjet_pt[ijet],pfjet_eta[ijet]);
+       } 
      }
     
      // filling histograms 
      PartonMultiplicityH->Fill(float(partons),weight);
      PFJetMultiplicityH->Fill(float(pfjets),weight);
-     GenJetMultiplicityH->Fill(float(genjets),weight);
 
      // ********************
      // selecting good muons
@@ -844,9 +844,9 @@ int main(int argc, char * argv[]) {
      vector<unsigned int> muons; muons.clear();
      vector<int> muons_flavour; muons_flavour.clear();
      vector<int> muons_pdgid; muons_pdgid.clear();
-     vector<int> muons_mom; muons_mom.clear();
+     vector<int> muons_partmom; muons_partmom.clear();
+     vector<int> muons_muonmom; muons_muonmom.clear();
      vector<int> muons_net; muons_net.clear();
-     vector<int> muons_type; muons_type.clear();
      vector<int> muons_region; muons_region.clear();
      vector<float> muons_mutrkmass; muons_mutrkmass.clear();
 
@@ -857,7 +857,6 @@ int main(int argc, char * argv[]) {
        if(fabs(muon_dz[i])>dzMuonCut) continue;
        if(muon_pt[i]<ptMuonLowCut) continue;
        if(fabs(muon_eta[i])>etaMuonLowCut) continue;
-       //      cout << "muon pt = " << muon_pt[i] << endl;
        muons.push_back(i);
      }
      
@@ -869,22 +868,15 @@ int main(int argc, char * argv[]) {
      int nLooseIsoMuons = 0;
      int nSbMuons = 0;
 
-     if (debug) {
+     if (debug>1) {
        std::cout << std::endl;
-       std::cout << "muons -> " << std::endl;
+       std::cout << "loop over muons -> " << std::endl;
      }
 
      for (unsigned int imu=0; imu<muons.size(); ++imu) {
 
        unsigned int index = muons.at(imu);
 
-       if (debug) {
-	 std::cout << " muon index : " << index << std::endl;
-       }
-
-       bool muHighPassed = muon_pt[index]>ptMuonHighCut && 
-	 fabs(muon_eta[index])<etaMuonHighCut;
-       bool muLowPassed  = !muHighPassed;
 
        // Muon
        TLorentzVector Muon4; Muon4.SetXYZM(muon_px[index],
@@ -893,11 +885,10 @@ int main(int argc, char * argv[]) {
 					   MuMass);
        // determine flavour of jet
        float dRmin = 0.5;
-       int flavour = -1;
+       int flavour = 0;
        float qnet  = 0;
        int pdgId = 0;
-       bool matchedParton = false;
-       TLorentzVector matchedPartonLV;
+       TLorentzVector matchedPartonLV = Muon4;
        for (unsigned int ip=0; ip<partonPdgId.size(); ++ip) {
 	 TLorentzVector partLV = partonLV.at(ip);
 	 float drJetMuon = deltaR(muon_eta[index],muon_phi[index],
@@ -909,23 +900,23 @@ int main(int argc, char * argv[]) {
 	   flavour = 0;
 	   if (absFlav==21) 
 	     flavour = 1;
-	   if (absFlav==4)
+	   else if (absFlav>=1 && absFlav<=3)
 	     flavour = 2;
-	   if (absFlav==5)
+	   else if (absFlav==4)
 	     flavour = 3;
+	   else if (absFlav==5)
+	     flavour = 4;
+
 	   qnet = float(muon_charge[index])*float(pdgId);
-	   matchedParton = true;
+
+	   if (flavour==0||flavour==1) qnet = -1.0;
+
 	   matchedPartonLV = partLV;
 	 }
        }
 
-       if (debug) {
-	 std::cout << " jet flavor : " << flavour << std::endl;
-       }
-
        int net = 0;
        if (qnet>0.0) net = 1;
-       if (flavour==1) net = 0;       
 
        // counting tracks around each muon
        std::vector<unsigned int> trkMu; trkMu.clear(); // all tracks
@@ -949,7 +940,7 @@ int main(int argc, char * argv[]) {
 	 TLorentzVector MuDiff = Muon4 - trk4;
 	 if (MuDiff.P()>0.1) { // track is not leading muon
 	   float drTrkMu = deltaR(muon_eta[index],muon_phi[index],
-				  track_eta[iTrk],   track_phi[iTrk]);
+				  track_eta[iTrk],track_phi[iTrk]);
 	   float qTrkMu = track_charge[iTrk]*muon_charge[index];
 	   if (drTrkMu<dRIsoMuon){
 	     trkMu.push_back(iTrk);
@@ -966,8 +957,6 @@ int main(int argc, char * argv[]) {
 	 }
        }
 
-       
-
        TLorentzVector muonTrkLV = trackLV + Muon4;
        float muonTrkMass = muonTrkLV.M();
        float deltaRMuonTrk = 1.1;
@@ -976,11 +965,6 @@ int main(int argc, char * argv[]) {
 	 indexTrk = trkSignalMu.at(0);
 	 deltaRMuonTrk = deltaR(Muon4.Eta(),Muon4.Phi(),
 				trackLV.Eta(),trackLV.Phi());
-       }
-
-       if (debug) {
-	 printf("  pT = %6.2f   eta = %5.2f   phi = %5.2f   jetFlavor = %3i  nTrk = %2i  nSigTrk = %2i\n",
-		Muon4.Pt(),Muon4.Eta(),Muon4.Phi(),pdgId,int(trkMu.size()),int(trkSignalMu.size()));
        }
 
        bool sigMu = trkSignalMu.size()==1 && trkMu.size()==1;
@@ -994,7 +978,6 @@ int main(int argc, char * argv[]) {
        
        PartonMultiplicityMuH->Fill(float(partons),weight);
        PFJetMultiplicityMuH->Fill(float(pfjets),weight);
-       GenJetMultiplicityMuH->Fill(float(genjets),weight);
 
        ptMuH->Fill(muon_pt[index],weight);
        etaMuH->Fill(muon_eta[index],weight);
@@ -1004,84 +987,50 @@ int main(int argc, char * argv[]) {
        nTracksMuH->Fill(float(trkMu.size()),weight);
        nSoftTracksMuH->Fill(float(trkSoftMu.size()),weight);
        nSignalTracksMuH->Fill(float(trkSoftMu.size()),weight);
+       deltaRPartonMuH->Fill(dRmin,weight);
 
-       int momBin = 0;
-       int partonMomBin = 0;
-       int muonMomBin = 0;
-       if (matchedParton) {
-	 partonMomBin = binNumber(TMath::Min(float(matchedPartonLV.P()),float(partonMomBins[nPartonMomBins]-0.1)),nPartonMomBins,partonMomBins);
-	 momBin = partonMomBin;
-	 deltaRPartonMuH->Fill(dRmin,weight);
-	 if (muHighPassed) PartonMomHighMuFlavorChargeH[flavour][net]->Fill(matchedPartonLV.P(),weight);
-	 if (muLowPassed) PartonMomLowMuFlavorChargeH[flavour][net]->Fill(matchedPartonLV.P(),weight);
-	 if (muHighPassed) {
-	   for (int iM=0; iM<20; ++iM) {
-	     double mass = double(iM) + double(0.5);
-	     int muType = 0;
-	     int ireg = 0;
-	     double pdf = qcdModel->getMuMassPdf(partonMomBin,muType,ireg,flavour,net,mass);
-	     ModelInvMassHighMuIsoH->Fill(mass,weight*pdf);
-	     ModelInvMassHighMuIsoFlavorChargeH[flavour][net]->Fill(mass,weight*pdf);
-	     ireg = 1;
-             pdf = qcdModel->getMuMassPdf(partonMomBin,muType,ireg,flavour,net,mass);
-             ModelInvMassHighMuLooseIsoH->Fill(mass,weight*pdf);
-             ModelInvMassHighMuLooseIsoFlavorChargeH[flavour][net]->Fill(mass,weight*pdf);
-	     ireg = 2;
-             pdf = qcdModel->getMuMassPdf(partonMomBin,muType,ireg,flavour,net,mass);
-             ModelInvMassHighMuSbH->Fill(mass,weight*pdf);
-             ModelInvMassHighMuSbFlavorChargeH[flavour][net]->Fill(mass,weight*pdf);
-	   }
-	 }
-	 if (muLowPassed) {
-	   for (int iM=0; iM<20; ++iM) {
-	     double mass = double(iM) + double(0.5);
-	     int muType = 1;
-	     int ireg = 0;
-	     double pdf = qcdModel->getMuMassPdf(partonMomBin,muType,ireg,flavour,net,mass);
-	     ModelInvMassLowMuIsoH->Fill(mass,weight*pdf);
-	     ModelInvMassLowMuIsoFlavorChargeH[flavour][net]->Fill(mass,weight*pdf);
-	     ireg = 1;
-             pdf = qcdModel->getMuMassPdf(partonMomBin,muType,ireg,flavour,net,mass);
-             ModelInvMassLowMuLooseIsoH->Fill(mass,weight*pdf);
-             ModelInvMassLowMuLooseIsoFlavorChargeH[flavour][net]->Fill(mass,weight*pdf);
-	     ireg = 2;
-             pdf = qcdModel->getMuMassPdf(partonMomBin,muType,ireg,flavour,net,mass);
-             ModelInvMassLowMuSbH->Fill(mass,weight*pdf);
-             ModelInvMassLowMuSbFlavorChargeH[flavour][net]->Fill(mass,weight*pdf);
-	   }
-	 }
-       }
-       else {
-	 muonMomBin = binNumber(TMath::Min(float(Muon4.P()),float(muonMomBins[nMuonMomBins]-0.1)),nMuonMomBins,muonMomBins);
-	 momBin=muonMomBin;
-	 if (muHighPassed) MuonMomHighMuUnmatchedH->Fill(Muon4.P(),weight);
-	 if (muLowPassed) MuonMomLowMuUnmatchedH->Fill(Muon4.P(),weight);
-       }
+       // bin of parton pT
+       float partonPt = matchedPartonLV.Pt();
+       float maxPartonPt = partonMomBins[nPartonMomBins]-0.1;
+       partonPt = TMath::Min(partonPt,maxPartonPt);
+       int partonMomBin = binNumber(partonPt,nPartonMomBins,partonMomBins);
 
-       // 
-       // save muon info
-       //
-       int muonType = 0;
-       if (muLowPassed) muonType = 1;
-       muons_mom.push_back(momBin);
+       // bin of muon pT
+       float muonPt = Muon4.Pt();
+       float maxMuonPt = muonMomBins[nMuonMomBins]-0.1;
+       muonPt = TMath::Min(muonPt,maxMuonPt);
+       int muonMomBin = binNumber(muonPt,nMuonMomBins,muonMomBins);
+
+       // --------------------
+       // -- save muon info --
+       // --------------------
+       muons_partmom.push_back(partonMomBin);
        muons_flavour.push_back(flavour);
+       muons_muonmom.push_back(muonMomBin);
        muons_net.push_back(net);
-       muons_type.push_back(muonType);
-       int muon_region = -1;
-       if (sigMu) muon_region = 0;
-       if (bkgdMu) muon_region = 1;
-       muons_region.push_back(muon_region);
        muons_mutrkmass.push_back(muonTrkMass);
        muons_pdgid.push_back(pdgId);
+       int muon_region = -1; // doesn't pass selection
+       if (sigMu) muon_region = 1; // signal region
+       if (bkgdMu) muon_region = 0; // background region
+       muons_region.push_back(muon_region);
 
-       //       cout << "flav = " << flavour << "  momBin = " << momBin << "  muType = " << muonType << "  net = " << net << std::endl;
+       if (debug>1) {
+	 printf("%2i -> pT(mu) = %3.0f : eta(mu) = %5.2f : Pt = %3.0f : flavour = %1i : pdgId = %2i : netQ = %1i\n",
+		imu,Muon4.Pt(),Muon4.Eta(),matchedPartonLV.Pt(),flavour,pdgId,net); 
+	 printf("       region : %2i : muonMomBin = %1i : partonMomBin = %1i\n",muon_region,muonMomBin,partonMomBin);
+	 if (muon_region>=0) 
+	   printf("       mass(mu,trk) = %5.2F\n",muonTrkMass);
+       }
 
-       
-       //       cout << "after saving" << endl;
-
+       partonMu->Fill(0.5,weight);
 
        if (sigMu) {
-	 
+
+	 InvMassIsoH->Fill(muonTrkMass,weight);
+	 MassMuTrk[flavour][net][partonMomBin][muonMomBin][1]->Fill(muonTrkMass,weight);
+	 partonMuPass[flavour][net][partonMomBin][muonMomBin][1]->Fill(0.5,weight);
+
 	 nIsoMuons++;
 	 ptIsoTrackH->Fill(trackLV.Pt(),weight);
 	 etaIsoTrackH->Fill(trackLV.Eta(),weight);
@@ -1093,40 +1042,14 @@ int main(int argc, char * argv[]) {
 	 dzIsoMuH->Fill(muon_dz[index],weight);
 	 PartonMultiplicityMuIsoH->Fill(float(partons),weight);
 	 PFJetMultiplicityMuIsoH->Fill(float(pfjets),weight);
-	 GenJetMultiplicityMuIsoH->Fill(float(genjets),weight);
 	 deltaRMuTrkIsoH->Fill(deltaRMuonTrk,weight);
-
-
-	 if (matchedParton) {
-	   deltaRPartonMuIsoH->Fill(dRmin,weight);
-	   if (muHighPassed) {
-	     InvMassHighMuIsoFlavorChargeH[flavour][net]->Fill(muonTrkMass,weight);
-	     PartonMomHighMuIsoFlavorChargeH[flavour][net]->Fill(matchedPartonLV.P(),weight);
-	     InvMassHighMuIsoFlavorChargeMomH[flavour][net][partonMomBin]->Fill(muonTrkMass,weight);
-	   }
-	   if (muLowPassed) { 
-	     InvMassLowMuIsoFlavorChargeH[flavour][net]->Fill(muonTrkMass,weight);
-             PartonMomLowMuIsoFlavorChargeH[flavour][net]->Fill(matchedPartonLV.P(),weight);
-             InvMassLowMuIsoFlavorChargeMomH[flavour][net][partonMomBin]->Fill(muonTrkMass,weight);
-	   }
-	 }
-	 else {
-	   if (muHighPassed) {
-	     MuonMomHighMuIsoUnmatchedH->Fill(Muon4.P(),weight);
-	     InvMassHighMuIsoMomUnmatchedH[muonMomBin]->Fill(muonTrkMass,weight);
-	   }
-	   if (muLowPassed) {
-	     MuonMomLowMuIsoUnmatchedH->Fill(Muon4.P(),weight);
-	     InvMassLowMuIsoMomUnmatchedH[muonMomBin]->Fill(muonTrkMass,weight);
-	   }
-
-	 }
-	 
        }
 
-       //       std::cout << "Ok3  " << muonMomBin << "  " << matchedParton << std::endl;
-
        if (bkgdMu) {
+
+	 InvMassLooseIsoH->Fill(muonTrkMass,weight);
+	 MassMuTrk[flavour][net][partonMomBin][muonMomBin][0]->Fill(muonTrkMass,weight);
+	 partonMuPass[flavour][net][partonMomBin][muonMomBin][0]->Fill(0.5,weight);
 
 	 nLooseIsoMuons++;
 	 ptLooseIsoTrackH->Fill(trackLV.Pt(),weight);
@@ -1139,77 +1062,22 @@ int main(int argc, char * argv[]) {
          dzLooseIsoMuH->Fill(muon_dz[index],weight);
          PartonMultiplicityMuLooseIsoH->Fill(float(partons),weight);
          PFJetMultiplicityMuLooseIsoH->Fill(float(pfjets),weight);
-         GenJetMultiplicityMuLooseIsoH->Fill(float(genjets),weight);
 	 deltaRMuTrkLooseIsoH->Fill(deltaRMuonTrk,weight);
-
-
-	 if (matchedParton) {
-           deltaRPartonMuLooseIsoH->Fill(dRmin,weight);
-	   if (muHighPassed) {
-             InvMassHighMuLooseIsoFlavorChargeH[flavour][net]->Fill(muonTrkMass,weight);
-             PartonMomHighMuLooseIsoFlavorChargeH[flavour][net]->Fill(matchedPartonLV.P(),weight);
-             InvMassHighMuLooseIsoFlavorChargeMomH[flavour][net][partonMomBin]->Fill(muonTrkMass,weight);
-           }
-           if (muLowPassed) {
-             InvMassLowMuLooseIsoFlavorChargeH[flavour][net]->Fill(muonTrkMass,weight);
-             PartonMomLowMuLooseIsoFlavorChargeH[flavour][net]->Fill(matchedPartonLV.P(),weight);
-             InvMassLowMuLooseIsoFlavorChargeMomH[flavour][net][partonMomBin]->Fill(muonTrkMass,weight);
-           }
-
-         }
-	 else {
-	   if (muHighPassed) {
-	     MuonMomHighMuLooseIsoUnmatchedH->Fill(Muon4.P(),weight);
-	     InvMassHighMuLooseIsoMomUnmatchedH[muonMomBin]->Fill(muonTrkMass,weight);
-	   }
-	   if (muLowPassed) {
-	     MuonMomLowMuLooseIsoUnmatchedH->Fill(Muon4.P(),weight);
-	     InvMassLowMuLooseIsoMomUnmatchedH[muonMomBin]->Fill(muonTrkMass,weight);
-	   }
-
-	 }
+	 deltaRPartonMuLooseIsoH->Fill(dRmin,weight);
        }
 
-
-       if (sbMu) {
-
-	 nSbMuons++;
-	 ptSbTrackH->Fill(trackLV.Pt(),weight);
-         etaSbTrackH->Fill(trackLV.Eta(),weight);
-         dxySbTrackH->Fill(track_dxy[indexTrk],weight);
-         dzSbTrackH->Fill(track_dz[indexTrk],weight);
-         ptSbMuH->Fill(Muon4.Pt(),weight);
-         etaSbMuH->Fill(Muon4.Eta(),weight);
-         dxySbMuH->Fill(muon_dxy[index],weight);
-         dzSbMuH->Fill(muon_dz[index],weight);
-         PartonMultiplicityMuSbH->Fill(float(partons),weight);
-         PFJetMultiplicityMuSbH->Fill(float(pfjets),weight);
-         GenJetMultiplicityMuSbH->Fill(float(genjets),weight);
-	 deltaRMuTrkSbH->Fill(deltaRMuonTrk,weight);
-
- 	 if (matchedParton) {
-           deltaRPartonMuSbH->Fill(dRmin,weight);
-           if (muHighPassed) {
-             InvMassHighMuSbFlavorChargeH[flavour][net]->Fill(muonTrkMass,weight);
-             PartonMomHighMuSbFlavorChargeH[flavour][net]->Fill(matchedPartonLV.P(),weight);
-             InvMassHighMuSbFlavorChargeMomH[flavour][net][partonMomBin]->Fill(muonTrkMass,weight);
-           }
-           if (muLowPassed) {
-             InvMassLowMuSbFlavorChargeH[flavour][net]->Fill(muonTrkMass,weight);
-             PartonMomLowMuSbFlavorChargeH[flavour][net]->Fill(matchedPartonLV.P(),weight);
-             InvMassLowMuSbFlavorChargeMomH[flavour][net][partonMomBin]->Fill(muonTrkMass,weight);
-           }
-         }
-	 else {
-	   if (muHighPassed) {
-	     MuonMomHighMuSbUnmatchedH->Fill(Muon4.P(),weight);
-	     InvMassHighMuSbMomUnmatchedH[muonMomBin]->Fill(muonTrkMass,weight);
-	   }
-	   if (muLowPassed) {
-	     MuonMomLowMuSbUnmatchedH->Fill(Muon4.P(),weight);
-	     InvMassLowMuSbMomUnmatchedH[muonMomBin]->Fill(muonTrkMass,weight);
-	   }
-	   
+       if (applyQCDModel) {	 
+	 //	 std::cout << "model is applied" << std::endl;
+	 for (int imass=0; imass<nBins; ++imass) {
+	   double mass = (0.5 + double(imass))*binWidth;
+	   int ireg = 0;
+	   double prob = qcdModel->getProb(partonMomBin,muonMomBin,ireg,flavour,net,true);
+	   double pdf = qcdModel->getMassPdf(partonMomBin,muonMomBin,ireg,flavour,net,mass,true);
+	   ModelInvMassIsoH->Fill(mass,weight*pdf*prob);
+	   ireg = 1;
+	   prob = qcdModel->getProb(partonMomBin,muonMomBin,ireg,flavour,net,true);
+	   pdf = qcdModel->getMassPdf(partonMomBin,muonMomBin,ireg,flavour,net,mass,true);
+	   ModelInvMassLooseIsoH->Fill(mass,weight*pdf);
 	 }
        }
 
@@ -1217,59 +1085,23 @@ int main(int argc, char * argv[]) {
 
      nGoodIsoMuonsH->Fill(float(nIsoMuons),weight);
      nGoodLooseIsoMuonsH->Fill(float(nLooseIsoMuons),weight);
-     nGoodSbMuonsH->Fill(float(nSbMuons),weight);
 
-     for (unsigned int im=0; im<muons.size();++im) {
-
-
-       int muonType = muons_type[im];
-       int net = muons_net[im];
-       int flavour = muons_flavour[im];
-       int momBin = muons_mom[im];
-       int region = muons_region[im];
-       float mutrk_mass = muons_mutrkmass[im];
-       int pdgid = muons_pdgid[im];
-
-       if (region==0) {
-	 InvMassIsoH->Fill(mutrk_mass,weight);
-	 if (muonType==0) InvMassHighMuIsoH->Fill(mutrk_mass,weight);
-	 if (muonType==1) InvMassLowMuIsoH->Fill(mutrk_mass,weight);
-       }
-
-       if (region==1) {
-	 InvMassLooseIsoH->Fill(mutrk_mass,weight);
-	 if (muonType==0) InvMassHighMuLooseIsoH->Fill(mutrk_mass,weight);
-	 if (muonType==1) InvMassLowMuLooseIsoH->Fill(mutrk_mass,weight);
-       }
-       
-       for (int iM=0; iM<20; ++iM) {
-	 double mass = double(iM) + double(0.5);
-	 int ireg = 0;
-	 double pdf = qcdModel->getMuMassPdf(momBin,muonType,ireg,flavour,net,mass);
-	 ModelInvMassIsoH->Fill(mass,weight*pdf);
-	 ireg = 1;
-	 pdf = qcdModel->getMuMassPdf(momBin,muonType,ireg,flavour,net,mass);
-	 ModelInvMassLooseIsoH->Fill(mass,weight*pdf);
-       }
-
-     }
-
-     // find muons
+     // *****************************************
+     // **** finding pair of same sign muons ****
+     // *****************************************
      if (muons.size()<2) continue;
-     //     cout << muons.size() << endl;
      unsigned int mu1 = 0;
      unsigned int mu2 = 0;
-     bool foundMuons = false;
-     double ptmax = 0;
+     double ptmax = -1;
      for (unsigned int i1=0; i1<muons.size()-1; ++i1) {
        for (unsigned int i2=i1+1; i2<muons.size(); ++i2) {
+
 	 unsigned int index1 = muons[i1];
 	 unsigned int index2 = muons[i2];
 
-	 //	 cout << index1 << " " << index2 << endl;
-
 	 bool os = muon_charge[index1]*muon_charge[index2]<0;
 	 if (os) continue;
+
 	 bool high1 = muon_pt[index1]>ptMuonHighCut && fabs(muon_eta[index1])<etaMuonHighCut;
 	 bool high2 = muon_pt[index2]>ptMuonHighCut && fabs(muon_eta[index2])<etaMuonHighCut;
 	 bool passed = high1 || high2;
@@ -1279,55 +1111,78 @@ int main(int argc, char * argv[]) {
 	 if (dR<dRMuonsCut) continue;
 	 double ptsum = muon_pt[index1]+muon_pt[index2];
 	 if (ptsum>ptmax) {
-	   foundMuons = true;
+	   ptmax = ptsum;
 	   mu1 = i1;
 	   mu2 = i2;
+	   if (muon_pt[index2]>muon_pt[index1]) {
+	     mu1 = i2;
+	     mu2 = i1;
+	   }
 	 }
        }
      }
-     
-     if (foundMuons) {
 
-
-       int muonType1 = muons_type[mu1];
-       int net1 = muons_net[mu1];
-       int flavour1 = muons_flavour[mu1];
-       int mom1 = muons_mom[mu1];
-       int region1 = muons_region[mu1];
-       float mutrk_mass1 = muons_mutrkmass[mu1];
-       int pdgid1 = muons_pdgid[mu1];
-
-       int muonType2 = muons_type[mu2];
-       int net2 = muons_net[mu2];
-       int flavour2 = muons_flavour[mu2];
-       int mom2 = muons_mom[mu2];
-       int region2 = muons_region[mu2];
-       float mutrk_mass2 = muons_mutrkmass[mu2];
-       int pdgid2 = muons_pdgid[mu2];
-
-       if (flavour1>=0) {
-	 partonMuSS[muonType1][flavour1][net1][mom1]->Fill(0.5,weight);
-	 partonMuSSPass[muonType1][flavour1][net1][mom1]->Fill(0.5+double(region1),weight);
-       }
-       else {
-	 unmatchedMuSS[muonType1][mom1]->Fill(0.5,weight);
-	 unmatchedMuSSPass[muonType1][mom1]->Fill(0.5+double(region1),weight);	 
-       }
-
-       if (flavour2>=0) {
-	 partonMuSS[muonType2][flavour2][net2][mom2]->Fill(0.5,weight);
-	 partonMuSSPass[muonType2][flavour2][net2][mom2]->Fill(0.5+double(region2),weight);
-       }
-       else {
-	 unmatchedMuSS[muonType2][mom2]->Fill(0.5,weight);
-	 unmatchedMuSSPass[muonType2][mom2]->Fill(0.5+double(region2),weight);	 
-       }
+     if (ptmax>10.) {
 
        unsigned int index1 = muons[mu1];
        unsigned int index2 = muons[mu2];
 
-       if (region1==0)
-	 InvMassDimuonIsoH->Fill(mutrk_mass1,weight);
+       int muonmom1 = muons_muonmom[mu1];
+       int net1 = muons_net[mu1];
+       int flavour1 = muons_flavour[mu1];
+       int partmom1 = muons_partmom[mu1];
+       int region1 = muons_region[mu1];
+       float mutrk_mass1 = muons_mutrkmass[mu1];
+       int pdgid1 = muons_pdgid[mu1];
+
+       int muonmom2 = muons_muonmom[mu2];
+       int net2 = muons_net[mu2];
+       int flavour2 = muons_flavour[mu2];
+       int partmom2 = muons_partmom[mu2];
+       int region2 = muons_region[mu2];
+       float mutrk_mass2 = muons_mutrkmass[mu2];
+       int pdgid2 = muons_pdgid[mu2];
+
+       if (debug>0) {
+	 cout << endl;
+	 cout << "same sign uons found ---> " << endl;
+	 cout << "muon 1 : "
+	      << "  pdgid = " << pdgid1
+	      << "  flavor = " << flavour1
+	      << "  charge = " << muon_charge[index1]
+	      << "  net = " << net1 	   
+	      << "  muonmom = " << muonmom1
+	      << "  partmom = " << partmom1 
+	      << "  reg = " << region1;
+	 if (region1>=0) cout << "  mass(mu,trk) = " << mutrk_mass1;
+	 cout << endl;
+	 cout << "muon 2 : "
+	      << "  pdgid = " << pdgid2 
+	      << "  flavour = " << flavour2
+	      << "  charge = " << muon_charge[index2]
+	      << "  net = " << net2 
+	      << "  muonmom  = " << muonmom2 
+	      << "  partmom = " << partmom2 
+	      << "  reg = " << region2;
+	 if (region2>=0) cout << "  mass(mu,trk) = " << mutrk_mass2;
+	 cout << endl;
+	 cout << endl;
+       }
+
+       partonMu_SS->Fill(0.5,weight);
+
+       if (region1>=0) {
+	 partonMuPass_SS[flavour1][net1][partmom1][muonmom1][region1]->Fill(0.5,weight);
+	 MassMuTrk_SS[flavour1][net1][partmom1][muonmom1][region1]->Fill(mutrk_mass1,weight);
+       } 
+       if (region2>=0) {
+	 partonMuPass_SS[flavour2][net2][partmom2][muonmom2][region2]->Fill(0.5,weight);
+	 MassMuTrk_SS[flavour2][net2][partmom2][muonmom2][region2]->Fill(mutrk_mass2,weight);
+       }
+
+       if (region1==0) {
+	 InvMassDimuonIsoH->Fill(mutrk_mass1,weight);	 
+       }
        if (region1==1)
 	 InvMassDimuonLooseIsoH->Fill(mutrk_mass1,weight);
 
@@ -1336,94 +1191,204 @@ int main(int argc, char * argv[]) {
        if (region2==1)
 	 InvMassDimuonLooseIsoH->Fill(mutrk_mass2,weight);
 
+       if (applyQCDModel) {
 
-       if (region1==0||region2==0) {
-	 cout << "muons found " << endl;
-	 cout << "mu1 = " << mu1 
-	      << "  pdgid = " << pdgid1
-	      << "  flavor = " << flavour1
-	      << "  charge = " << muon_charge[index1]
-	      << "  net = " << net1 	   
-	      << "  pt  = " << muon_pt[index1] 
-	      << "  type = " << muonType1 
-	      << "  reg = " << region1 << endl;
-	 cout << "mu2 = " << mu2 
-	      << "  pdgid = " << pdgid2 
-	      << "  flavour = " << flavour2
-	      << "  charge = " << muon_charge[index2]
-	      << "  net = " << net2 
-	      << "  pt  = " << muon_pt[index2] 
-	      << "  type = " << muonType2 
-	      << "  reg = " << region2 << endl;
-       }
+	 for (unsigned int imass=0; imass<nBins; ++imass) {
+	   double mass = (0.5 + double(imass))*binWidth;
+	   // ------------
+	   // closure test
+	   // ------------
+	   // Iso region
+	   int ireg = 0;
+	   double prob1 = qcdModel->getProb(partmom1,muonmom1,ireg,flavour1,net1,false);
+	   double pdf1 = qcdModel->getMassPdf(partmom1,muonmom1,ireg,flavour1,net1,mass,false);
+	   double prob2 = qcdModel->getProb(partmom2,muonmom2,ireg,flavour2,net2,false);
+	   double pdf2 = qcdModel->getMassPdf(partmom2,muonmom2,ireg,flavour2,net2,mass,false);
+	   ClosureInvMassDimuonIsoH->Fill(mass,weight*pdf1*prob1);
+	   ClosureInvMassDimuonIsoH->Fill(mass,weight*pdf2*prob2);
+	   // LooseIso region
+	   ireg = 1;
+	   prob1 = qcdModel->getProb(partmom1,muonmom1,ireg,flavour1,net1,false);
+	   pdf1 = qcdModel->getMassPdf(partmom1,muonmom1,ireg,flavour1,net1,mass,false);
+	   prob2 = qcdModel->getProb(partmom2,muonmom2,ireg,flavour2,net2,false);
+	   pdf2 = qcdModel->getMassPdf(partmom2,muonmom2,ireg,flavour2,net2,mass,false);
+	   ClosureInvMassDimuonLooseIsoH->Fill(mass,weight*pdf1*prob1);
+	   ClosureInvMassDimuonLooseIsoH->Fill(mass,weight*pdf2*prob2);
 
-       for (unsigned int imass=0; imass<20; ++imass) {
-	 double mass = 0.5 * double(imass);
-	 int ireg = 0;
-	 double pdf1 = qcdModel->getSSMuMassPdf(mom1,muonType1,ireg,flavour1,net1,mass);
-	 double pdf2 = qcdModel->getSSMuMassPdf(mom2,muonType2,ireg,flavour2,net2,mass);
-	 ModelInvMassDimuonIsoH->Fill(mass,weight*pdf1);
-	 ModelInvMassDimuonIsoH->Fill(mass,weight*pdf2);
-	 ireg = 1;
-	 pdf1 = qcdModel->getSSMuMassPdf(mom1,muonType1,ireg,flavour1,net1,mass);
-	 pdf2 = qcdModel->getSSMuMassPdf(mom2,muonType2,ireg,flavour2,net2,mass);
-	 ModelInvMassDimuonLooseIsoH->Fill(mass,weight*pdf1);
-	 ModelInvMassDimuonLooseIsoH->Fill(mass,weight*pdf2);
-       }
+	   // --------------------
+	   // testing hybrid model
+	   // --------------------
+	   // Iso region
+	   ireg = 0;
+	   prob1 = qcdModel->getProb(partmom1,muonmom1,ireg,flavour1,net1,false);
+	   pdf1 = qcdModel->getMassPdf(partmom1,muonmom1,ireg,flavour1,net1,mass,true);
+	   prob2 = qcdModel->getProb(partmom2,muonmom2,ireg,flavour2,net2,false);
+	   pdf2 = qcdModel->getMassPdf(partmom2,muonmom2,ireg,flavour2,net2,mass,true);
+	   HybridModelInvMassDimuonIsoH->Fill(mass,weight*pdf1*prob1);
+	   HybridModelInvMassDimuonIsoH->Fill(mass,weight*pdf2*prob2);
+	   // LooseIso region
+	   ireg = 1;
+	   prob1 = qcdModel->getProb(partmom1,muonmom1,ireg,flavour1,net1,false);
+	   pdf1 = qcdModel->getMassPdf(partmom1,muonmom1,ireg,flavour1,net1,mass,true);
+	   prob2 = qcdModel->getProb(partmom2,muonmom2,ireg,flavour2,net2,false);
+	   pdf2 = qcdModel->getMassPdf(partmom2,muonmom2,ireg,flavour2,net2,mass,true);
+	   HybridModelInvMassDimuonLooseIsoH->Fill(mass,weight*pdf1*prob1);
+	   HybridModelInvMassDimuonLooseIsoH->Fill(mass,weight*pdf2*prob2);
 
-       // SR and ControlX
-       vector<TH1D*> array_1d = {InvMassH,InvMass_ControlXH};
-       vector<TH2D*> array_2d = {InvMass2DH,InvMass2D_ControlXH};
-       for (int ireg=0; ireg<2; ++ireg) {
-	 double probMu1 = qcdModel->getProbSSIsoMu(mom1,muonType1,ireg,flavour1,net1);
-	 double probMu2 = qcdModel->getProbSSIsoMu(mom2,muonType2,ireg,flavour2,net2);
-	 double probDoubleMu = probMu1*probMu2;
+	   // -----------------------
+	   // testing inclusive model
+	   // -----------------------
+	   // Iso region
+	   ireg = 0;
+	   prob1 = qcdModel->getProb(partmom1,muonmom1,ireg,flavour1,net1,true);
+	   pdf1 = qcdModel->getMassPdf(partmom1,muonmom1,ireg,flavour1,net1,mass,true);
+	   prob2 = qcdModel->getProb(partmom2,muonmom2,ireg,flavour2,net2,true);
+	   pdf2 = qcdModel->getMassPdf(partmom2,muonmom2,ireg,flavour2,net2,mass,true);
+	   InclusiveModelInvMassDimuonIsoH->Fill(mass,weight*pdf1*prob1);
+	   InclusiveModelInvMassDimuonIsoH->Fill(mass,weight*pdf2*prob2);
+	   // LooseIso region
+	   ireg = 1;
+	   prob1 = qcdModel->getProb(partmom1,muonmom1,ireg,flavour1,net1,true);
+	   pdf1 = qcdModel->getMassPdf(partmom1,muonmom1,ireg,flavour1,net1,mass,true);
+	   prob2 = qcdModel->getProb(partmom2,muonmom2,ireg,flavour2,net2,true);
+	   pdf2 = qcdModel->getMassPdf(partmom2,muonmom2,ireg,flavour2,net2,mass,true);
+	   InclusiveModelInvMassDimuonLooseIsoH->Fill(mass,weight*pdf1*prob1);
+	   InclusiveModelInvMassDimuonLooseIsoH->Fill(mass,weight*pdf2*prob2);
+
+	 }
 	 
-
-	 for (unsigned int imass=0; imass<20; ++imass) {
-	   double mass = 0.5 * double(imass);
-	   double pdf1 = qcdModel->getMassPdf(mom1,muonType1,ireg,flavour1,net1,mass);
-	   array_1d[ireg]->Fill(mass,weight*probDoubleMu*pdf1);
-	   double pdf2 = qcdModel->getMassPdf(mom2,muonType2,ireg,flavour2,net2,mass);
-	   array_1d[ireg]->Fill(mass,weight*probDoubleMu*pdf2);	 
-	   for (unsigned int imass2=0; imass2<20; ++imass2) {
-	     double mass2 = 0.5 + double(imass2);
-	     pdf2 = qcdModel->getMassPdf(mom2,muonType2,ireg,flavour2,net2,mass2);
-	     array_2d[ireg]->Fill(mass,mass2,weight*probDoubleMu*pdf1*pdf2);
+	 // SR : Iso
+	 // closure
+	 int ireg = 0;
+	 double prob1 = qcdModel->getProb(partmom1,muonmom1,ireg,flavour1,net1,false);
+	 double prob2 = qcdModel->getProb(partmom2,muonmom2,ireg,flavour2,net2,false);
+	 for (unsigned int imass=0; imass<nBins; ++imass) {
+	   int ireg = 0;
+	   double mass = (0.5 + double(imass))*binWidth;
+	   double pdf1 = qcdModel->getMassPdf(partmom1,muonmom1,ireg,flavour1,net1,mass,false);
+	   double pdf2 = qcdModel->getMassPdf(partmom2,muonmom2,ireg,flavour2,net2,mass,false);
+	   InvMassH->Fill(mass,weight*prob1*prob2*pdf1);
+	   InvMassH->Fill(mass,weight*prob1*prob2*pdf2);	 
+	   for (unsigned int imass2=0; imass2<nBins; ++imass2) {
+	     double mass2 = (0.5 + double(imass2))*binWidth;
+	     pdf2 = qcdModel->getMassPdf(partmom2,muonmom2,ireg,flavour2,net2,mass2,false);
+	     InvMass2DH->Fill(mass,mass2,weight*prob1*prob2*pdf1*pdf2);
 	   }
 	 }
-       }
 
-       // ControlY
-       for (int ireg1=0; ireg1<2; ++ireg1) {
-	 for (int ireg2=0; ireg2<2; ++ireg2) {
-	   if (ireg1==0&&ireg2==0) continue;
-	   double probMu1 = qcdModel->getProbSSIsoMu(mom1,muonType1,ireg1,flavour1,net1);
-	   double probMu2 = qcdModel->getProbSSIsoMu(mom2,muonType2,ireg2,flavour2,net2);
-	   double probDoubleMu = probMu1*probMu2;
-	   for (unsigned int imass=0; imass<20; ++imass) {
-	     double mass = 0.5 * double(imass);
-	     double pdf1 = qcdModel->getMassPdf(mom1,muonType1,ireg1,flavour1,net1,mass);
-	     InvMass_ControlYH->Fill(mass,weight*probDoubleMu*pdf1);
-	     double pdf2 = qcdModel->getMassPdf(mom2,muonType2,ireg2,flavour2,net2,mass);
-	     InvMass_ControlYH->Fill(mass,weight*probDoubleMu*pdf2);
-	     for (unsigned int imass2=0; imass2<20; ++imass2) {
-	       double mass2 = 0.5 + double(imass2);
-	       pdf2 = qcdModel->getMassPdf(mom2,muonType2,ireg2,flavour2,net2,mass2);
-	       InvMass2D_ControlYH->Fill(mass,mass2,weight*probDoubleMu*pdf1*pdf2);
+	 // SR : Iso
+	 // hybrid model
+	 for (unsigned int imass=0; imass<nBins; ++imass) {
+           int ireg = 0;
+           double mass = (0.5 + double(imass))*binWidth;
+	   double pdf1 = qcdModel->getMassPdf(partmom1,muonmom1,ireg,flavour1,net1,mass,true);
+	   double pdf2 = qcdModel->getMassPdf(partmom2,muonmom2,ireg,flavour2,net2,mass,true);
+	   HybridModelInvMassH->Fill(mass,weight*prob1*prob2*pdf1);
+	   HybridModelInvMassH->Fill(mass,weight*prob1*prob2*pdf2);	 
+	   for (unsigned int imass2=0; imass2<nBins; ++imass2) {
+	     double mass2 = (0.5 + double(imass2))*binWidth;
+	     pdf2 = qcdModel->getMassPdf(partmom2,muonmom2,ireg,flavour2,net2,mass2,true);
+	     HybridModelInvMass2DH->Fill(mass,mass2,weight*prob1*prob2*pdf1*pdf2);
+	   }
+	 }
+	 
+	 // SR : Iso
+	 // inclusive model
+	 prob1 = qcdModel->getProb(partmom1,muonmom1,ireg,flavour1,net1,true);
+	 prob2 = qcdModel->getProb(partmom2,muonmom2,ireg,flavour2,net2,true);
+	 for (unsigned int imass=0; imass<nBins; ++imass) {
+           int ireg = 0;
+           double mass = (0.5 + double(imass))*binWidth;
+	   double pdf1 = qcdModel->getMassPdf(partmom1,muonmom1,ireg,flavour1,net1,mass,true);
+	   double pdf2 = qcdModel->getMassPdf(partmom2,muonmom2,ireg,flavour2,net2,mass,true);
+	   InclusiveModelInvMassH->Fill(mass,weight*prob1*prob2*pdf1);
+	   InclusiveModelInvMassH->Fill(mass,weight*prob1*prob2*pdf2);	 
+	   for (unsigned int imass2=0; imass2<nBins; ++imass2) {
+	     double mass2 = (0.5 + double(imass2))*binWidth;
+	     pdf2 = qcdModel->getMassPdf(partmom2,muonmom2,ireg,flavour2,net2,mass2,true);
+	     InclusiveModelInvMass2DH->Fill(mass,mass2,weight*prob1*prob2*pdf1*pdf2);
+	   }
+
+
+	 }
+
+	 // CR : LooseIso
+	 // closure
+	 for (int ireg1=0; ireg1<2; ++ireg1) {
+	   for (int ireg2=0; ireg2<2; ++ireg2) {
+	     if (ireg1==0&&ireg2==0) continue;
+	     double prob1 = qcdModel->getProb(partmom1,muonmom1,ireg1,flavour1,net1,false);
+	     double prob2 = qcdModel->getProb(partmom2,muonmom2,ireg2,flavour2,net2,false);
+	     for (unsigned int imass=0; imass<nBins; ++imass) {
+	       double mass = (0.5 + double(imass))*binWidth;
+	       double pdf1 = qcdModel->getMassPdf(partmom1,muonmom1,ireg1,flavour1,net1,mass,false);
+	       InvMass_CRH->Fill(mass,weight*prob1*prob2*pdf1);
+	       double pdf2 = qcdModel->getMassPdf(partmom2,muonmom2,ireg2,flavour2,net2,mass,false);
+	       InvMass_CRH->Fill(mass,weight*prob1*prob2*pdf2);
+	       for (unsigned int imass2=0; imass2<nBins; ++imass2) {
+		 double mass2 = (0.5 + double(imass2))*binWidth;
+		 pdf2 = qcdModel->getMassPdf(partmom2,muonmom2,ireg2,flavour2,net2,mass2,false);
+		 InvMass2D_CRH->Fill(mass,mass2,weight*prob1*prob2*pdf1*pdf2);
+	       }
 	     }
 	   }
 	 }
-       }
 
+	 // CR : LooseIso
+	 // hybrid model
+	 for (int ireg1=0; ireg1<2; ++ireg1) {
+	   for (int ireg2=0; ireg2<2; ++ireg2) {
+	     if (ireg1==0&&ireg2==0) continue;
+	     double prob1 = qcdModel->getProb(partmom1,muonmom1,ireg1,flavour1,net1,false);
+	     double prob2 = qcdModel->getProb(partmom2,muonmom2,ireg2,flavour2,net2,false);
+	     for (unsigned int imass=0; imass<nBins; ++imass) {
+	       double mass = (0.5 + double(imass))*binWidth;
+	       double pdf1 = qcdModel->getMassPdf(partmom1,muonmom1,ireg1,flavour1,net1,mass,true);
+	       HybridModelInvMass_CRH->Fill(mass,weight*prob1*prob2*pdf1);
+	       double pdf2 = qcdModel->getMassPdf(partmom2,muonmom2,ireg2,flavour2,net2,mass,true);
+	       HybridModelInvMass_CRH->Fill(mass,weight*prob1*prob2*pdf2);
+	       for (unsigned int imass2=0; imass2<nBins; ++imass2) {
+		 double mass2 = (0.5 + double(imass2))*binWidth;
+		 pdf2 = qcdModel->getMassPdf(partmom2,muonmom2,ireg2,flavour2,net2,mass2,true);
+		 HybridModelInvMass2D_CRH->Fill(mass,mass2,weight*prob1*prob2*pdf1*pdf2);
+	       }
+	     }
+	   }
+	 }
+
+	 // CR : LooseIso
+	 // inclusive model
+	 for (int ireg1=0; ireg1<2; ++ireg1) {
+	   for (int ireg2=0; ireg2<2; ++ireg2) {
+	     if (ireg1==0&&ireg2==0) continue;
+	     double prob1 = qcdModel->getProb(partmom1,muonmom1,ireg1,flavour1,net1,true);
+	     double prob2 = qcdModel->getProb(partmom2,muonmom2,ireg2,flavour2,net2,true);
+	     for (unsigned int imass=0; imass<nBins; ++imass) {
+	       double mass = (0.5 + double(imass))*binWidth;
+	       double pdf1 = qcdModel->getMassPdf(partmom1,muonmom1,ireg1,flavour1,net1,mass,true);
+	       InclusiveModelInvMass_CRH->Fill(mass,weight*prob1*prob2*pdf1);
+	       double pdf2 = qcdModel->getMassPdf(partmom2,muonmom2,ireg2,flavour2,net2,mass,true);
+	       InclusiveModelInvMass_CRH->Fill(mass,weight*prob1*prob2*pdf2);
+	       for (unsigned int imass2=0; imass2<nBins; ++imass2) {
+		 double mass2 = (0.5 + double(imass2))*binWidth;
+		 pdf2 = qcdModel->getMassPdf(partmom2,muonmom2,ireg2,flavour2,net2,mass2,true);
+		 InclusiveModelInvMass2D_CRH->Fill(mass,mass2,weight*prob1*prob2*pdf1*pdf2);
+	       }
+	     }
+	   }
+	 }
+
+
+
+       }
      }
 
-   }
+   } // event loop
    delete tree_;
    file_->Close();
    delete file_;
    
-  }// filelist loop
+  } // filelist loop
   
   file->cd("");
   file->Write();

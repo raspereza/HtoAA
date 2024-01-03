@@ -3,135 +3,89 @@
 QCDModel::QCDModel(TString fileName) {
 
   file = new TFile(fileName);
-
-
-  TString partonFlavor[4] = {"uds","g","c","b"};
-  TString muonPartonNetCharge[2] = {"opposite","same"};
-  TString partonMomRange[3] = {"Lt50","50to100","Gt100"};
-  TString muonMomRange[3] = {"Lt30","30to50","Gt50"};
-  TString muonType[2] = {"HighMu","LowMu"}; 
-  TString region[3] = {"Iso","LooseIso","Sb"};
-
-  for (int imom=0; imom<3; ++imom) {
-    for (int imu=0; imu<2; ++imu) {
-      for (int ireg=0; ireg<3; ++ireg) {
-	ProbIsoMu[imom][imu][ireg] = (TH2D*)file->Get("ProbIsoMu_"+partonMomRange[imom]+"_"+muonType[imu]+"_"+region[ireg]);
-	ProbSSIsoMu[imom][imu][ireg] = (TH2D*)file->Get("ProbSSIsoMu_"+partonMomRange[imom]+"_"+muonType[imu]+"_"+region[ireg]);
-	pdfMass[imom][imu][ireg] = (TH3D*)file->Get("pdfMass_"+partonMomRange[imom]+"_"+muonType[imu]+"_"+region[ireg]);
-	ProbIsoMuUnmatched[imom][imu][ireg] = (TH1D*)file->Get("ProbIsoMuUnmatched_"+muonMomRange[imom]+"_"+muonType[imu]+"_"+region[ireg]);
-	ProbSSIsoMuUnmatched[imom][imu][ireg] = (TH1D*)file->Get("ProbSSIsoMuUnmatched_"+muonMomRange[imom]+"_"+muonType[imu]+"_"+region[ireg]);
-	pdfMassUnmatched[imom][imu][ireg] = (TH1D*)file->Get("pdfMassUnmatched_"+muonMomRange[imom]+"_"+muonType[imu]+"_"+region[ireg]);
-	//	std::cout << imom << " " << imu << " " << ireg << " : " << ProbSSIsoMu[imom][imu][ireg] << " " << ProbSSIsoMuUnmatched[imom][imu][ireg] << std::endl;
+  for (unsigned int iF=0; iF<nPartonFlavours; ++iF) {
+    for (unsigned int iQ=0; iQ<nMuonPartonNetCharge; ++iQ) {
+      for (unsigned int iMom=0; iMom<nPartonMomBins; ++iMom) {
+	for (unsigned int mu=0; mu<nMuonMomBins; ++mu) {
+	  for (unsigned int iR=0; iR<nRegions; ++iR) {
+	    TString name  = 
+	      partonFlavor[iF] + "_" + 
+	      muonPartonNetCharge[iQ] + "_" +
+	      partonMomRange[iMom] + "_" +
+	      muonMomRange[mu] + "_" +
+	      Regions[iR] ;
+	  
+	    // mass distributions
+	    TString histName = "Mass_" + name + "_SS";
+	    pdfMassSS[iF][iQ][iMom][mu][iR] = (TH1D*)file->Get(histName);
+      
+	    histName = "Mass_" + name;
+	    pdfMass[iF][iQ][iMom][mu][iR] = (TH1D*)file->Get(histName);
+	    
+	    // probability to pass selection
+	    histName = "probMu_" + name + "_SS";
+	    probSS[iF][iQ][iMom][mu][iR] = (TH1D*)file->Get(histName);
+	    
+	    histName = "probMu_" + name;
+	    prob[iF][iQ][iMom][mu][iR] = (TH1D*)file->Get(histName);
+	  }
+	}
       }
     }
   }
 
-
-
 }
 
 QCDModel::~QCDModel() {
-
+  delete file;
 }
 
-double QCDModel::getProbIsoMu(int iMom, int muType, int ireg, int iflav, int inet) {
+double QCDModel::getProb(int pMom, int muMom, int region, int flav, int qnet, bool inclusive) {
 
-  if (iMom<0) iMom = 0;
-  if (iMom>2) iMom = 2;
-  if (muType<0) muType = 0;
-  if (muType>1) muType = 1;
-  if (ireg<0) ireg = 0;
-  if (ireg>2) ireg = 2;
+  if (pMom<0) pMom = 0;
+  if (pMom>3) pMom = 3;
+  if (muMom<0) muMom = 0;
+  if (muMom>3) muMom = 3;
+  if (region<0) region = 0;
+  if (region>1) region = 1;
+  if (flav<0) flav = 0;
+  if (flav>4) flav = 4;
+  if (qnet<0) qnet = 0;
+  if (qnet>1) qnet = 1;
   
-  if (iflav==1) inet=0; // gluons
-
-  double output = 1;
-  if (iflav<0) {
-    output = ProbIsoMuUnmatched[iMom][muType][ireg]->GetBinContent(1);
-  }
-  else 
-    output = ProbIsoMu[iMom][muType][ireg]->GetBinContent(iflav+1,inet+1);
-
-  return output;
-
-}
-
-double QCDModel::getProbSSIsoMu(int iMom, int muType, int ireg, int iflav, int inet) {
-
-  if (iMom<0) iMom = 0;
-  if (iMom>2) iMom = 2;
-  if (muType<0) muType = 0;
-  if (muType>1) muType = 1;
-  if (ireg<0) ireg = 0;
-  if (ireg>2) ireg = 2;
-  
-  if (iflav==1) inet=0; // gluons
-
-  double output = 1;
-  if (iflav<0) {
-    output = ProbSSIsoMuUnmatched[iMom][muType][ireg]->GetBinContent(1);
-  }
-  else 
-    output = ProbSSIsoMu[iMom][muType][ireg]->GetBinContent(iflav+1,inet+1);
-
-  return output;
-
-}
-
-double QCDModel::getMassPdf(int iMom, int muType, int ireg, int iflav, int inet, double mass) {
-  
-  if (iMom<0) iMom = 0;
-  if (iMom>2) iMom = 2;
-  if (muType<0) muType = 0;
-  if (muType>1) muType = 1;
-  if (ireg<0) ireg = 0;
-  if (ireg>2) ireg = 2;
-
-  if (iflav==1) inet=0; // gluons 
-
-  int imass = int(mass);
-
-  double output = 1;
-  if (iflav<0)
-    output = pdfMassUnmatched[iMom][muType][ireg]->GetBinContent(imass+1);
+  double output = 1.0;
+  if (inclusive) 
+    output = prob[flav][qnet][pMom][muMom][region]->GetBinContent(1);
   else
-    output = pdfMass[iMom][muType][ireg]->GetBinContent(iflav+1,inet+1,imass+1);
-  return output;
-
-}
-
-double QCDModel::getMuMassPdf(int iMom, int muType, int ireg, int iflav,int inet, double mass) {
-
-  if (iMom<0) iMom = 0;
-  if (iMom>2) iMom = 2;
-  if (muType<0) muType = 0;
-  if (muType>1) muType = 1;
-  if (ireg<0) ireg = 0;
-  if (ireg>2) ireg = 2;
-
-  if (iflav==1) inet=0; // gluons
-
-  double output = getProbIsoMu(iMom,muType,ireg,iflav,inet) *
-    getMassPdf(iMom,muType,ireg,iflav,inet,mass);
+    output = probSS[flav][qnet][pMom][muMom][region]->GetBinContent(1);
 
   return output;
 
 }
 
-double QCDModel::getSSMuMassPdf(int iMom, int muType, int ireg, int iflav,int inet, double mass) {
+double QCDModel::getMassPdf(int pMom, int muMom, int region, int flav, int qnet, double mass, bool inclusive) {
+  
+  if (pMom<0) pMom = 0;
+  if (pMom>3) pMom = 3;
+  if (muMom<0) muMom = 0;
+  if (muMom>3) muMom = 3;
+  if (region<0) region = 0;
+  if (region>1) region = 1;
+  if (flav<0) flav = 0;
+  if (flav>4) flav = 4;
+  if (qnet<0) qnet = 0;
+  if (qnet>1) qnet = 1;
 
-  if (iMom<0) iMom = 0;
-  if (iMom>2) iMom = 2;
-  if (muType<0) muType = 0;
-  if (muType>1) muType = 1;
-  if (ireg<0) ireg = 0;
-  if (ireg>2) ireg = 2;
-
-  if (iflav==1) inet=0; // gluons
-
-  double output = getProbSSIsoMu(iMom,muType,ireg,iflav,inet) *
-    getMassPdf(iMom,muType,ireg,iflav,inet,mass);
-
+  double output = 1.0;
+  if (inclusive) {
+    int bin = pdfMass[flav][qnet][pMom][muMom][region]->FindBin(mass);
+    output  = pdfMass[flav][qnet][pMom][muMom][region]->GetBinContent(bin);
+  }
+  else {
+    int bin = pdfMassSS[flav][qnet][pMom][muMom][region]->FindBin(mass);
+    output  = pdfMassSS[flav][qnet][pMom][muMom][region]->GetBinContent(bin);
+  }
   return output;
 
 }
+

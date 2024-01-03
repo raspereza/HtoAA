@@ -491,7 +491,7 @@ public :
    Float_t         genid2;
    Float_t         genx2;
    Float_t         genScale;
-   Float_t         gen_pythiaweights[20];
+   Float_t         gen_pythiaweights[46];
    Float_t         weightScale0;
    Float_t         weightScale1;
    Float_t         weightScale2;
@@ -2214,7 +2214,7 @@ void AC1B::Init(TTree *tree, bool isData)
    fChain->SetBranchAddress("genid2", &genid2, &b_genid2);
    fChain->SetBranchAddress("genx2", &genx2, &b_genx2);
    fChain->SetBranchAddress("genScale", &genScale, &b_genScale);
-   fChain->SetBranchAddress("gen_pythiaweights", &gen_pythiaweights, &b_gen_pythiaweights);
+   fChain->SetBranchAddress("gen_pythiaweights", gen_pythiaweights, &b_gen_pythiaweights);
    fChain->SetBranchAddress("weightScale0", &weightScale0, &b_weightScale0);
    fChain->SetBranchAddress("weightScale1", &weightScale1, &b_weightScale1);
    fChain->SetBranchAddress("weightScale2", &weightScale2, &b_weightScale2);

@@ -10,6 +10,7 @@
 #include "TH1.h"
 #include "TH2.h"
 #include "TH3.h"
+#include "QCDModelDefinitions.h"
 
 using namespace std;
 
@@ -20,27 +21,27 @@ class QCDModel {
  QCDModel(TString fileName);
  ~QCDModel();
 
- double getProbIsoMu(int iMom, int muType, int ireg, int iflav,int inet); // P(mu->iso mu)
- double getProbSSIsoMu(int iMom, int muType, int ireg, int iflav,int inet); // P(SS mu->iso mu)
- double getMassPdf(int iMom, int muType, int ireg, int iflav, int inet, double mass); // pdf(m)
- double getMuMassPdf(int iMom, int muType, int ireg, int iflav,int inet, double mass); // P(mu->iso mu)*pdf(m)
- double getSSMuMassPdf(int iMom, int muType, int ireg, int iflav,int inet, double mass); // P(SS mu->iso mu)*pdf(m)
-
+ // bool incl = True -> probability and mass pdf are taken from inclusive muon sample
+ // bool incl = False -> probability and mass pdf are taken from sample of SS muons
+ double getProb   (int pMom, int muMom, int region, int flav, int qnet, bool incl); // prob(mu->Iso/LooseIso) 
+ double getMassPdf(int pMom, int muMom, int region, int flav, int qnet, double mass, bool incl); // pdf(m) inclusive
 
  private:
 
  TFile * file;
 
- // 3 momentum bins x 2 muon types x 3 regions
- TH2D * ProbIsoMu[3][2][3]; // 2D : [flavor,net-charge]
- TH2D * ProbSSIsoMu[3][2][3]; // 2D : [flavor,net-charge]
- TH1D * ProbIsoMuUnmatched[3][2][3]; // 1D : 1bin
- TH1D * ProbSSIsoMuUnmatched[3][2][3]; // 1D : 1bin
- 
+ // 5 flavours 
+ // x 2 qnet (net charge of muon parton) 
+ // x 4 parton momentum bins 
+ // x 4 muon momentum bins 
+ // x 2 regions (Iso, LooseIso)
+ // Bins are defined in the header file
+ // HtoAA/Utilities/interface/QCDModelDefinitions 
+ TH1D * prob[5][2][4][4][2]; 
+ TH1D * probSS[5][2][4][4][2]; 
 
- // 3 momentum bins x 2 muon types x 3 regions
- TH3D * pdfMass[3][2][3]; // 3D : [flavor,net-charge,mass]                                              
- TH1D * pdfMassUnmatched[3][2][3]; // 1D : [mass]
+ TH1D * pdfMass[5][2][4][4][2]; 
+ TH1D * pdfMassSS[5][2][4][4][2]; 
 
 
 };

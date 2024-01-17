@@ -54,7 +54,7 @@ in loop. To merge output RooT files for one sample use script [hadd.sh](https://
 
 Analysis macro [analysis_macro_ztt.cpp](https://github.com/raspereza/HtoAA/blob/main/4Tau/bin/analysis_macro_ztt.cpp) selects muon+track candidates, fulfilling set of loose requirements. Muon must meet nominal ID criteria and loose relative isolation criterion, relIso<0.4. The 1-prong tau candidate is required to meet all criteria of the nominal analysis. Both same-sign and opposite sign pairs of muon and 1-prong tau candidates are selected. The sample of same-sign pairs are used to estimate QCD background. No cut on transverse mass of muon and MET is applied in the selection. The macro `analysis_macro_ztt.cpp` fills tuple named `mutrkTree` with the [set of variables](https://github.com/raspereza/HtoAA/blob/main/4Tau/bin/analysis_macro_ztt.cpp#L441-L536) used to create datacards for the measurements. 
 
-The datacards are created by macro (createCardsZtt.cpp)[https://github.com/raspereza/HtoAA/blob/main/4Tau/bin/createCardsZtt.cpp]. It is executed with two arguments, configuration file [Cards.conf](https://github.com/raspereza/HtoAA/blob/main/4Tau/ztt/Cards.conf) and era (2016, 2017 or 2018; the code compines 2016_preVFP and 2016_post datasets in 2016 dataset). Example of running:
+The datacards are created by macro [createCardsZtt.cpp](https://github.com/raspereza/HtoAA/blob/main/4Tau/bin/createCardsZtt.cpp). It is executed with two arguments, configuration file [Cards.conf](https://github.com/raspereza/HtoAA/blob/main/4Tau/ztt/Cards.conf) and era (2016, 2017 or 2018; the code compines 2016_preVFP and 2016_post datasets in 2016 dataset). Example of running:
 ```
 createCardsZtt Cards.conf 2017
 ``` 

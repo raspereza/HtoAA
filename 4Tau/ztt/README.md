@@ -91,7 +91,7 @@ The meaning of the configuration parameters is explained below
 * `XMinZmm` : lower boundary of the dimuon invariant mass distribution in the Z->mumu control region
 * `XMaxZmm` : upper boundary of the dimuon invariant mass distribution in the Z->mumu control region 
 * `CutLowMT` : upper cut on mT(muon,MET), defining `lowMT` measurement region enriched in Z->tautau events
-* `CutHighMT` : lower cut on mT(muon,MET), defining `highMT` control region t fake background
+* `CutHighMT` : lower cut on mT(muon,MET), defining `highMT` control region enriched in jet->tau fake background, which is supposed to be constrained by this region
 * `DeltaPhiCut` : lower cut on deltaPhi(muon,track)
 * `TrkPtCutForCones` : lower cut on track pT in measurements for random isolation cones
 * `UseZMuMu` : if true, Z->mumu control region is included in the fit and rate parameter, controlling normalisation of the DY process, is introduced; otherwise Z->mumu control region is removed from the measurement.

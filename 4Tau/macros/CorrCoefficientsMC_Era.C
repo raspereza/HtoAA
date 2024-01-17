@@ -26,12 +26,14 @@ double sysUnc(double mass,
 
 void CorrCoefficientsMC_Era(
 			    TString era = "2018",
-			    TString subfolder = "bin5p2",
 			    bool signalRegion = false,
 			    bool extendedSideband = false,
 			    bool applySystematics = false
 			    ) {
   
+
+  TString subfolder = "bin5p2"; // for binning [0,1,2,3,4,5.2,12] 
+
   gROOT->SetBatch(true);
   TH1::SetDefaultSumw2(true);
   TH2::SetDefaultSumw2(true);
@@ -266,9 +268,9 @@ void CorrCoefficientsMC_Era(
     suffix = "signal";
   suffix += "_mc";
 
-  canv->Print("CorrCoefficients_"+suffix+"_"+"_"+era+".png");
+  canv->Print("CorrCoefficients_"+suffix+"_"+era+".png");
 
-  TFile * fileCorr = new TFile("CorrCoefficients_"+suffix+"_"+"_"+era+".root","recreate");
+  TFile * fileCorr = new TFile("CorrCoefficients_"+suffix+"_"+era+".root","recreate");
   fileCorr->cd("");
   corrCoeffX->Write("corrCoeff");
   fileCorr->Close();

@@ -6,62 +6,79 @@
 //  TH1D * hist1Dold = (TH1D*)file->Get("ModelInvMassH");
 //  TH2D * hist2Dold = (TH2D*)file->Get("ModelInvMass2DH");
 
+// Systematic uncertainty (parton shower scale) 
+// parameterized as a function of (mu,trk) mass
+double sysUnc(double mass,
+	      TString era) {
+  double alpha = 0.017;
+  double beta = 10.2;
+  if (era=="2017") {
+    alpha = 0.018;
+    beta = 11.5;
+  }
+  else if (era=="2018") {
+    alpha = 0.013;
+    beta = 13.0;
+  }
+  return alpha*TMath::Exp(mass/beta);    
+
+} 
+
 void CorrCoefficientsMC_Era(
-			     TString era = "2018",
-			     bool signalRegion = false,
-			     bool btagVeto = true
-			     ) {
-
-
-  std::map<TString,double> eraLumi = {
-    {"2016_preVFP", 19520},
-    {"2016_postVFP",16810},
-    {"2017",        41480},
-    {"2018",        59830}
-  };
-
-
-
-  std::map<TString,TString> eraLabel = {
-    {"2016_preVFP", "2016 (preVFP), 19.5 fb^{-1}"},
-    {"2016_postVFP","2016 (postVFP), 16.8 fb^{-1}"},
-    {"2017",        "2017 41.5 fb^{-1}"},
-    {"2018",        "2018 59.8 fb^{-1}"}
-  };
-
-  lumi_13TeV = eraLabel[era];
-
-  TString dir("/nfs/dust/cms/user/rasp/Run/Run"+era+"_UL/mutrk");
+			    TString era = "2018",
+			    TString subfolder = "bin5p2",
+			    bool signalRegion = false,
+			    bool extendedSideband = false,
+			    bool applySystematics = false
+			    ) {
+  
+  gROOT->SetBatch(true);
   TH1::SetDefaultSumw2(true);
   TH2::SetDefaultSumw2(true);
   SetStyle();
 
   TString baseName1D = "InvMass";
   TString baseName2D = "InvMass2D";
-  TString Suffix = "_ControlYH";
-  if (signalRegion) 
-    Suffix = "H";    
-
-  //  TFile * file = new TFile(dir+"/QCD_Pt-20toInf_MuEnrichedPt15.root");
-  //  TFile * file = new TFile(dir+"/QCD_Pt-15To20_MuEnrichedPt5.root");
-  TFile * file = new TFile(dir+"/QCD_Pt-20To30_MuEnrichedPt5.root");
-  TH1D * hist1Dold = (TH1D*)file->Get(baseName1D+Suffix);
-  TH2D * hist2Dold = (TH2D*)file->Get(baseName2D+Suffix);
-  TH1D * histWeightsH = (TH1D*)file->Get("histWeightsH");
-  std::cout << hist1Dold << " " << hist2Dold << " " << " " << histWeightsH << std::endl;
-
-  //  double norm = 720648000 * 0.00042/histWeightsH->GetSumOfWeights(); // QCD_Pt-20toInf_MuEnrichedPt15
-  //  double norm = 1273190000 * 0.003/histWeightsH->GetSumOfWeights(); // QCD_Pt-15To20_MuEnrichedPt5
-  double norm = 558528000 * 0.0053/histWeightsH->GetSumOfWeights(); // QCD_Pt-20To30_MuEnrichedPt5
-  int nBins = hist1Dold->GetNbinsX();
-  for (int iB=1; iB<=nBins; ++iB) {
-    hist1Dold->SetBinContent(iB,norm*hist1Dold->GetBinContent(iB));
-    hist1Dold->SetBinError(iB,norm*hist1Dold->GetBinError(iB));
-    for (int jB=1; jB<=nBins; ++jB) {
-      hist2Dold->SetBinContent(iB,jB,norm*hist2Dold->GetBinContent(iB,jB));    
-      hist2Dold->SetBinError(iB,jB,norm*hist2Dold->GetBinError(iB,jB));
-    }
+  TString Suffix = "_ControlXH";
+  if (extendedSideband) {
+    Suffix = "_ControlYH";
   }
+  if (signalRegion) {
+    Suffix = "H";        
+  }
+
+  int nBinsNew = 6;
+  double bins[7]     = {0, 1, 2, 3, 4, 5.2, 20};
+  double binsCorr[7] = {0, 1, 2, 3, 4, 5.2, 12.};
+
+  // lumi in invfb
+  std::map<TString,double> eraLumi = {
+    {"2016_preVFP", 19.520},
+    {"2016_postVFP",16.810},
+    {"2017",        14.480},
+    {"2018",        59.830}
+  };
+
+  std::map<TString,TString> eraLabel = {
+    {"2016_preVFP", "2016 (preVFP), 19.5 fb^{-1}"},
+    {"2016_postVFP","2016 (postVFP), 16.8 fb^{-1}"},
+    {"2016",        "2016 36.3 fb^{-1}"},
+    {"2017",        "2017 41.5 fb^{-1}"},
+    {"2018",        "2018 59.8 fb^{-1}"}
+  };
+
+  std::map<TString,vector<TString>> eraGroup = {
+    {"2016_preVFP",{"2016_preVFP"}},
+    {"2016_postVFP",{"2016_postVFP"}},
+    {"2016",{"2016_preVFP","2016_postVFP"}},
+    {"2017",{"2017"}},
+    {"2018",{"2018"}},
+  };
+
+  vector<TString> samples = eraGroup[era];
+  TH1D * hist1D;
+  TH2D * hist2D;
+  bool isFirst = true;
   
   TString SamplesMuEnrichedQCD[11] = {
     "QCD_Pt-15To20_MuEnrichedPt5",
@@ -91,85 +108,107 @@ void CorrCoefficientsMC_Era(
     32.3486*0.14552
   };
 
-  int nBinsNew;
-  double *bins;
-  double *binsCorr;
-
-  if (btagVeto) {
-    nBinsNew = 5;
-    double tempBins[6] = {0, 1, 2, 3, 4, 20};
-    double tempBinsCorr[6] = {0, 1, 2, 3, 4, 12};
-    bins = tempBins;
-    binsCorr = tempBinsCorr;
-  } else {
-    nBinsNew = 6;
-    double tempBins[7] = {0, 1, 2, 3, 4, 6, 20};
-    double tempBinsCorr[7] = {0, 1, 2, 3, 4, 6, 12};
-    bins = tempBins;
-    binsCorr = tempBinsCorr;
-  }
-
-  TH1D * hist1D = (TH1D*)TH1DtoTH1D(hist1Dold,nBinsNew,bins,true,"_new");
-  TH2D * hist2D = (TH2D*)TH2DtoTH2D(hist2Dold,nBinsNew,bins,nBinsNew,bins,"_new");
-
-  for (int iS=2; iS<11; ++iS) {
-    TFile * fileSample = new TFile(dir+"/"+SamplesMuEnrichedQCD[iS]+".root");
-    TH1D * hist1DoldSample = (TH1D*)fileSample->Get(baseName1D+Suffix);
-    TH2D * hist2DoldSample = (TH2D*)fileSample->Get(baseName2D+Suffix);
-    TH1D * histWeightsSampleH = (TH1D*)fileSample->Get("histWeightsH");
-    double normSample = xsecMuEnrichedQCD[iS]/histWeightsSampleH->GetSumOfWeights();
-    for (int iB=1; iB<=nBins; ++iB) {
-      hist1DoldSample->SetBinContent(iB,normSample*hist1DoldSample->GetBinContent(iB));
-      hist1DoldSample->SetBinError(iB,normSample*hist1DoldSample->GetBinError(iB));
-      for (int jB=1; jB<=nBins; ++jB) {
-	hist2DoldSample->SetBinContent(iB,jB,normSample*hist2DoldSample->GetBinContent(iB,jB));
-	hist2DoldSample->SetBinError(iB,jB,normSample*hist2DoldSample->GetBinError(iB,jB));
+  for (auto sample : samples) {
+    TString dir = "/nfs/dust/cms/user/rasp/Run/QCDModel/"+sample+"/"+subfolder;
+    std::cout << std::endl;
+    double lumi = eraLumi[sample];
+    for (int iS=1; iS<11; ++iS) {
+      TString name = SamplesMuEnrichedQCD[iS];
+      TFile * fileSample = new TFile(dir+"/"+name+".root");
+      if (fileSample->IsZombie() || fileSample==NULL) {
+	std::cout << "file " << name << ".root is not found in folder " << std::endl;
+	std::cout << dir << std::endl;
+	return;
+      }
+      TH1D * hist1DoldSample = (TH1D*)fileSample->Get(baseName1D+Suffix);
+      if (hist1DoldSample==NULL) {
+	std::cout << "histogram named " << baseName1D << Suffix 
+		  << " not found in file " << name << ".root" << std::endl;
+	return;
+      } 
+      TH2D * hist2DoldSample = (TH2D*)fileSample->Get(baseName2D+Suffix);
+      if (hist2DoldSample==NULL) {
+	std::cout << "histogram named " << baseName2D << Suffix 
+		  << " not found in file " << name << ".root" << std::endl;
+	return;
+      } 
+      TH1D * histWeightsSampleH = (TH1D*)fileSample->Get("histWeightsH");
+      double nevents = histWeightsSampleH->GetSumOfWeights();
+      std::cout << sample << " : " 
+		<< SamplesMuEnrichedQCD[iS] << " : " 
+		<< int(nevents) << std::endl;
+      double normSample = xsecMuEnrichedQCD[iS]*lumi/nevents;
+      hist1DoldSample->Scale(normSample);
+      hist2DoldSample->Scale(normSample);
+      TH1D * hist1DSample = (TH1D*)TH1DtoTH1D(hist1DoldSample,nBinsNew,bins,true,sample+name);
+      TH2D * hist2DSample = (TH2D*)TH2DtoTH2D(hist2DoldSample,nBinsNew,bins,nBinsNew,bins,sample+name);
+      if (isFirst) {
+	hist1D = (TH1D*)hist1DSample->Clone("hist1D");
+	hist2D = (TH2D*)hist2DSample->Clone("hist2D");
+	isFirst = false;
+      }
+      else {
+	hist1D->Add(hist1D,hist1DSample);
+	hist2D->Add(hist2D,hist2DSample);
       }
     }
-    TH1D * hist1DSample = (TH1D*)TH1DtoTH1D(hist1DoldSample,nBinsNew,bins,true,SamplesMuEnrichedQCD[iS]+"_new");
-    TH2D * hist2DSample = (TH2D*)TH2DtoTH2D(hist2DoldSample,nBinsNew,bins,nBinsNew,bins,SamplesMuEnrichedQCD[iS]+"_new");
-    hist1D->Add(hist1D,hist1DSample);
-    hist2D->Add(hist2D,hist2DSample);
-
+    std::cout << std::endl;
   }
 
   TH2D * corrCoeff = new TH2D("corrCoeff","",nBinsNew,binsCorr,nBinsNew,binsCorr);
   TH2D * corrCoeffX = new TH2D("corrCoeffX","",nBinsNew,bins,nBinsNew,bins);
-  
-  hist1D->Scale(1/hist1D->GetSum());
-  hist2D->Scale(1/hist2D->GetSum());
+  TH2D * corrCoeffH = new TH2D("corrCoeffH","",nBinsNew,binsCorr,nBinsNew,binsCorr);
+  TH2D * corrCoeffL = new TH2D("corrCoeffL","",nBinsNew,binsCorr,nBinsNew,binsCorr);
+
+  std::cout << std::endl;
+  hist1D->Scale(1/hist1D->GetSumOfWeights());
+  hist2D->Scale(1/hist2D->GetSumOfWeights());
 
   for (int iB=1; iB<=nBinsNew; ++iB) {
     for (int jB=iB; jB<=nBinsNew; ++jB) {
       double x = hist1D->GetBinContent(iB);
       double y = hist1D->GetBinContent(jB);
       double denominator = x*y;
-      if (iB!=jB)
+      double ex = hist1D->GetBinError(iB);
+      double ey = hist1D->GetBinError(jB);
+      double rx = ex/x;
+      double ry = ey/y;
+      double rdenominator = 2*rx;
+      if (iB!=jB) {
 	denominator *= 2.0;
+	rdenominator = 2.0*TMath::Sqrt(rx*rx+ry*ry);
+      }
       double numerator  = hist2D->GetBinContent(jB,iB);
       double enumerator = hist2D->GetBinError(jB,iB);
-      if (iB!=jB) { 
+      if (iB!=jB) {
 	numerator += hist2D->GetBinContent(iB,jB);
-	double enumerator2 = hist2D->GetBinError(iB,jB);
-	enumerator = TMath::Sqrt(enumerator*enumerator+enumerator2*enumerator2);
+	enumerator *= 2.0;
       }
+      double renumenator = enumerator/numerator;
+      double rcorr = TMath::Sqrt(renumenator*renumenator+rdenominator*rdenominator);
       double corr  = numerator / denominator ;
-      double ecorr = enumerator / denominator;
-      if (iB==5&&jB==5&&!signalRegion) {
-	corr *= 1.15;
-	ecorr *= 1.07;
-      }
+      double stat = rcorr*corr;
+      double center1 = hist1D->GetXaxis()->GetBinWidth(iB);
+      double center2 = hist1D->GetXaxis()->GetBinWidth(jB);
+      double sys1 = corr*sysUnc(center1,era);
+      double sys2 = corr*sysUnc(center2,era);
+      //      double ecorr = TMath::Sqrt(stat*stat+sys1*sys1+sys2*sys2);
+      double ecorr = stat;
       corr = floor(100*corr+0.5)/100;
       ecorr = floor(100*ecorr+0.5)/100;
       printf("[%1i,%1i] = %5.2f +/- %5.2f \n",iB,jB,corr,ecorr);
-      corrCoeff->SetBinContent(iB,jB,corr);
-      corrCoeff->SetBinError(iB,jB,ecorr);
+      //      corrCoeff->SetBinContent(iB,jB,corr);
+      //      corrCoeff->SetBinError(iB,jB,ecorr);
       corrCoeffX->SetBinContent(iB,jB,corr);
       corrCoeffX->SetBinError(iB,jB,ecorr);
+      double ehigh = corrCoeffH->GetBinError(iB,jB)/denominator;
+      double elow = corrCoeffL->GetBinError(iB,jB)/denominator;
+      corrCoeffH->SetBinContent(iB,jB,corr);
+      corrCoeffH->SetBinError(iB,jB,ecorr);
+      corrCoeffL->SetBinContent(iB,jB,corr);
+      corrCoeffL->SetBinError(iB,jB,ecorr);      
     }
   }
-
-  
 
   corrCoeff->GetXaxis()->SetNdivisions(207);
   corrCoeff->GetYaxis()->SetNdivisions(207);
@@ -178,8 +217,31 @@ void CorrCoefficientsMC_Era(
   corrCoeff->GetXaxis()->SetTitle("m_{1} [GeV]");
   corrCoeff->GetYaxis()->SetTitle("m_{2} [GeV]");
 
-  TCanvas * canv = MakeCanvas("canv","",700,700);
+  TCanvas * canv = MakeCanvas("canv","",1000,700);
   corrCoeff->Draw("texte");
+  TLatex * latexBin = new TLatex();
+  latexBin->SetTextSize(0.029);
+  latexBin->SetTextFont(32);
+
+  for (int iB=1; iB<=nBinsNew; ++iB) {
+    for (int jB=iB; jB<=nBinsNew; ++jB) {
+      double x = corrCoeffH->GetBinContent(iB,jB);
+      double elow = corrCoeffL->GetBinError(iB,jB);
+      double ehigh = corrCoeffH->GetBinError(iB,jB);
+      double error = corrCoeffX->GetBinError(iB,jB);
+      char label[10];
+      sprintf(label,"%4.2f^{+%4.2f}_{ -%4.2f}",x,ehigh,elow);
+      TString Label(label);
+      double binX = corrCoeffH->GetXaxis()->GetBinCenter(iB);
+      double binWidthX = corrCoeffH->GetXaxis()->GetBinWidth(iB); 
+      double binY = corrCoeffH->GetYaxis()->GetBinCenter(jB);
+      double binWidthY = corrCoeffH->GetYaxis()->GetBinWidth(jB);       
+      double textX = binX - 0.45;
+      double textY = binY;
+      latexBin->SetTextAlign(12);
+      latexBin->DrawLatex(textX,textY,Label);
+    }
+  }
   
   for (int i=1; i<nBinsNew; ++i) {
     double yL = binsCorr[i];
@@ -191,19 +253,22 @@ void CorrCoefficientsMC_Era(
     lineY->Draw();
   }
 
-  writeExtraText = "Simulation";
-  CMS_lumi(canv,4,33);
-  
+  lumi_13TeV = eraLabel[era];
+  writeExtraText = true;
+  extraText = "Simulation";  
+  CMS_lumi(canv,4,33);  
   canv->Update();
 
   TString suffix("control");
+  if (extendedSideband)
+    suffix += "_ext";
   if (signalRegion)
     suffix = "signal";
   suffix += "_mc";
 
-  canv->Print("CorrCoefficients_"+suffix+"_"+era+".png");
+  canv->Print("CorrCoefficients_"+suffix+"_"+"_"+era+".png");
 
-  TFile * fileCorr = new TFile("CorrCoefficients_"+suffix+"_"+era+".root","recreate");
+  TFile * fileCorr = new TFile("CorrCoefficients_"+suffix+"_"+"_"+era+".root","recreate");
   fileCorr->cd("");
   corrCoeffX->Write("corrCoeff");
   fileCorr->Close();

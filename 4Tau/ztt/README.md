@@ -118,6 +118,18 @@ QCD multijet background is extrapolated from `lowMT` (`highMT`) sideband region 
 * `ztt_highMT_$bin_$era.txt(root)` : datacards and shapes in the `highMT` control region;
 Here `$era = 2016, 2017, 2018` and `$bin` is one of aforementioned measurement bins.
 
-The produced datacards can be then processed by the [Higgs Combination toolkit]().
+The produced datacards are used to measure track ID/Iso scale factors.
+Bash script [RunFit.bash](https://github.com/raspereza/HtoAA/blob/main/4Tau/ztt/RunFit.bash) illustrates execution of fits using [Higgs Combination toolkit](http://cms-analysis.github.io/HiggsAnalysis-CombinedLimit). Script takes three arguments as an input:
+```
+./RunFit.bash $era $bin $option
+```
+where
+* `$era = 2016, 2017, 2018` : data-taking period;
+* `$bin` : one of the measurement bins (see above);
+* `$option = robustFit or robustHesse` : fit option of combine utility; the second option provides more reliable estimate of the fitted parameters. 
 
-Example of performing fit is given by bash script (RunFit.bash)[]     
+The output of the fit is saved in the same folder, where datacards are stored, under the name
+```
+fitDiagnostics_$bin_$era_$option.root
+``` 
+The output file contains results of the fit, including computed value of track ID/Iso scale factor (nuisance parameter named `r`), as well as prefit and postfit shapes which can be used to produce nice looking plots. 

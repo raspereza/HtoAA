@@ -41,6 +41,24 @@
  <use name="CondTools/BTau"/>
 </bin>
 
+<bin name="analysis_macro_azh" file="analysis_macro_azh.cpp">
+ <use name="rootgraphics"/>
+ <use name="root"/>
+ <use name="rootmath"/>
+ <use name="roottmva"/>
+ <use name="boost" />
+ <use name="boost_program_options"/>
+ <use name="HtoAA/Utilities"/>
+ <use name="HTT-utilities/LepEffInterface"/>
+ <use name="FWCore/Framework"/>
+ <use name="FWCore/ParameterSet"/>
+ <use name="DataFormats/Common"/>
+ <use name="PhysicsTools/Utilities"/>
+ <use name="CommonTools/Utils"/>
+ <use name="CondFormats/BTauObjects"/>
+ <use name="CondTools/BTau"/>
+</bin>
+
 <bin name="btag_eff" file="btag_eff.cpp">
  <use name="rootgraphics"/>
  <use name="root"/>

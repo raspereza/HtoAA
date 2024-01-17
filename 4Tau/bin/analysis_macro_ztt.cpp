@@ -776,7 +776,7 @@ int main(int argc, char * argv[]) {
 
      float generator_weight = 1.0;
      if (!isData) {
-       if (genweight<0) 
+       if (genweight<0.0) 
 	 generator_weight = -1.0;
      }
      histWeightsH->Fill(1.0,generator_weight);
@@ -797,7 +797,7 @@ int main(int argc, char * argv[]) {
      float weight = 1.0;
      float generator_weight = 1.0;
      if (!isData) {
-       if (genweight<0)
+       if (genweight<0.)
 	 generator_weight = -1.0;
        weight *= generator_weight;
        //       std::cout << "genweight = " << genweight << std::endl;

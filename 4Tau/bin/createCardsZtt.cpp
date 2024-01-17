@@ -198,6 +198,13 @@ std::map<TString,TString> legend_mt = {
   {"highMT","high m_{T}"},
 };
 
+std::map<TString,TString> legend_cone = {
+  {"cone0","#DeltaR=0"},
+  {"cone0p15","#DeltaR=0.15"},
+  {"cone0p30","#DeltaR=0.3"},
+  {"cone0p45","#DeltaR=0.45"}
+};
+
 // accessing files 
 std::map<TString, TFile*> accessFiles(TString dir,
 				      TString era) {
@@ -949,10 +956,10 @@ void WriteDatacards(std::map<TString, TH1D*> histograms,
   TString QCDErr(qcdErr_str);
 
   TString cardName = baseName;
-  if (floatFakes) 
-    cardName += "_floatFakes";
-  if (isZnorm)
-    cardName += "_znorm";
+  //  if (floatFakes) 
+  //    cardName += "_floatFakes";
+  //  if (isZnorm)
+  //    cardName += "_znorm";
 
   cardName += ".txt";
 
@@ -1069,30 +1076,14 @@ int main (int argc, char * argv[])
   const string lowMT = cfg.get<string>("CutLowMT");
   const string highMT = cfg.get<string>("CutHighMT");
   const string dPhi = cfg.get<string>("DeltaPhiCut");
-  const bool onlyZmumu = cfg.get<bool>("OnlyZMuMu");
-  const vector<string> ptbins = cfg.get<vector<string>>("PTBins");
-  
-  vector<TString> available_ptbins = {"5to10","5to15","10to15","15to20","20toInf"};
-  vector<TString> pTbins;
-  for (auto ptbin : ptbins) {
-    TString pTbin(ptbin);
-    bool isFound = false;
-    for (auto name : available_ptbins) {
-      if (name==pTbin) {
-	pTbins.push_back(pTbin);
-	isFound = true;
-      }
-    }
-    if (!isFound) {
-      std::cout << "pt bin /'" << pTbin << "/' is not among available pt bins " << std::endl;
-      for(auto name : available_ptbins) 
-	std::cout << "  " << name;
-      std::cout << std::endl;
-      exit(-1);
-    }
-    
-  }
+  const string trkPtCut = cfg.get<string>("TrkPtCutForCones");
+  const bool useZmumu = cfg.get<bool>("UseZMuMu");
+  const bool floatFakes = cfg.get<bool>("FloatFakes");
 
+  vector<TString> pTbins = {"5to10","5to15","10to15","15to20","20toInf"};
+  vector<TString> dRcones = {"cone0","cone0p15","cone0p30","cone0p45"};
+
+  TString TrkPtCut = TString("trkpt>")+TString(trkPtCut);
   TString CutLowMT = TString("mt<")+TString(lowMT);
   TString CutHighMT = TString("mt>")+TString(highMT);
   TString DatacardsDir(carddir);
@@ -1185,11 +1176,10 @@ int main (int argc, char * argv[])
   TString legend("Z#rightarrow#mu#mu");
   Plot(histsZmm,xtitle,regionZmm,legend,era,PlotDir);
   WriteDatacardsZMM(histsZmm,regionZmm,era,DatacardsDir);
-  if (onlyZmumu) exit(1);
 
-  // ---------------------
-  // muon+track selection
-  // ---------------------
+  // *********************
+  // *** track pT bins ***
+  // *********************
   for (auto pt : pTbins) { // track pT bins
     for (auto mt : mT_regions) { // low and high MT regions
 
@@ -1270,20 +1260,107 @@ int main (int argc, char * argv[])
       histos["QCD"] = histQCD;      
       TString legend = legend_mt[mt] + " " + legend_pt[pt];
       TString xtitle("m_{#mu,trk} [GeV]");
-      //      WriteDatacardsSimple(histos,norm,region,era,DatacardsDir);
 
-      bool floatFakes = false;
-      bool isZnorm = false;
-      WriteDatacards(histos,norm,floatFakes,isZnorm,region,era,DatacardsDir);
-      floatFakes = true;
-      WriteDatacards(histos,norm,floatFakes,isZnorm,region,era,DatacardsDir);
+      bool isFakes = floatFakes;
+      bool isZnorm = useZmumu;
+      WriteDatacards(histos,norm,isFakes,isZnorm,region,era,DatacardsDir);
+      Plot(histos,xtitle,region,legend,era,PlotDir);
 
-      floatFakes = false;
-      isZnorm = true;
-      WriteDatacards(histos,norm,floatFakes,isZnorm,region,era,DatacardsDir);
-      floatFakes = true;
-      WriteDatacards(histos,norm,floatFakes,isZnorm,region,era,DatacardsDir);
+    }
+  }
 
+  // ********************
+  // *** random cones ***
+  // ********************
+  for (auto cone : dRcones) { // cone
+    for (auto mt : mT_regions) { // low and high MT regions
+
+      bool isNonZeroCone = cone=="cone0p15" || cone=="cone0p30" || cone=="cone0p45";
+      // antiisolated muon region
+      // computing OS/SS extrapolation factors for QCD
+      TString region = "ztt_" + mt + "_" + cone + "_antiiso";
+      TString baseCuts = "muiso>0.2&&"+mtcuts[mt]+"&&"+DeltaPhiCut+"&&"+TrkPtCut;
+      if (isNonZeroCone) 
+	baseCuts += "&&"+cone+">0.5";
+      TString var("massmutrk");
+      era_current = era;
+      if (era=="2016") era_current = "2016_preVFP";
+      std::map<TString,TH1D*> histosInvIso = 
+	GetHistosFromTree(treeName,
+			  baseCuts,
+			  var,
+			  era_current,
+			  region,
+			  files,
+			  nbins,
+			  bins);
+      if (era=="2016") {
+	era_current = "2016_postVFP";
+	std::map<TString,TH1D*> histosInvIsoX = 
+	  GetHistosFromTree(treeName,
+			    baseCuts,
+			    var,
+			    era_current,
+			    region,
+			    filesX,
+			    nbins,
+			    bins);
+	addHistograms(histosInvIso,histosInvIsoX);
+      }
+
+      // computing OS/SS extrapolation
+      // factors for QCD background
+      std::map<TString, double> norm = 
+	GetNormQCD(histosInvIso,
+		   region,
+		   era,
+		   PlotDir);
+
+      // isolated muon region 
+      // building templates for datacards
+      region = "ztt_" + mt + "_" + cone;
+      baseCuts = "muiso<0.15&&"+mtcuts[mt]+"&&"+DeltaPhiCut+"&&"+TrkPtCut;
+      if (isNonZeroCone)
+	baseCuts += "&&"+cone+">0.5";
+      era_current = era;
+      if (era=="2016") era_current = "2016_preVFP";
+      std::map<TString,TH1D*> histos = 
+	GetHistosFromTree(
+			  treeName,
+			  baseCuts,
+			  var,
+			  era_current,
+			  region,
+			  files,
+			  nbins,
+			  bins);
+      if (era=="2016") {
+	era_current = "2016_postVFP";
+	std::map<TString,TH1D*> histosX = 
+	  GetHistosFromTree(
+			    treeName,
+			    baseCuts,
+			    var,
+			    era_current,
+			    region,
+			    filesX,
+			    nbins,
+			    bins);
+      
+	addHistograms(histos,histosX);
+      }
+
+      TH1D * histQCD = GetTemplateQCD(era,
+				      region,
+				      histos,
+				      norm);
+      histos["QCD"] = histQCD;      
+      TString legend = legend_mt[mt] + " " + legend_cone[cone];
+      TString xtitle("m_{#mu,trk} [GeV]");
+
+      bool isFakes = floatFakes;
+      bool isZnorm = useZmumu;
+      WriteDatacards(histos,norm,isFakes,isZnorm,region,era,DatacardsDir);
       Plot(histos,xtitle,region,legend,era,PlotDir);
 
     }

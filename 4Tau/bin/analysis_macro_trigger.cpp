@@ -506,10 +506,12 @@ int main(int argc, char * argv[]) {
       std::cout << "Number of entries in Init Tree = " << numberOfEntriesInitTree << std::endl;
       for (Long64_t iEntry=0; iEntry<numberOfEntriesInitTree; iEntry++) {
 	_inittree->GetEntry(iEntry);
-	if (isData)
-	  histWeightsH->Fill(1.,1.);
-	else
-	  histWeightsH->Fill(1.,Genweight);
+	float generator_weight = 1.0;
+	if (!isData) {
+	  if (Genweight<0.)
+	    generator_weight = -1.0;
+	}
+	histWeightsH->Fill(1.,generator_weight);
       }
     }
 
@@ -619,7 +621,14 @@ int main(int argc, char * argv[]) {
       if (nEvents%10000==0) 
 	cout << "      processed " << nEvents << " events" << endl; 
 
-      float weight = 1;
+      float weight = 1.0;
+      float generator_weight = 1.0;
+      if (!isData) {
+	if (genweight<0.)
+	  generator_weight = -1.0;
+	weight *= generator_weight;
+      }
+
 
       if (isData) {
 	if (applyGoodRunSelection) {

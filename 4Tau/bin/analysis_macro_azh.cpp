@@ -176,6 +176,7 @@ int main(int argc, char * argv[]) {
 
   unsigned int nbtag;
   unsigned int njets;
+  unsigned int njetspt20;
   float ptjet[100];
   float etajet[100];
   float phijet[100];
@@ -230,6 +231,7 @@ int main(int argc, char * argv[]) {
   tuple->Branch("phiNegTau",&phiNegTau,"phiNegTau/F");
 
   tuple->Branch("njets",&njets,"njets/i");
+  tuple->Branch("njetspt20",&njetspt20,"njetspt20/i");
   tuple->Branch("nbtag",&nbtag,"nbtag/i");
 
   tuple->Branch("ptjet",ptjet,"ptjet[njets]/F");
@@ -472,12 +474,11 @@ int main(int argc, char * argv[]) {
 
      njets = 0;
      nbtag = 0;
+     njetspt20 = 0;
 
      for (unsigned int jet=0; jet<pfjet_count; ++jet) {
 	 
        float absJetEta = TMath::Abs(pfjet_eta[jet]);
-       float JetPtForBTag = pfjet_pt[jet];
-       float JetEtaForBTag = absJetEta;
        float jetPt = pfjet_pt[jet];
 
        if (jetPt<jetPtCut) continue;
@@ -519,7 +520,9 @@ int main(int argc, char * argv[]) {
        flavorjet[njets] = pfjet_flavour[jet];
        tagjet[njets] = false;
        
-       if (absJetEta<bjetEtaCut&&pfjet_pt[jet]>bjetPtCut&&isCorrectBTag) {
+       if (absJetEta<bjetEtaCut&&jetPt>bjetPtCut&&isCorrectBTag) {
+
+	 njetspt20++;
 	 
 	 float btagDiscr = pfjet_btag[jet][nBTagDiscriminant1];
 	 if (BTagAlgorithm=="pfDeepFlavourJetTags"||BTagAlgorithm=="pfDeepCSVJetTags")

@@ -37,8 +37,24 @@
 #include "RooWorkspace.h"
 #include "RooAbsReal.h"
 #include "RooRealVar.h"
+#include "TBranch.h"
 
 using namespace std;
+
+bool passedFilters(std::map<string,int> * flags, std::vector<TString> met_filters) {
+  bool passed = true; 
+  for (std::map<string,int>::iterator it = flags->begin(); it != flags->end(); ++it) {
+    TString Flag(it->first);
+    for (auto met_filter : met_filters) {
+      if (met_filter==Flag && it->second == 0) {
+	passed = false;
+	break;
+      }
+    }
+  }
+  return passed;
+
+}
 
 float impactParameter(float * v0, float * v, float * p, float &dxy, float &dz) {
 
@@ -296,6 +312,7 @@ int main(int argc, char * argv[]) {
   std::map<std::string, int> * hltriggerprescales = new std::map<std::string, int>() ;
   std::vector<std::string>   * hltfilters = new std::vector<std::string>();
   std::vector<std::string>   * btagdiscriminators = new std::vector<std::string>();
+  std::map<std::string, int> * flags = new std::map<std::string, int>();
 
   std::string rootFileName(argv[2]);
   
@@ -358,30 +375,30 @@ int main(int argc, char * argv[]) {
   TH1D * dzTrackH = new TH1D("dzTrackH","",200,-1,1);
 
   // Signal region
-  TH1D * InvMassLeadingH = new TH1D("InvMassLeadingH","",20,0.,20.);
-  TH1D * InvMassTrailingH = new TH1D("InvMassTrailingH","",20,0.,20.);
-  TH1D * InvMassH = new TH1D("InvMassH","",20,0.,20.);
-  TH2D * InvMass2DH = new TH2D("InvMass2DH","",20,0.,20.,20,0.,20.);
+  TH1D * InvMassLeadingH = new TH1D("InvMassLeadingH","",100,0.,20.);
+  TH1D * InvMassTrailingH = new TH1D("InvMassTrailingH","",100,0.,20.);
+  TH1D * InvMassH = new TH1D("InvMassH","",100,0.,20.);
+  TH2D * InvMass2DH = new TH2D("InvMass2DH","",100,0.,20.,100,0.,20.);
 
   // btag variations ->
 
-  TH1D * InvMassH_btagUp = new TH1D("InvMassH_btagUp","",20,0.,20.);
-  TH2D * InvMass2DH_btagUp = new TH2D("InvMass2DH_btagUp","",20,0.,20.,20,0.,20.);
+  TH1D * InvMassH_btagUp = new TH1D("InvMassH_btagUp","",100,0.,20.);
+  TH2D * InvMass2DH_btagUp = new TH2D("InvMass2DH_btagUp","",100,0.,20.,100,0.,20.);
 
-  TH1D * InvMassH_btagDown = new TH1D("InvMassH_btagDown","",20,0.,20.);
-  TH2D * InvMass2DH_btagDown = new TH2D("InvMass2DH_btagDown","",20,0.,20.,20,0.,20.);
+  TH1D * InvMassH_btagDown = new TH1D("InvMassH_btagDown","",100,0.,20.);
+  TH2D * InvMass2DH_btagDown = new TH2D("InvMass2DH_btagDown","",100,0.,20.,100,0.,20.);
 
-  TH1D * InvMassH_mistagUp = new TH1D("InvMassH_mistagUp","",20,0.,20.);
-  TH2D * InvMass2DH_mistagUp = new TH2D("InvMass2DH_mistagUp","",20,0.,20.,20,0.,20.);
+  TH1D * InvMassH_mistagUp = new TH1D("InvMassH_mistagUp","",100,0.,20.);
+  TH2D * InvMass2DH_mistagUp = new TH2D("InvMass2DH_mistagUp","",100,0.,20.,100,0.,20.);
 
-  TH1D * InvMassH_mistagDown = new TH1D("InvMassH_mistagDown","",20,0.,20.);
-  TH2D * InvMass2DH_mistagDown = new TH2D("InvMass2DH_mistagDown","",20,0.,20.,20,0.,20.);
+  TH1D * InvMassH_mistagDown = new TH1D("InvMassH_mistagDown","",100,0.,20.);
+  TH2D * InvMass2DH_mistagDown = new TH2D("InvMass2DH_mistagDown","",100,0.,20.,100,0.,20.);
 
-  TH1D * InvMassH_jesUp = new TH1D("InvMassH_jesUp","",20,0.,20.);
-  TH2D * InvMass2DH_jesUp = new TH2D("InvMass2DH_jesUp","",20,0.,20.,20,0.,20.);
+  TH1D * InvMassH_jesUp = new TH1D("InvMassH_jesUp","",100,0.,20.);
+  TH2D * InvMass2DH_jesUp = new TH2D("InvMass2DH_jesUp","",100,0.,20.,100,0.,20.);
 
-  TH1D * InvMassH_jesDown = new TH1D("InvMassH_jesDown","",20,0.,20.);
-  TH2D * InvMass2DH_jesDown = new TH2D("InvMass2DH_jesDown","",20,0.,20.,20,0.,20.);
+  TH1D * InvMassH_jesDown = new TH1D("InvMassH_jesDown","",100,0.,20.);
+  TH2D * InvMass2DH_jesDown = new TH2D("InvMass2DH_jesDown","",100,0.,20.,100,0.,20.);
 
   //
   
@@ -432,10 +449,10 @@ int main(int argc, char * argv[]) {
 
   // Background studies
   // N23 
-  TH1D * InvMassN23leadingH = new TH1D("InvMassN23leadingH","",20,0.,20.);
-  TH1D * InvMassN23trailingH = new TH1D("InvMassN23trailingH","",20,0.,20.);
-  TH1D * InvMassN23H = new TH1D("InvMassN23H","",20,0.,20.);
-  TH1D * InvMassN45H = new TH1D("InvMassN45H","",20,0.,20.);
+  TH1D * InvMassN23leadingH = new TH1D("InvMassN23leadingH","",100,0.,20.);
+  TH1D * InvMassN23trailingH = new TH1D("InvMassN23trailingH","",100,0.,20.);
+  TH1D * InvMassN23H = new TH1D("InvMassN23H","",100,0.,20.);
+  TH1D * InvMassN45H = new TH1D("InvMassN45H","",100,0.,20.);
 
   TH1D * ptMuN23H = new TH1D("ptMuN23H","",100,0,100);
   TH1D * ptTrkN23H = new TH1D("ptTrkN23H","",100,0,100);
@@ -447,31 +464,31 @@ int main(int argc, char * argv[]) {
 
   // N1trk, N23trk 
 
-  TH1D * InvMassHardestNtrk23leadingH = new TH1D("InvMassHardestNtrk23leadingH","",20,0.,20.);
-  TH1D * InvMassHardestNtrk23trailingH = new TH1D("InvMassHardestNtrk23trailingH","",20,0.,20.);
-  TH1D * InvMassHardestNtrk23H = new TH1D("InvMassHardestNtrk23H","",20,0.,20.);
+  TH1D * InvMassHardestNtrk23leadingH = new TH1D("InvMassHardestNtrk23leadingH","",100,0.,20.);
+  TH1D * InvMassHardestNtrk23trailingH = new TH1D("InvMassHardestNtrk23trailingH","",100,0.,20.);
+  TH1D * InvMassHardestNtrk23H = new TH1D("InvMassHardestNtrk23H","",100,0.,20.);
 
-  TH1D * InvMassSoftestNtrk23leadingH = new TH1D("InvMassSoftestNtrk23leadingH","",20,0.,20.);
-  TH1D * InvMassSoftestNtrk23trailingH = new TH1D("InvMassSoftestNtrk23trailingH","",20,0.,20.);
-  TH1D * InvMassSoftestNtrk23H = new TH1D("InvMassSoftestNtrk23H","",20,0.,20.);
+  TH1D * InvMassSoftestNtrk23leadingH = new TH1D("InvMassSoftestNtrk23leadingH","",100,0.,20.);
+  TH1D * InvMassSoftestNtrk23trailingH = new TH1D("InvMassSoftestNtrk23trailingH","",100,0.,20.);
+  TH1D * InvMassSoftestNtrk23H = new TH1D("InvMassSoftestNtrk23H","",100,0.,20.);
 
-  TH1D * InvMassHardestNtrk1leadingH = new TH1D("InvMassHardestNtrk1leadingH","",20,0.,20.);
-  TH1D * InvMassHardestNtrk1trailingH = new TH1D("InvMassHardestNtrk1trailingH","",20,0.,20.);
-  TH1D * InvMassHardestNtrk1H = new TH1D("InvMassHardestNtrk1H","",20,0.,20.);
+  TH1D * InvMassHardestNtrk1leadingH = new TH1D("InvMassHardestNtrk1leadingH","",100,0.,20.);
+  TH1D * InvMassHardestNtrk1trailingH = new TH1D("InvMassHardestNtrk1trailingH","",100,0.,20.);
+  TH1D * InvMassHardestNtrk1H = new TH1D("InvMassHardestNtrk1H","",100,0.,20.);
 
-  TH1D * InvMassSoftestNtrk1leadingH = new TH1D("InvMassSoftestNtrk1leadingH","",20,0.,20.);
-  TH1D * InvMassSoftestNtrk1trailingH = new TH1D("InvMassSoftestNtrk1trailingH","",20,0.,20.);
-  TH1D * InvMassSoftestNtrk1H = new TH1D("InvMassSoftestNtrk1H","",20,0.,20.);
+  TH1D * InvMassSoftestNtrk1leadingH = new TH1D("InvMassSoftestNtrk1leadingH","",100,0.,20.);
+  TH1D * InvMassSoftestNtrk1trailingH = new TH1D("InvMassSoftestNtrk1trailingH","",100,0.,20.);
+  TH1D * InvMassSoftestNtrk1H = new TH1D("InvMassSoftestNtrk1H","",100,0.,20.);
 
   // Correlation Plots
-  TH1D * InvMassTrackPlusMuon1D_ControlH = new TH1D("InvMassTrackPlusMuon1D_ControlH","",20,0.,20.); 
-  TH2D * InvMassTrackPlusMuon2D_ControlH = new TH2D("InvMassTrackPlusMuon2D_ControlH","",20,0.,20.,20,0.,20.);
+  TH1D * InvMassTrackPlusMuon1D_ControlH = new TH1D("InvMassTrackPlusMuon1D_ControlH","",100,0.,20.); 
+  TH2D * InvMassTrackPlusMuon2D_ControlH = new TH2D("InvMassTrackPlusMuon2D_ControlH","",100,0.,20.,100,0.,20.);
 
-  TH1D * InvMassTrackPlusMuon1D_ControlXH = new TH1D("InvMassTrackPlusMuon1D_ControlXH","",20,0.,20.); 
-  TH2D * InvMassTrackPlusMuon2D_ControlXH = new TH2D("InvMassTrackPlusMuon2D_ControlXH","",20,0.,20.,20,0.,20.);
+  TH1D * InvMassTrackPlusMuon1D_ControlXH = new TH1D("InvMassTrackPlusMuon1D_ControlXH","",100,0.,20.); 
+  TH2D * InvMassTrackPlusMuon2D_ControlXH = new TH2D("InvMassTrackPlusMuon2D_ControlXH","",100,0.,20.,100,0.,20.);
    
-  TH1D * InvMassTrackPlusMuon1D_ControlYH = new TH1D("InvMassTrackPlusMuon1D_ControlYH","",20,0.,20.); 
-  TH2D * InvMassTrackPlusMuon2D_ControlYH = new TH2D("InvMassTrackPlusMuon2D_ControlYH","",20,0.,20.,20,0.,20.);
+  TH1D * InvMassTrackPlusMuon1D_ControlYH = new TH1D("InvMassTrackPlusMuon1D_ControlYH","",100,0.,20.); 
+  TH2D * InvMassTrackPlusMuon2D_ControlYH = new TH2D("InvMassTrackPlusMuon2D_ControlYH","",100,0.,20.,100,0.,20.);
    
   // Monte Carlo information
   TH1D * deltaRMuonPionH = new TH1D("deltaRMuonPionH","",400,0,4);
@@ -623,6 +640,72 @@ int main(int argc, char * argv[]) {
   dimuonsTree->Branch("ntrkIp",&ntrkIp,"ntrkIp/i");
   dimuonsTree->Branch("npu",&npu,"npu/F");
 
+  TTree * tuple = new TTree("tuple","selected events");
+  ULong64_t t_event;
+  unsigned int t_run;
+
+  unsigned int t_nmu;
+  float t_mupt[100];
+  float t_mueta[100];
+  float t_muphi[100];
+  float t_muiso[100];
+  float t_mudxy[100];
+  float t_mudz[100];
+  float t_muq[100];
+  unsigned int t_mu1_index;
+  unsigned int t_mu2_index;
+
+  float t_mu1_mutrkmass;
+  float t_mu1_trkpt;
+  float t_mu1_trketa;
+  float t_mu1_trkphi;
+
+  float t_mu2_mutrkmass;
+  float t_mu2_trkpt;
+  float t_mu2_trketa;
+  float t_mu2_trkphi;
+
+  unsigned int t_mu1_nsoft;
+  unsigned int t_mu2_nsoft;
+  unsigned int t_njets;
+  unsigned int t_njetspt20;
+  float t_met;
+  float t_metphi;
+  bool t_metfilters;
+  bool t_badmufilter;
+
+  tuple->Branch("event",&t_event,"event/l");
+  tuple->Branch("run",&t_run,"run/i");
+  tuple->Branch("nmuons",&t_nmu,"nmuons/i");
+  tuple->Branch("ptmuon",t_mupt,"ptmuon[nmuons]/F");
+  tuple->Branch("etamuon",t_mueta,"etamuon[nmuons]/F");
+  tuple->Branch("phimuon",t_muphi,"phimuon[nmuons]/F");
+  tuple->Branch("isomuon",t_muiso,"isomuon[nmuons]/F");
+  tuple->Branch("dxymuon",t_mudxy,"dxymuon[nmuons]/F");
+  tuple->Branch("dzmuon",t_mudz,"dzmuon[nmuons]/F");
+  tuple->Branch("qmuon",t_muq,"qmuon[nmuons]/F");
+
+  tuple->Branch("mu1index",&t_mu1_index,"mu1index/i");
+  tuple->Branch("mu1trkmass",&t_mu1_mutrkmass,"mu1trkmass/F");
+  tuple->Branch("mu1trkpt",&t_mu1_trkpt,"mu1trkpt/F");
+  tuple->Branch("mu1trketa",&t_mu1_trketa,"mu1trketa/F");
+  tuple->Branch("mu1trkphi",&t_mu1_trkphi,"mu1trkphi/F");
+  tuple->Branch("mu1nsoft",&t_mu1_nsoft,"mu1nsoft/i");
+
+  tuple->Branch("mu2index",&t_mu2_index,"mu2index/i");
+  tuple->Branch("mu2trkmass",&t_mu2_mutrkmass,"mu2trkmass/F");
+  tuple->Branch("mu2trkpt",&t_mu2_trkpt,"mu2trkpt/F");
+  tuple->Branch("mu2trketa",&t_mu2_trketa,"mu2trketa/F");
+  tuple->Branch("mu2trkphi",&t_mu2_trkphi,"mu2trkphi/F");
+  tuple->Branch("mu2nsoft",&t_mu2_nsoft,"mu2nsoft/i");
+  
+  tuple->Branch("njets",&t_njets,"njets/i");
+  tuple->Branch("njetspt20",&t_njetspt20,"njetspt20/i");
+  tuple->Branch("met",&t_met,"met/F");
+  tuple->Branch("metphi",&t_metphi,"metphi/F");
+  tuple->Branch("metfilters",&t_metfilters,"metfilters/O");
+  tuple->Branch("badmufilter",&t_badmufilter,"badmufilter/O");
+
   string cmsswBase = (getenv ("CMSSW_BASE"));
 
   // Run-lumi selector
@@ -729,6 +812,20 @@ int main(int argc, char * argv[]) {
   float MaxBJetEta = 2.4;
   float MinBJetEta = 0.0;
 
+  // MET filters for data
+  std::vector<TString> metfilters = {
+    "Flag_HBHENoiseFilter",
+    "Flag_HBHENoiseIsoFilter",
+    "Flag_globalSuperTightHalo2016Filter",
+    "Flag_EcalDeadCellTriggerPrimitiveFilter",
+    "Flag_goodVertices",
+    "Flag_BadPFMuonFilter",
+    "Flag_eeBadScFilter"
+  };
+
+  std::vector<TString> badmufilter = {
+    "Flag_BadPFMuonFilter"
+  };
 
   // Trigger efficiencies
   ScaleFactor * SF_muon17 = new ScaleFactor();
@@ -783,9 +880,9 @@ int main(int argc, char * argv[]) {
      for (Long64_t iEntry=0; iEntry<numberOfEntriesInitTree; iEntry++) {
        _inittree->GetEntry(iEntry);
        if (isData)
-	 histWeightsH->Fill(0.,1.);
+	 histWeightsH->Fill(1.,1.);
        else
-	 histWeightsH->Fill(0.,Genweight);
+	 histWeightsH->Fill(1.,Genweight);
      }
    }
 
@@ -799,6 +896,7 @@ int main(int argc, char * argv[]) {
    tree_->SetBranchAddress("event_nr", &event_nr);
    tree_->SetBranchAddress("event_run", &event_run);
    tree_->SetBranchAddress("event_luminosityblock", &event_luminosityblock);
+
 
    // Primary vertex
    tree_->SetBranchAddress("primvertex_x",&primvertex_x);
@@ -871,6 +969,7 @@ int main(int argc, char * argv[]) {
    tree_->SetBranchAddress("run_btagdiscriminators", &btagdiscriminators);
    tree_->SetBranchAddress("hltriggerresults",&hltriggerresults);
    tree_->SetBranchAddress("hltriggerprescales",&hltriggerprescales);
+   tree_->SetBranchAddress("flags",&flags);
 
    tree_->SetBranchAddress("numtruepileupinteractions",&numtruepileupinteractions);
 
@@ -1286,7 +1385,6 @@ int main(int argc, char * argv[]) {
        }
      }
 
-     //     histWeightsH->Fill(1.0,weight);
      counter_InputEventsH->Fill(1.0,weight);
 
      if (isData) {
@@ -1407,6 +1505,7 @@ int main(int argc, char * argv[]) {
 		   << "   should be 3" << std::endl;
 	 isCorrectBTag = false;
        }
+       t_njets = 0;
        if (isCorrectBTag) {
 	 for (unsigned int jet=0; jet<pfjet_count; ++jet) {
 	   
@@ -2522,6 +2621,79 @@ int main(int argc, char * argv[]) {
        InvMassTrackPlusMuon2D_ControlYH->Fill(masslow, masshigh, weight);
 
        counter_ControlYEventsH->Fill(1.0,weight);
+
+       // filling tuple if m1,m2 > 5 GeV
+       if (massLeadingMuonTrk>4.0&&massTrailingMuonTrk>4.0) {
+	 t_event = event_nr;
+	 t_run = event_run;
+	 t_nmu = 0;
+	 for (auto muon : muons) {
+	   if (t_nmu<100) {
+	     t_mupt[t_nmu] = muon_pt[muon]; 
+	     t_mueta[t_nmu] = muon_eta[muon];
+	     t_muphi[t_nmu] = muon_phi[muon];
+	     t_muq[t_nmu] = muon_charge[muon];
+	     t_mudxy[t_nmu] = muon_dxy[muon];
+	     t_mudz[t_nmu] = muon_dz[muon];
+	     float chargedIso = muon_chargedHadIso[muon]; 
+	     float neutralIso = muon_neutralHadIso[muon] + muon_photonIso[muon] - 0.5*muon_puIso[muon];
+	     if (neutralIso<0) neutralIso = 0;
+	     t_muiso[t_nmu] = (chargedIso+neutralIso)/muon_pt[muon];
+	     int imu = muon; 
+	     if (imu==iLeading) t_mu1_index = t_nmu;
+	     if (imu==iTrailing) t_mu2_index = t_nmu;
+	     t_nmu++;
+	   }	 
+	 }
+	 
+	 t_mu1_mutrkmass = massLeadingMuonTrk;
+	 t_mu1_trkpt = TrackLeading4.Pt();
+	 t_mu1_trketa = TrackLeading4.Eta();
+	 t_mu1_trkphi = TrackLeading4.Phi();
+	 t_mu1_nsoft = Soft_trkLeadingMu.size();
+	 
+	 t_mu2_mutrkmass = massTrailingMuonTrk;
+	 t_mu2_trkpt = TrackTrailing4.Pt();
+	 t_mu2_trketa = TrackTrailing4.Eta();
+	 t_mu2_trkphi = TrackTrailing4.Phi();
+	 t_mu2_nsoft = Soft_trkTrailingMu.size();
+
+	 t_njets = 0;
+	 t_njetspt20 = 0;       
+	 
+	 for (unsigned int jet=0; jet<pfjet_count; ++jet) {
+	   
+	   float absJetEta = TMath::Abs(pfjet_eta[jet]);
+	   float jetPt = pfjet_pt[jet];
+	   
+	   bool jetId = tightJetID(pfjet_e[jet],
+				   pfjet_eta[jet],
+				   pfjet_neutralhadronicenergy[jet],
+				   pfjet_neutralemenergy[jet],
+				   pfjet_muonenergy[jet],
+				   pfjet_chargedhadronicenergy[jet],
+				   pfjet_chargedemenergy[jet],
+				   pfjet_neutralmulti[jet],
+				   pfjet_chargedmulti[jet],
+				   era);
+	   if (!jetId) continue;
+	   float dR_leading = deltaR(LeadingMuon4.Eta(),LeadingMuon4.Phi(),
+				     pfjet_eta[jet],pfjet_phi[jet]);
+	   if (dR_leading<0.4) continue;
+	   float dR_trailing = deltaR(TrailingMuon4.Eta(),TrailingMuon4.Phi(),
+				      pfjet_eta[jet],pfjet_phi[jet]);
+	   if (dR_trailing<0.4) continue;
+	   if (jetPt>30.&&absJetEta<4.7) t_njets++;
+	   if (jetPt>20.&&absJetEta<2.4) t_njetspt20++;
+	 }
+	 
+	 t_metfilters = passedFilters(flags,metfilters);
+	 t_badmufilter = passedFilters(flags,badmufilter);
+	 t_met = met;
+	 t_metphi = metphi;
+	 
+	 tuple->Fill();
+       }
 
      }
      

@@ -108,6 +108,9 @@ int main(int argc, char * argv[]) {
   const float btagCut = cfg.get<float>("BTagCut");
   const float bjetEta = cfg.get<float>("BJetEta");
   const float bjetPt = cfg.get<float>("BJetPt");
+  
+  // rebinning of pdf
+  vector<double> bins = cfg.get<vector<double>>("bins");
 
   TString BTagAlgorithm(bTagAlgorithm);
   TString BTagDiscriminator1(bTagDiscriminator1);
@@ -266,7 +269,8 @@ int main(int argc, char * argv[]) {
 
   std::string rootFileName(argv[2]);
   
-  std::string chainName("makeroottree/AC1B");
+  TString chainName("makeroottree/AC1B");
+  TString initChainName("initroottree/AC1B");
   TString TStrName(rootFileName);
   std::cout <<TStrName <<std::endl;
   TString FullName = TStrName;      
@@ -277,7 +281,6 @@ int main(int argc, char * argv[]) {
   
    // Muons
   TH1D * muonCountH = new TH1D("muonCountH","",11,-0.5,10.5);
-
   TH1D * nGoodMuonsH = new TH1D("nGoodMuonsH","",11,-0.5,10.5);
   TH1D * nGoodIsoMuonsH = new TH1D("nGoodIsoMuonsH","",11,-0.5,10.5);
   TH1D * nGoodLooseIsoMuonsH = new TH1D("nGoodLooseIsoMuonsH","",11,-0.5,10.5);
@@ -341,43 +344,71 @@ int main(int argc, char * argv[]) {
   // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
   // ++++ Definitions are in HtoAA/Utilities/interface/functions.h ++++
   // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-  TH1D * PartonMomBinsH = new TH1D("PartonMomBinsH","",nPartonMomBins,partonMomBins);
-  TH1D * MuonMomBinsH = new TH1D("MuonMomBinsH","",nMuonMomBins,muonMomBins);
-  TH1D * MuonPartonNetChargeH = new TH1D("MuonPartonNetChargeH","",nMuonPartonNetCharge,0.,float(nMuonPartonNetCharge));
-  TH1D * PartonFlavorH = new TH1D("PartonFlavorH","",nPartonFlavours,0.,float(nPartonFlavours));
-  TH1D * RegionsH = new TH1D("Regions","",nRegions,0.,float(nRegions));
+  TH1D * PartonMomBinsH = new TH1D("PartonMomBinsH","",nPartMom,partonMomBins);
+  TH1D * MuonMomBinsH = new TH1D("MuonMomBinsH","",nMuMom,muonMomBins);
+  TH1D * MuonPartonNetChargeH = new TH1D("MuonPartonNetChargeH","",nNetQ,0.,float(nNetQ));
+  TH1D * PartonFlavorH = new TH1D("PartonFlavorH","",nFlav,0.,float(nFlav));
+  TH1D * RegionsH = new TH1D("Regions","",nReg,0.,float(nReg));
 
-  for (unsigned int iB=0; iB<nMuonMomBins; ++iB)
+  for (unsigned int iB=0; iB<nMuMom; ++iB)
     MuonMomBinsH->GetXaxis()->SetBinLabel(iB+1,muonMomRange[iB]);
-  for (unsigned int iB=0; iB<nPartonMomBins; ++iB)
+  for (unsigned int iB=0; iB<nPartMom; ++iB)
     PartonMomBinsH->GetXaxis()->SetBinLabel(iB+1,partonMomRange[iB]);
-  for (unsigned int iB=0; iB<nPartonFlavours; ++iB)
+  for (unsigned int iB=0; iB<nFlav; ++iB)
     PartonFlavorH->GetXaxis()->SetBinLabel(iB+1,partonFlavor[iB]);
-  for (unsigned int iB=0; iB<nMuonPartonNetCharge; ++iB)
+  for (unsigned int iB=0; iB<nNetQ; ++iB)
     MuonPartonNetChargeH->GetXaxis()->SetBinLabel(iB+1,muonPartonNetCharge[iB]);
-  for (unsigned int iB=0; iB<nRegions; ++iB)
+  for (unsigned int iB=0; iB<nReg; ++iB)
     RegionsH->GetXaxis()->SetBinLabel(iB+1,Regions[iB]);
 
+
   double binWidth = (xMax-xMin)/double(nBins);
+  unsigned int nbins = nBins;
+  double xbins[200]; 
+  if (bins.size()>1) {
+    nbins = bins.size() - 1;
+    for (unsigned int ib=0; ib<bins.size(); ++ib) {
+      xbins[ib] = bins[ib];
+    }
+  }
+  else {
+    nbins = nBins;    
+    for (unsigned int ib=0; ib<=nbins; ++ib) {
+      xbins[ib] = xMin + double(ib)*binWidth; 
+    }
+  }
+
+
+
+  TH1D * massHist = new TH1D("massHist","",nbins,xbins);
+  std::cout << std::endl;
+  std::cout << "Number of bins = " << nbins << std::endl;
+  std::cout << "bin boundaries : " << std::endl;
+  for (unsigned int ib=1; ib<=nbins; ++ib) {
+    double lower = massHist->GetXaxis()->GetBinLowEdge(ib);
+    double upper = massHist->GetXaxis()->GetBinLowEdge(ib+1);
+    printf("[%4.1f,%4.1f]\n",lower,upper);
+  }
+  std::cout << std::endl;
 
   // testing model in inclusive muon sample
   // single muon passing selection
-  TH1D * InvMassIsoH = new TH1D("InvMassIsoH","",nBins,xMin,xMax);
-  TH1D * ModelInvMassIsoH = new TH1D("ModelInvMassIsoH","",nBins,xMin,xMax);
+  TH1D * InvMassIsoH = new TH1D("InvMassIsoH","",nbins,xbins);
+  TH1D * ModelInvMassIsoH = new TH1D("ModelInvMassIsoH","",nbins,xbins);
 
-  TH1D * InvMassLooseIsoH = new TH1D("InvMassLooseIsoH","",nBins,xMin,xMax);
-  TH1D * ModelInvMassLooseIsoH = new TH1D("ModelInvMassLooseIsoH","",nBins,xMin,xMax);
+  TH1D * InvMassLooseIsoH = new TH1D("InvMassLooseIsoH","",nbins,xbins);
+  TH1D * ModelInvMassLooseIsoH = new TH1D("ModelInvMassLooseIsoH","",nbins,xbins);
 
   // testing model in sample of SS muons
-  TH1D * InvMassDimuonIsoH = new TH1D("InvMassDimuonIsoH","",nBins,xMin,xMax);
-  TH1D * HybridModelInvMassDimuonIsoH = new TH1D("HybridModelInvMassDimuonIsoH","",nBins,xMin,xMax);
-  TH1D * InclusiveModelInvMassDimuonIsoH = new TH1D("InclusiveModelInvMassDimuonIsoH","",nBins,xMin,xMax);
-  TH1D * ClosureInvMassDimuonIsoH = new TH1D("ClosureInvMassDimuonIsoH","",nBins,xMin,xMax);
+  TH1D * InvMassDimuonIsoH = new TH1D("InvMassDimuonIsoH","",nbins,xbins);
+  TH1D * HybridModelInvMassDimuonIsoH = new TH1D("HybridModelInvMassDimuonIsoH","",nbins,xbins);
+  TH1D * InclusiveModelInvMassDimuonIsoH = new TH1D("InclusiveModelInvMassDimuonIsoH","",nbins,xbins);
+  TH1D * ClosureInvMassDimuonIsoH = new TH1D("ClosureInvMassDimuonIsoH","",nbins,xbins);
 
-  TH1D * InvMassDimuonLooseIsoH = new TH1D("InvMassDimuonLooseIsoH","",nBins,xMin,xMax);
-  TH1D * HybridModelInvMassDimuonLooseIsoH = new TH1D("HybridModelInvMassDimuonLooseIsoH","",nBins,xMin,xMax);
-  TH1D * InclusiveModelInvMassDimuonLooseIsoH = new TH1D("InclusiveModelInvMassDimuonLooseIsoH","",nBins,xMin,xMax);
-  TH1D * ClosureInvMassDimuonLooseIsoH = new TH1D("ClosureInvMassDimuonLooseIsoH","",nBins,xMin,xMax);
+  TH1D * InvMassDimuonLooseIsoH = new TH1D("InvMassDimuonLooseIsoH","",nbins,xbins);
+  TH1D * HybridModelInvMassDimuonLooseIsoH = new TH1D("HybridModelInvMassDimuonLooseIsoH","",nbins,xbins);
+  TH1D * InclusiveModelInvMassDimuonLooseIsoH = new TH1D("InclusiveModelInvMassDimuonLooseIsoH","",nbins,xbins);
+  TH1D * ClosureInvMassDimuonLooseIsoH = new TH1D("ClosureInvMassDimuonLooseIsoH","",nbins,xbins);
 
 
   // other distributions 
@@ -400,46 +431,82 @@ int main(int argc, char * argv[]) {
   TH1D * GenJetMultiplicityMuLooseIsoH = new TH1D("GenJetMultiplicityMuLooseIsoH","",20,-0.5,19.5);
   TH1D * deltaRPartonMuLooseIsoH = new TH1D("deltaRPartonMuLooseIsoH","",100,0.,1.);
 
-
   // Signal region 
-  TH1D * InvMassH = new TH1D("InvMassH","",nBins,xMin,xMax);
-  TH2D * InvMass2DH = new TH2D("InvMass2DH","",nBins,xMin,xMax,nBins,xMin,xMax);
+  TH1D * InvMassH = new TH1D("InvMassH","",nbins,xbins);
+  TH2D * InvMass2DH = new TH2D("InvMass2DH","",nbins,xbins,nbins,xbins);
 
-  TH1D * HybridModelInvMassH = new TH1D("HybridModelInvMassH","",nBins,xMin,xMax);
-  TH2D * HybridModelInvMass2DH = new TH2D("HybridModelInvMass2DH","",nBins,xMin,xMax,nBins,xMin,xMax);
+  TH1D * ClosureInvMassH = new TH1D("ClosureInvMassH","",nbins,xbins);
+  TH2D * ClosureInvMass2DH = new TH2D("ClosureInvMass2DH","",nbins,xbins,nbins,xbins);
 
-  TH1D * InclusiveModelInvMassH = new TH1D("InclusiveModelInvMassH","",nBins,xMin,xMax);
-  TH2D * InclusiveModelInvMass2DH = new TH2D("InclusiveModelInvMass2DH","",nBins,xMin,xMax,nBins,xMin,xMax);
+  TH1D * HybridModelInvMassH = new TH1D("HybridModelInvMassH","",nbins,xbins);
+  TH2D * HybridModelInvMass2DH = new TH2D("HybridModelInvMass2DH","",nbins,xbins,nbins,xbins);
 
-  // Background sideband   
-  TH1D * InvMass_CRH = new TH1D("InvMass_CRH","",nBins,xMin,xMax); 
-  TH2D * InvMass2D_CRH = new TH2D("InvMass2D_CRH","",nBins,xMin,xMax,nBins,xMin,xMax);
+  // Background sideband (Y)   
+  TH1D * InvMass_ControlYH = new TH1D("InvMass_ControlYH","",nbins,xbins); 
+  TH2D * InvMass2D_ControlYH = new TH2D("InvMass2D_ControlYH","",nbins,xbins,nbins,xbins);
 
-  TH1D * HybridModelInvMass_CRH = new TH1D("HybridModelInvMass_CRH","",nBins,xMin,xMax); 
-  TH2D * HybridModelInvMass2D_CRH = new TH2D("HybridModelInvMass2D_CRH","",nBins,xMin,xMax,nBins,xMin,xMax);
+  TH1D * ClosureInvMass_ControlYH = new TH1D("ClosureInvMass_ControlYH","",nbins,xbins); 
+  TH2D * ClosureInvMass2D_ControlYH = new TH2D("ClosureInvMass2D_ControlYH","",nbins,xbins,nbins,xbins);
 
-  TH1D * InclusiveModelInvMass_CRH = new TH1D("InclusiveModelInvMass_CRH","",nBins,xMin,xMax); 
-  TH2D * InclusiveModelInvMass2D_CRH = new TH2D("InclusiveModelInvMass2D_CRH","",nBins,xMin,xMax,nBins,xMin,xMax);
+  TH1D * HybridModelInvMass_ControlYH = new TH1D("HybridModelInvMass_ControlYH","",nbins,xbins); 
+  TH2D * HybridModelInvMass2D_ControlYH = new TH2D("HybridModelInvMass2D_ControlYH","",nbins,xbins,nbins,xbins);
+
+  // Background sideband (X)
+  TH1D * InvMass_ControlXH = new TH1D("InvMass_ControlXH","",nbins,xbins); 
+  TH2D * InvMass2D_ControlXH = new TH2D("InvMass2D_ControlXH","",nbins,xbins,nbins,xbins);
+
+  TH1D * ClosureInvMass_ControlXH = new TH1D("ClosureInvMass_ControlXH","",nbins,xbins); 
+  TH2D * ClosureInvMass2D_ControlXH = new TH2D("ClosureInvMass2D_ControlXH","",nbins,xbins,nbins,xbins);
+
+  TH1D * HybridModelInvMass_ControlXH = new TH1D("HybridModelInvMass_ControlXH","",nbins,xbins); 
+  TH2D * HybridModelInvMass2D_ControlXH = new TH2D("HybridModelInvMass2D_ControlXH","",nbins,xbins,nbins,xbins);
+
+
 
   // for muons selected with same-sign requirement
   // probability to pass selection as a function of
   // flavour, net charged (mu,parton), parton P, muon pT
-  TH1D * partonMu_SS = new TH1D("partonMuSS","",1,0.,1.); 
-  TH1D * partonMuPass_SS[5][2][4][4][2]; // 2 bins : Iso, LooseIso
+  TH1D * partonMu_SS = new TH1D("partonMu_SS","",1,0.,1.);  
+  TH1D * partonMuSelectedIso_SS = new TH1D("partonMuSelectedIso_SS","",1,0.,1.); 
+  TH1D * partonMuModelledIso_SS = new TH1D("partonMuModelledIso_SS","",1,0.,1.);
+  TH1D * partonMuSelectedLooseIso_SS = new TH1D("partonMuSelectedLooseIso_SS","",1,0.,1.); 
+  TH1D * partonMuModelledLooseIso_SS = new TH1D("partonMuModelledLooseIso_SS","",1,0.,1.);
+
 
   // inclusive muon region
   TH1D * partonMu = new TH1D("partonMu","",1,0.,1.); 
-  TH1D * partonMuPass[5][2][4][4][2]; // 2 bins : Iso, LooseIso
+  TH1D * partonMuSelectedIso = new TH1D("partonMuSelectedIso","",1,0.,1.); 
+  TH1D * partonMuModelledIso = new TH1D("partonMuModelledIso","",1,0.,1.);
+  TH1D * partonMuSelectedLooseIso = new TH1D("partonMuSelectedLooseIso","",1,0.,1.); 
+  TH1D * partonMuModelledLooseIso = new TH1D("partonMuModelledLooseIso","",1,0.,1.);
 
-  TH1D * MassMuTrk[5][2][4][4][2];
-  TH1D * MassMuTrk_SS[5][2][4][4][2];
+  TH1D * partonMuProbe_SS[nFlav][nNetQ][nPartMom][nMuMom];
+  TH1D * partonMuPass_SS[nFlav][nNetQ][nPartMom][nMuMom][nReg]; 
+  TH1D * MassMuTrk_SS[nFlav][nNetQ][nPartMom][nMuMom][nReg];
+
+  TH1D * partonMuProbe[nFlav][nNetQ][nPartMom][nMuMom];
+  TH1D * partonMuPass[nFlav][nNetQ][nPartMom][nMuMom][nReg]; 
+  TH1D * MassMuTrk[nFlav][nNetQ][nPartMom][nMuMom][nReg];
  
-  for (unsigned int iF=0; iF<nPartonFlavours; ++iF) {
-    for (unsigned int iQ=0; iQ<nMuonPartonNetCharge; ++iQ) {
-      for (unsigned int iMom=0; iMom<nPartonMomBins; ++iMom) {
-	for (unsigned int mu=0; mu<nMuonMomBins; ++mu) {
-	  for (unsigned int iR=0; iR<nRegions; ++iR) {
-	    TString name  = 
+  for (unsigned int iF=0; iF<nFlav; ++iF) {
+    for (unsigned int iQ=0; iQ<nNetQ; ++iQ) {
+      for (unsigned int iMom=0; iMom<nPartMom; ++iMom) {
+	for (unsigned int mu=0; mu<nMuMom; ++mu) {
+	    TString name = 
+	      partonFlavor[iF] + "_" + 
+	      muonPartonNetCharge[iQ] + "_" +
+	      partonMomRange[iMom] + "_" +
+	      muonMomRange[mu];
+
+	    TString histName = "partonMuProbe_" + name + "_SS";
+	    partonMuProbe_SS[iF][iQ][iMom][mu] = new TH1D(histName,"",1,0.,1.);
+
+	    histName = "partonMuProbe_" + name;
+	    partonMuProbe[iF][iQ][iMom][mu] = new TH1D(histName,"",1,0.,1.);
+
+
+	  for (unsigned int iR=0; iR<nReg; ++iR) {
+	    name = 
 	      partonFlavor[iF] + "_" + 
 	      muonPartonNetCharge[iQ] + "_" +
 	      partonMomRange[iMom] + "_" +
@@ -447,18 +514,18 @@ int main(int argc, char * argv[]) {
 	      Regions[iR] ;
 	  
 	    // mass distributions
-	    TString histName = "MuTrkMass_" + name + "_SS";
+	    histName = "MuTrkMass_" + name + "_SS";
 	    MassMuTrk_SS[iF][iQ][iMom][mu][iR] = new TH1D(histName,"",nBins,xMin,xMax);
       
 	    histName = "MuTrkMass_" + name;
 	    MassMuTrk[iF][iQ][iMom][mu][iR] = new TH1D(histName,"",nBins,xMin,xMax);
 	    
 	    // probability to pass selection
-	    histName = "partonMu_" + name + "_SS";
-	    partonMuPass_SS[iF][iQ][iMom][mu][iR] = new TH1D(histName+"_passed","",1,0.,1.);
+	    histName = "partonMuPass_" + name + "_SS";
+	    partonMuPass_SS[iF][iQ][iMom][mu][iR] = new TH1D(histName,"",1,0.,1.);
 	    
-	    histName = "partonMu_" + name;
-	    partonMuPass[iF][iQ][iMom][mu][iR] = new TH1D(histName+"_passed","",1,0.,1.);
+	    histName = "partonMuPass_" + name;
+	    partonMuPass[iF][iQ][iMom][mu][iR] = new TH1D(histName,"",1,0.,1.);
 	  }
 	}
       }
@@ -476,7 +543,7 @@ int main(int argc, char * argv[]) {
   QCDModel * qcdModel = NULL;
   bool applyQCDModel = QCDFileName.Contains(".root");
   if (applyQCDModel) 
-    qcdModel = new QCDModel(fileNameQCDModel);
+    qcdModel = new QCDModel(fileNameQCDModel,bins);
 
   // PU reweighting
   PileUp * PUofficial = new PileUp();
@@ -518,8 +585,24 @@ int main(int argc, char * argv[]) {
      cout << "cannot open file " << FileName << std::endl;
      continue;
    }
+   // sum of weights (needed for normalization)
 
-   TTree * tree_ = (TTree*)file_->Get(TString(chainName));
+   TTree * _inittree = (TTree*)file_->Get(initChainName);
+   if (_inittree!=NULL) {
+     Float_t Genweight;
+     _inittree->SetBranchAddress("genweight",&Genweight);
+     Long64_t numberOfEntriesInitTree = _inittree->GetEntries();
+     std::cout << "Number of entries in Init Tree = " << numberOfEntriesInitTree << std::endl;
+     for (Long64_t iEntry=0; iEntry<numberOfEntriesInitTree; iEntry++) {
+       _inittree->GetEntry(iEntry);
+       if (Genweight>0.0)
+	 histWeightsH->Fill(1.,1.);
+       else
+	 histWeightsH->Fill(1.,-1.);
+     }
+   }  
+
+   TTree * tree_ = (TTree*)file_->Get(chainName);
    
    if (tree_==NULL) continue;
 
@@ -652,10 +735,10 @@ int main(int argc, char * argv[]) {
      events++;
      if (events%10000==0) cout << "   processed events : " << events << endl;
      
-     float weight = genweight;
-     
-     histWeightsH->Fill(1.0,weight);
-     
+     float weight = 1.;
+     if (genweight<0.)
+       weight = -1.;
+          
      float puweight = float(PUofficial->get_PUweight(double(numtruepileupinteractions)));
      puWeightH->Fill(puweight,1.0);
      weight *= puweight;
@@ -842,11 +925,11 @@ int main(int argc, char * argv[]) {
      // selecting good muons
      // ********************
      vector<unsigned int> muons; muons.clear();
-     vector<int> muons_flavour; muons_flavour.clear();
+     vector<unsigned int> muons_flavour; muons_flavour.clear();
      vector<int> muons_pdgid; muons_pdgid.clear();
-     vector<int> muons_partmom; muons_partmom.clear();
-     vector<int> muons_muonmom; muons_muonmom.clear();
-     vector<int> muons_net; muons_net.clear();
+     vector<unsigned int> muons_partmom; muons_partmom.clear();
+     vector<unsigned int> muons_muonmom; muons_muonmom.clear();
+     vector<unsigned int> muons_net; muons_net.clear();
      vector<int> muons_region; muons_region.clear();
      vector<float> muons_mutrkmass; muons_mutrkmass.clear();
 
@@ -885,7 +968,7 @@ int main(int argc, char * argv[]) {
 					   MuMass);
        // determine flavour of jet
        float dRmin = 0.5;
-       int flavour = 0;
+       unsigned int flavour = 0;
        float qnet  = 0;
        int pdgId = 0;
        TLorentzVector matchedPartonLV = Muon4;
@@ -896,26 +979,34 @@ int main(int argc, char * argv[]) {
 	 if (drJetMuon<dRmin) {
 	   dRmin = drJetMuon;
 	   int absFlav = TMath::Abs(partonPdgId.at(ip));
-	   pdgId = partonPdgId.at(ip);
+	   pdgId = partonPdgId.at(ip);	   
 	   flavour = 0;
-	   if (absFlav==21) 
+	   /*
+	   if (absFlav==21)
 	     flavour = 1;
-	   else if (absFlav>=1 && absFlav<=3)
+	   else if (absFlav>=1&&absFlav<=3)
 	     flavour = 2;
 	   else if (absFlav==4)
 	     flavour = 3;
 	   else if (absFlav==5)
 	     flavour = 4;
-
+	   */
+	   if (absFlav>=1&&absFlav<=3)
+	     flavour = 1;
+	   else if (absFlav==4)
+	     flavour = 2;
+	   else if (absFlav==5)
+	     flavour = 3;
 	   qnet = float(muon_charge[index])*float(pdgId);
 
-	   if (flavour==0||flavour==1) qnet = -1.0;
+	   //	   if (flavour==0||flavour==1) qnet = -1.0;
+	   if (flavour==0) qnet = -1.0;
 
 	   matchedPartonLV = partLV;
 	 }
        }
 
-       int net = 0;
+       unsigned int net = 0;
        if (qnet>0.0) net = 1;
 
        // counting tracks around each muon
@@ -990,16 +1081,16 @@ int main(int argc, char * argv[]) {
        deltaRPartonMuH->Fill(dRmin,weight);
 
        // bin of parton pT
-       float partonPt = matchedPartonLV.Pt();
-       float maxPartonPt = partonMomBins[nPartonMomBins]-0.1;
-       partonPt = TMath::Min(partonPt,maxPartonPt);
-       int partonMomBin = binNumber(partonPt,nPartonMomBins,partonMomBins);
+       float partonP = matchedPartonLV.Pt();
+       if (partonP>partonMomBins[nPartMom]) partonP = partonMomBins[nPartMom] - 1.0;
+       unsigned int partonMomBin = PartonMomBinsH->FindBin(partonP) - 1;
+       //       std::cout << "mom(parton) = " << partonP << "  bin = " << partonMomBin << std::endl;
 
        // bin of muon pT
-       float muonPt = Muon4.Pt();
-       float maxMuonPt = muonMomBins[nMuonMomBins]-0.1;
-       muonPt = TMath::Min(muonPt,maxMuonPt);
-       int muonMomBin = binNumber(muonPt,nMuonMomBins,muonMomBins);
+       float muonP = Muon4.Pt();
+       if (muonP>muonMomBins[nMuMom]) muonP = muonMomBins[nMuMom] - 1.0;
+       unsigned int muonMomBin = MuonMomBinsH->FindBin(muonP) - 1;
+       //       std::cout << "mom(muon) = " << muonP << "  bin = " << muonMomBin << std::endl;
 
        // --------------------
        // -- save muon info --
@@ -1024,8 +1115,11 @@ int main(int argc, char * argv[]) {
        }
 
        partonMu->Fill(0.5,weight);
+       partonMuProbe[flavour][net][partonMomBin][muonMomBin]->Fill(0.5,weight);
 
        if (sigMu) {
+
+	 partonMuSelectedIso->Fill(0.5,weight);
 
 	 InvMassIsoH->Fill(muonTrkMass,weight);
 	 MassMuTrk[flavour][net][partonMomBin][muonMomBin][1]->Fill(muonTrkMass,weight);
@@ -1047,6 +1141,8 @@ int main(int argc, char * argv[]) {
 
        if (bkgdMu) {
 
+	 partonMuSelectedLooseIso->Fill(0.5,weight);
+
 	 InvMassLooseIsoH->Fill(muonTrkMass,weight);
 	 MassMuTrk[flavour][net][partonMomBin][muonMomBin][0]->Fill(muonTrkMass,weight);
 	 partonMuPass[flavour][net][partonMomBin][muonMomBin][0]->Fill(0.5,weight);
@@ -1066,18 +1162,25 @@ int main(int argc, char * argv[]) {
 	 deltaRPartonMuLooseIsoH->Fill(dRmin,weight);
        }
 
+       // applying QCD Model to the inclusive selected sample of muons
        if (applyQCDModel) {	 
 	 //	 std::cout << "model is applied" << std::endl;
-	 for (int imass=0; imass<nBins; ++imass) {
-	   double mass = (0.5 + double(imass))*binWidth;
-	   int ireg = 0;
-	   double prob = qcdModel->getProb(partonMomBin,muonMomBin,ireg,flavour,net,true);
-	   double pdf = qcdModel->getMassPdf(partonMomBin,muonMomBin,ireg,flavour,net,mass,true);
+	 int ireg = 1; // Iso
+	 double prob = qcdModel->getProb(partonMomBin,muonMomBin,ireg,flavour,net,true);
+	 partonMuModelledIso->Fill(0.5,weight*prob);
+	 for (unsigned int imass=1; imass<=nbins; ++imass) {
+	   double mass = massHist->GetBinCenter(imass);
+	   double pdf = qcdModel->getMassPdf(partonMomBin,muonMomBin,ireg,flavour,net,imass,true);
 	   ModelInvMassIsoH->Fill(mass,weight*pdf*prob);
-	   ireg = 1;
-	   prob = qcdModel->getProb(partonMomBin,muonMomBin,ireg,flavour,net,true);
-	   pdf = qcdModel->getMassPdf(partonMomBin,muonMomBin,ireg,flavour,net,mass,true);
-	   ModelInvMassLooseIsoH->Fill(mass,weight*pdf);
+	 }
+
+	 ireg = 0;
+	 prob = qcdModel->getProb(partonMomBin,muonMomBin,ireg,flavour,net,true);
+	 partonMuModelledLooseIso->Fill(0.5,weight*prob);
+	 for (unsigned int imass=1; imass<=nbins; ++imass) {
+	   double mass = massHist->GetBinCenter(imass);
+	   double pdf = qcdModel->getMassPdf(partonMomBin,muonMomBin,ireg,flavour,net,imass,true);
+	   ModelInvMassLooseIsoH->Fill(mass,weight*pdf*prob);
 	 }
        }
 
@@ -1169,7 +1272,35 @@ int main(int argc, char * argv[]) {
 	 cout << endl;
        }
 
-       partonMu_SS->Fill(0.5,weight);
+       partonMu_SS->Fill(0.5,2.0*weight);
+       partonMuProbe_SS[flavour1][net1][partmom1][muonmom1]->Fill(0.5,weight);
+       partonMuProbe_SS[flavour2][net2][partmom2][muonmom2]->Fill(0.5,weight);
+
+       if (region1==1)
+	 partonMuSelectedIso_SS->Fill(0.5,weight);
+       if (region2==1)
+	 partonMuSelectedIso_SS->Fill(0.5,weight);
+
+       if (region1==0)
+	 partonMuSelectedLooseIso_SS->Fill(0.5,weight);
+       if (region2==0)
+	 partonMuSelectedLooseIso_SS->Fill(0.5,weight);
+
+       if (applyQCDModel) {
+
+	 int ireg = 1;
+	 double prob1 = qcdModel->getProb(partmom1,muonmom1,ireg,flavour1,net1,false);
+	 double prob2 = qcdModel->getProb(partmom2,muonmom2,ireg,flavour2,net2,false);
+	 partonMuModelledIso_SS->Fill(0.5,prob1*weight);
+	 partonMuModelledIso_SS->Fill(0.5,prob2*weight);
+
+	 ireg = 0;
+	 prob1 = qcdModel->getProb(partmom1,muonmom1,ireg,flavour1,net1,false);
+	 prob2 = qcdModel->getProb(partmom2,muonmom2,ireg,flavour2,net2,false);
+	 partonMuModelledLooseIso_SS->Fill(0.5,prob1*weight);
+	 partonMuModelledLooseIso_SS->Fill(0.5,prob2*weight);
+
+       }
 
        if (region1>=0) {
 	 partonMuPass_SS[flavour1][net1][partmom1][muonmom1][region1]->Fill(0.5,weight);
@@ -1181,77 +1312,74 @@ int main(int argc, char * argv[]) {
        }
 
        if (region1==0) {
-	 InvMassDimuonIsoH->Fill(mutrk_mass1,weight);	 
+	 InvMassDimuonLooseIsoH->Fill(mutrk_mass1,weight);	 
        }
        if (region1==1)
-	 InvMassDimuonLooseIsoH->Fill(mutrk_mass1,weight);
+	 InvMassDimuonIsoH->Fill(mutrk_mass1,weight);
 
        if (region2==0)
-	 InvMassDimuonIsoH->Fill(mutrk_mass2,weight);
-       if (region2==1)
 	 InvMassDimuonLooseIsoH->Fill(mutrk_mass2,weight);
+       if (region2==1)
+	 InvMassDimuonIsoH->Fill(mutrk_mass2,weight);
 
        if (applyQCDModel) {
 
-	 for (unsigned int imass=0; imass<nBins; ++imass) {
-	   double mass = (0.5 + double(imass))*binWidth;
-	   // ------------
-	   // closure test
-	   // ------------
+	 // ---------------
+	 // QCD model test
+	 // ---------------
+	 for (unsigned int imass=1; imass<=nbins; ++imass) {
+	   double mass = massHist->GetBinCenter(imass);
+	   // closure 
 	   // Iso region
-	   int ireg = 0;
+	   int ireg = 1;
 	   double prob1 = qcdModel->getProb(partmom1,muonmom1,ireg,flavour1,net1,false);
-	   double pdf1 = qcdModel->getMassPdf(partmom1,muonmom1,ireg,flavour1,net1,mass,false);
 	   double prob2 = qcdModel->getProb(partmom2,muonmom2,ireg,flavour2,net2,false);
-	   double pdf2 = qcdModel->getMassPdf(partmom2,muonmom2,ireg,flavour2,net2,mass,false);
+	   double pdf1 = qcdModel->getMassPdf(partmom1,muonmom1,ireg,flavour1,net1,imass,false);
+	   double pdf2 = qcdModel->getMassPdf(partmom2,muonmom2,ireg,flavour2,net2,imass,false);
 	   ClosureInvMassDimuonIsoH->Fill(mass,weight*pdf1*prob1);
 	   ClosureInvMassDimuonIsoH->Fill(mass,weight*pdf2*prob2);
 	   // LooseIso region
-	   ireg = 1;
+	   ireg = 0;
 	   prob1 = qcdModel->getProb(partmom1,muonmom1,ireg,flavour1,net1,false);
-	   pdf1 = qcdModel->getMassPdf(partmom1,muonmom1,ireg,flavour1,net1,mass,false);
+	   pdf1 = qcdModel->getMassPdf(partmom1,muonmom1,ireg,flavour1,net1,imass,false);
 	   prob2 = qcdModel->getProb(partmom2,muonmom2,ireg,flavour2,net2,false);
-	   pdf2 = qcdModel->getMassPdf(partmom2,muonmom2,ireg,flavour2,net2,mass,false);
+	   pdf2 = qcdModel->getMassPdf(partmom2,muonmom2,ireg,flavour2,net2,imass,false);
 	   ClosureInvMassDimuonLooseIsoH->Fill(mass,weight*pdf1*prob1);
 	   ClosureInvMassDimuonLooseIsoH->Fill(mass,weight*pdf2*prob2);
 
-	   // --------------------
-	   // testing hybrid model
-	   // --------------------
+	   // hybrid model
 	   // Iso region
-	   ireg = 0;
+	   ireg = 1;
 	   prob1 = qcdModel->getProb(partmom1,muonmom1,ireg,flavour1,net1,false);
-	   pdf1 = qcdModel->getMassPdf(partmom1,muonmom1,ireg,flavour1,net1,mass,true);
+	   pdf1 = qcdModel->getMassPdf(partmom1,muonmom1,ireg,flavour1,net1,imass,true);
 	   prob2 = qcdModel->getProb(partmom2,muonmom2,ireg,flavour2,net2,false);
-	   pdf2 = qcdModel->getMassPdf(partmom2,muonmom2,ireg,flavour2,net2,mass,true);
+	   pdf2 = qcdModel->getMassPdf(partmom2,muonmom2,ireg,flavour2,net2,imass,true);
 	   HybridModelInvMassDimuonIsoH->Fill(mass,weight*pdf1*prob1);
 	   HybridModelInvMassDimuonIsoH->Fill(mass,weight*pdf2*prob2);
 	   // LooseIso region
-	   ireg = 1;
+	   ireg = 0;
 	   prob1 = qcdModel->getProb(partmom1,muonmom1,ireg,flavour1,net1,false);
-	   pdf1 = qcdModel->getMassPdf(partmom1,muonmom1,ireg,flavour1,net1,mass,true);
+	   pdf1 = qcdModel->getMassPdf(partmom1,muonmom1,ireg,flavour1,net1,imass,true);
 	   prob2 = qcdModel->getProb(partmom2,muonmom2,ireg,flavour2,net2,false);
-	   pdf2 = qcdModel->getMassPdf(partmom2,muonmom2,ireg,flavour2,net2,mass,true);
+	   pdf2 = qcdModel->getMassPdf(partmom2,muonmom2,ireg,flavour2,net2,imass,true);
 	   HybridModelInvMassDimuonLooseIsoH->Fill(mass,weight*pdf1*prob1);
 	   HybridModelInvMassDimuonLooseIsoH->Fill(mass,weight*pdf2*prob2);
 
-	   // -----------------------
-	   // testing inclusive model
-	   // -----------------------
+	   // inclusive model
 	   // Iso region
-	   ireg = 0;
+	   ireg = 1;
 	   prob1 = qcdModel->getProb(partmom1,muonmom1,ireg,flavour1,net1,true);
-	   pdf1 = qcdModel->getMassPdf(partmom1,muonmom1,ireg,flavour1,net1,mass,true);
+	   pdf1 = qcdModel->getMassPdf(partmom1,muonmom1,ireg,flavour1,net1,imass,true);
 	   prob2 = qcdModel->getProb(partmom2,muonmom2,ireg,flavour2,net2,true);
-	   pdf2 = qcdModel->getMassPdf(partmom2,muonmom2,ireg,flavour2,net2,mass,true);
+	   pdf2 = qcdModel->getMassPdf(partmom2,muonmom2,ireg,flavour2,net2,imass,true);
 	   InclusiveModelInvMassDimuonIsoH->Fill(mass,weight*pdf1*prob1);
 	   InclusiveModelInvMassDimuonIsoH->Fill(mass,weight*pdf2*prob2);
 	   // LooseIso region
-	   ireg = 1;
+	   ireg = 0;
 	   prob1 = qcdModel->getProb(partmom1,muonmom1,ireg,flavour1,net1,true);
-	   pdf1 = qcdModel->getMassPdf(partmom1,muonmom1,ireg,flavour1,net1,mass,true);
+	   pdf1 = qcdModel->getMassPdf(partmom1,muonmom1,ireg,flavour1,net1,imass,true);
 	   prob2 = qcdModel->getProb(partmom2,muonmom2,ireg,flavour2,net2,true);
-	   pdf2 = qcdModel->getMassPdf(partmom2,muonmom2,ireg,flavour2,net2,mass,true);
+	   pdf2 = qcdModel->getMassPdf(partmom2,muonmom2,ireg,flavour2,net2,imass,true);
 	   InclusiveModelInvMassDimuonLooseIsoH->Fill(mass,weight*pdf1*prob1);
 	   InclusiveModelInvMassDimuonLooseIsoH->Fill(mass,weight*pdf2*prob2);
 
@@ -1259,35 +1387,33 @@ int main(int argc, char * argv[]) {
 	 
 	 // SR : Iso
 	 // closure
-	 int ireg = 0;
+	 int ireg = 1; // signal region!
 	 double prob1 = qcdModel->getProb(partmom1,muonmom1,ireg,flavour1,net1,false);
 	 double prob2 = qcdModel->getProb(partmom2,muonmom2,ireg,flavour2,net2,false);
-	 for (unsigned int imass=0; imass<nBins; ++imass) {
-	   int ireg = 0;
-	   double mass = (0.5 + double(imass))*binWidth;
-	   double pdf1 = qcdModel->getMassPdf(partmom1,muonmom1,ireg,flavour1,net1,mass,false);
-	   double pdf2 = qcdModel->getMassPdf(partmom2,muonmom2,ireg,flavour2,net2,mass,false);
-	   InvMassH->Fill(mass,weight*prob1*prob2*pdf1);
-	   InvMassH->Fill(mass,weight*prob1*prob2*pdf2);	 
-	   for (unsigned int imass2=0; imass2<nBins; ++imass2) {
-	     double mass2 = (0.5 + double(imass2))*binWidth;
-	     pdf2 = qcdModel->getMassPdf(partmom2,muonmom2,ireg,flavour2,net2,mass2,false);
-	     InvMass2DH->Fill(mass,mass2,weight*prob1*prob2*pdf1*pdf2);
+	 for (unsigned int imass=1; imass<=nbins; ++imass) {
+	   double mass = massHist->GetBinCenter(imass);
+	   double pdf1 = qcdModel->getMassPdf(partmom1,muonmom1,ireg,flavour1,net1,imass,false);
+	   double pdf2 = qcdModel->getMassPdf(partmom2,muonmom2,ireg,flavour2,net2,imass,false);
+	   ClosureInvMassH->Fill(mass,weight*prob1*prob2*pdf1);
+	   ClosureInvMassH->Fill(mass,weight*prob1*prob2*pdf2);	 
+	   for (unsigned int imass2=1; imass2<=nbins; ++imass2) {
+	     double mass2 = massHist->GetBinCenter(imass2);;
+	     pdf2 = qcdModel->getMassPdf(partmom2,muonmom2,ireg,flavour2,net2,imass2,false);
+	     ClosureInvMass2DH->Fill(mass,mass2,weight*prob1*prob2*pdf1*pdf2);
 	   }
 	 }
 
 	 // SR : Iso
 	 // hybrid model
-	 for (unsigned int imass=0; imass<nBins; ++imass) {
-           int ireg = 0;
-           double mass = (0.5 + double(imass))*binWidth;
-	   double pdf1 = qcdModel->getMassPdf(partmom1,muonmom1,ireg,flavour1,net1,mass,true);
-	   double pdf2 = qcdModel->getMassPdf(partmom2,muonmom2,ireg,flavour2,net2,mass,true);
+	 for (unsigned int imass=1; imass<=nbins; ++imass) {
+           double mass = massHist->GetBinCenter(imass);
+	   double pdf1 = qcdModel->getMassPdf(partmom1,muonmom1,ireg,flavour1,net1,imass,true);
+	   double pdf2 = qcdModel->getMassPdf(partmom2,muonmom2,ireg,flavour2,net2,imass,true);
 	   HybridModelInvMassH->Fill(mass,weight*prob1*prob2*pdf1);
 	   HybridModelInvMassH->Fill(mass,weight*prob1*prob2*pdf2);	 
-	   for (unsigned int imass2=0; imass2<nBins; ++imass2) {
-	     double mass2 = (0.5 + double(imass2))*binWidth;
-	     pdf2 = qcdModel->getMassPdf(partmom2,muonmom2,ireg,flavour2,net2,mass2,true);
+	   for (unsigned int imass2=1; imass2<=nbins; ++imass2) {
+	     double mass2 = massHist->GetBinCenter(imass2);
+	     pdf2 = qcdModel->getMassPdf(partmom2,muonmom2,ireg,flavour2,net2,imass2,true);
 	     HybridModelInvMass2DH->Fill(mass,mass2,weight*prob1*prob2*pdf1*pdf2);
 	   }
 	 }
@@ -1296,83 +1422,99 @@ int main(int argc, char * argv[]) {
 	 // inclusive model
 	 prob1 = qcdModel->getProb(partmom1,muonmom1,ireg,flavour1,net1,true);
 	 prob2 = qcdModel->getProb(partmom2,muonmom2,ireg,flavour2,net2,true);
-	 for (unsigned int imass=0; imass<nBins; ++imass) {
-           int ireg = 0;
-           double mass = (0.5 + double(imass))*binWidth;
-	   double pdf1 = qcdModel->getMassPdf(partmom1,muonmom1,ireg,flavour1,net1,mass,true);
-	   double pdf2 = qcdModel->getMassPdf(partmom2,muonmom2,ireg,flavour2,net2,mass,true);
-	   InclusiveModelInvMassH->Fill(mass,weight*prob1*prob2*pdf1);
-	   InclusiveModelInvMassH->Fill(mass,weight*prob1*prob2*pdf2);	 
-	   for (unsigned int imass2=0; imass2<nBins; ++imass2) {
-	     double mass2 = (0.5 + double(imass2))*binWidth;
-	     pdf2 = qcdModel->getMassPdf(partmom2,muonmom2,ireg,flavour2,net2,mass2,true);
-	     InclusiveModelInvMass2DH->Fill(mass,mass2,weight*prob1*prob2*pdf1*pdf2);
+	 for (unsigned int imass=1; imass<=nbins; ++imass) {
+           double mass = massHist->GetBinCenter(imass);
+	   double pdf1 = qcdModel->getMassPdf(partmom1,muonmom1,ireg,flavour1,net1,imass,true);
+	   double pdf2 = qcdModel->getMassPdf(partmom2,muonmom2,ireg,flavour2,net2,imass,true);
+	   InvMassH->Fill(mass,weight*prob1*prob2*pdf1);
+	   InvMassH->Fill(mass,weight*prob1*prob2*pdf2);	 
+	   for (unsigned int imass2=1; imass2<=nbins; ++imass2) {
+	     double mass2 = massHist->GetBinCenter(imass2);
+	     pdf2 = qcdModel->getMassPdf(partmom2,muonmom2,ireg,flavour2,net2,imass2,true);
+	     InvMass2DH->Fill(mass,mass2,weight*prob1*prob2*pdf1*pdf2);
 	   }
-
-
 	 }
 
-	 // CR : LooseIso
+	 // CR : LooseIso (Y and X)
 	 // closure
 	 for (int ireg1=0; ireg1<2; ++ireg1) {
 	   for (int ireg2=0; ireg2<2; ++ireg2) {
-	     if (ireg1==0&&ireg2==0) continue;
+	     if (ireg1==1&&ireg2==1) continue; // signal region (skip)
 	     double prob1 = qcdModel->getProb(partmom1,muonmom1,ireg1,flavour1,net1,false);
 	     double prob2 = qcdModel->getProb(partmom2,muonmom2,ireg2,flavour2,net2,false);
-	     for (unsigned int imass=0; imass<nBins; ++imass) {
-	       double mass = (0.5 + double(imass))*binWidth;
-	       double pdf1 = qcdModel->getMassPdf(partmom1,muonmom1,ireg1,flavour1,net1,mass,false);
-	       InvMass_CRH->Fill(mass,weight*prob1*prob2*pdf1);
-	       double pdf2 = qcdModel->getMassPdf(partmom2,muonmom2,ireg2,flavour2,net2,mass,false);
-	       InvMass_CRH->Fill(mass,weight*prob1*prob2*pdf2);
-	       for (unsigned int imass2=0; imass2<nBins; ++imass2) {
-		 double mass2 = (0.5 + double(imass2))*binWidth;
-		 pdf2 = qcdModel->getMassPdf(partmom2,muonmom2,ireg2,flavour2,net2,mass2,false);
-		 InvMass2D_CRH->Fill(mass,mass2,weight*prob1*prob2*pdf1*pdf2);
+	     for (unsigned int imass=1; imass<=nbins; ++imass) {
+	       double mass = massHist->GetBinCenter(imass);
+	       double pdf1 = qcdModel->getMassPdf(partmom1,muonmom1,ireg1,flavour1,net1,imass,false);
+	       double pdf2 = qcdModel->getMassPdf(partmom2,muonmom2,ireg2,flavour2,net2,imass,false);
+	       ClosureInvMass_ControlYH->Fill(mass,weight*prob1*prob2*pdf1);
+	       ClosureInvMass_ControlYH->Fill(mass,weight*prob1*prob2*pdf2);
+	       if (ireg1==0&&ireg2==0) {
+		 ClosureInvMass_ControlXH->Fill(mass,weight*prob1*prob2*pdf1);
+		 ClosureInvMass_ControlXH->Fill(mass,weight*prob1*prob2*pdf2);
+	       }
+	       for (unsigned int imass2=1; imass2<=nbins; ++imass2) {
+		 double mass2 = massHist->GetBinCenter(imass2);
+		 pdf2 = qcdModel->getMassPdf(partmom2,muonmom2,ireg2,flavour2,net2,imass2,false);
+		 ClosureInvMass2D_ControlYH->Fill(mass,mass2,weight*prob1*prob2*pdf1*pdf2);
+		 if (ireg1==0&&ireg2==0)
+		   ClosureInvMass2D_ControlXH->Fill(mass,mass2,weight*prob1*prob2*pdf1*pdf2);
 	       }
 	     }
 	   }
 	 }
 
-	 // CR : LooseIso
+	 // CR : LooseIso (regions Y and X)
 	 // hybrid model
 	 for (int ireg1=0; ireg1<2; ++ireg1) {
 	   for (int ireg2=0; ireg2<2; ++ireg2) {
-	     if (ireg1==0&&ireg2==0) continue;
+	     if (ireg1==1&&ireg2==1) continue; // signal region (skip)
 	     double prob1 = qcdModel->getProb(partmom1,muonmom1,ireg1,flavour1,net1,false);
 	     double prob2 = qcdModel->getProb(partmom2,muonmom2,ireg2,flavour2,net2,false);
-	     for (unsigned int imass=0; imass<nBins; ++imass) {
-	       double mass = (0.5 + double(imass))*binWidth;
-	       double pdf1 = qcdModel->getMassPdf(partmom1,muonmom1,ireg1,flavour1,net1,mass,true);
-	       HybridModelInvMass_CRH->Fill(mass,weight*prob1*prob2*pdf1);
-	       double pdf2 = qcdModel->getMassPdf(partmom2,muonmom2,ireg2,flavour2,net2,mass,true);
-	       HybridModelInvMass_CRH->Fill(mass,weight*prob1*prob2*pdf2);
-	       for (unsigned int imass2=0; imass2<nBins; ++imass2) {
-		 double mass2 = (0.5 + double(imass2))*binWidth;
-		 pdf2 = qcdModel->getMassPdf(partmom2,muonmom2,ireg2,flavour2,net2,mass2,true);
-		 HybridModelInvMass2D_CRH->Fill(mass,mass2,weight*prob1*prob2*pdf1*pdf2);
+	     for (unsigned int imass=1; imass<=nbins; ++imass) {
+	       double mass = massHist->GetBinCenter(imass);
+	       double pdf1 = qcdModel->getMassPdf(partmom1,muonmom1,ireg1,flavour1,net1,imass,true);
+	       double pdf2 = qcdModel->getMassPdf(partmom2,muonmom2,ireg2,flavour2,net2,imass,true);
+	       HybridModelInvMass_ControlYH->Fill(mass,weight*prob1*prob2*pdf1);
+	       HybridModelInvMass_ControlYH->Fill(mass,weight*prob1*prob2*pdf2);
+	       if (ireg1==0&&ireg2==0) {
+		 HybridModelInvMass_ControlXH->Fill(mass,weight*prob1*prob2*pdf1);
+		 HybridModelInvMass_ControlXH->Fill(mass,weight*prob1*prob2*pdf2);
+	       }
+	       for (unsigned int imass2=1; imass2<=nbins; ++imass2) {
+		 double mass2 = massHist->GetBinCenter(imass2);
+		 pdf2 = qcdModel->getMassPdf(partmom2,muonmom2,ireg2,flavour2,net2,imass2,true);
+		 HybridModelInvMass2D_ControlYH->Fill(mass,mass2,weight*prob1*prob2*pdf1*pdf2);
+		 if (ireg1==0&&ireg2==0)
+		   HybridModelInvMass2D_ControlXH->Fill(mass,mass2,weight*prob1*prob2*pdf1*pdf2);
 	       }
 	     }
 	   }
 	 }
 
-	 // CR : LooseIso
+	 // CR : LooseIso (regions Y and X)
 	 // inclusive model
 	 for (int ireg1=0; ireg1<2; ++ireg1) {
 	   for (int ireg2=0; ireg2<2; ++ireg2) {
-	     if (ireg1==0&&ireg2==0) continue;
+	     if (ireg1==1&&ireg2==1) continue; // signal region (not considered)
 	     double prob1 = qcdModel->getProb(partmom1,muonmom1,ireg1,flavour1,net1,true);
 	     double prob2 = qcdModel->getProb(partmom2,muonmom2,ireg2,flavour2,net2,true);
-	     for (unsigned int imass=0; imass<nBins; ++imass) {
-	       double mass = (0.5 + double(imass))*binWidth;
-	       double pdf1 = qcdModel->getMassPdf(partmom1,muonmom1,ireg1,flavour1,net1,mass,true);
-	       InclusiveModelInvMass_CRH->Fill(mass,weight*prob1*prob2*pdf1);
-	       double pdf2 = qcdModel->getMassPdf(partmom2,muonmom2,ireg2,flavour2,net2,mass,true);
-	       InclusiveModelInvMass_CRH->Fill(mass,weight*prob1*prob2*pdf2);
-	       for (unsigned int imass2=0; imass2<nBins; ++imass2) {
-		 double mass2 = (0.5 + double(imass2))*binWidth;
-		 pdf2 = qcdModel->getMassPdf(partmom2,muonmom2,ireg2,flavour2,net2,mass2,true);
-		 InclusiveModelInvMass2D_CRH->Fill(mass,mass2,weight*prob1*prob2*pdf1*pdf2);
+	     for (unsigned int imass=1; imass<=nbins; ++imass) {
+	       double mass = massHist->GetBinCenter(imass);
+	       double pdf1 = qcdModel->getMassPdf(partmom1,muonmom1,ireg1,flavour1,net1,imass,true);
+	       double pdf2 = qcdModel->getMassPdf(partmom2,muonmom2,ireg2,flavour2,net2,imass,true);
+	       InvMass_ControlYH->Fill(mass,weight*prob1*prob2*pdf1);
+	       InvMass_ControlYH->Fill(mass,weight*prob1*prob2*pdf2);
+	       if (ireg1==0&&ireg2==0) {
+		 InvMass_ControlXH->Fill(mass,weight*prob1*prob2*pdf1);
+		 InvMass_ControlXH->Fill(mass,weight*prob1*prob2*pdf2);
+	       }
+	       for (unsigned int imass2=1; imass2<=nbins; ++imass2) {
+		 double mass2 = massHist->GetBinCenter(imass2);
+		 pdf2 = qcdModel->getMassPdf(partmom2,muonmom2,ireg2,flavour2,net2,imass2,true);
+		 InvMass2D_ControlYH->Fill(mass,mass2,weight*prob1*prob2*pdf1*pdf2);
+		 if (ireg1==0&&ireg2==0) {
+		   InvMass2D_ControlXH->Fill(mass,mass2,weight*prob1*prob2*pdf1*pdf2);
+		 }
 	       }
 	     }
 	   }

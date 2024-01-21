@@ -57,7 +57,7 @@ void CorrCoefficientsMC_Era(
   std::map<TString,double> eraLumi = {
     {"2016_preVFP", 19.520},
     {"2016_postVFP",16.810},
-    {"2017",        14.480},
+    {"2017",        41.480},
     {"2018",        59.830}
   };
 

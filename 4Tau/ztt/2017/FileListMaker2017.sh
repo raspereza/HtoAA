@@ -35,9 +35,9 @@ done
 
 
 #File lists for VV background MC samples
-samples_VV=(WW_TuneCP5_13TeV-pythia8
-WZ_TuneCP5_13TeV-pythia8
-ZZ_TuneCP5_13TeV-pythia8
+samples_VV=(WW_TuneCP5_13TeV-pythia8_2017
+WZ_TuneCP5_13TeV-pythia8_2017
+ZZ_TuneCP5_13TeV-pythia8_2017
 )
 
 names_VV=(WW_13TeV-pythia8
@@ -47,9 +47,10 @@ ZZ_13TeV-pythia8
 
 #File lists for background MC samples
 samples=(DYJetsToLL_M-10to50
-DYJetsToLL_M-50
-ST_t-channel_antitop_4f
-ST_t-channel_top_4f
+DYJetsToLL_M50
+DYJetsToLL_M-50_amcatnlo
+ST_t-channel_top_4f_InclusiveDecays_TuneCP5_13TeV-powheg-madspin-pythia8
+ST_t-channel_antitop_4f_InclusiveDecays_TuneCP5_13TeV-powheg-madspin-pythia8
 ST_tW_top_5f_inclusiveDecays
 ST_tW_antitop_5f_inclusiveDecays
 TTTo2L2Nu
@@ -58,6 +59,7 @@ TTToHadronic
 
 names=(DYJetsToLL_M-10to50
 DYJetsToLL_M-50
+DYJetsToLL_M-50_amcatnlo
 ST_t-channel_top
 ST_t-channel_antitop
 ST_tW_top
@@ -69,24 +71,29 @@ TTToHadronic
 i=0
 while [ $i -lt ${#samples[@]} ] 
 do
-    echo "Creating file list for sample" ${samples[$i]} 
+    echo "Creating file list for sample" ${names[$i]} 
 
-    ls /pnfs/desy.de/cms/tier2/store/user/acardini/ntuples/Oktoberfest21/2017/mc/${samples[$i]}*/*root > ${names[$i]}
+    ls /pnfs/desy.de/cms/tier2/store/user/acardini/ntuples/Oktoberfest21/2017/mc/${samples[$i]}/*root > ${names[$i]}
 
     ./split_filelist.sh analysisMacro_ztt.conf ${names[$i]} 20
       
     i=`expr $i + 1` 
 done
+
 echo "Creating file list for sample DYJetsToTT_M-50"
 cp DYJetsToLL_M-50 DYJetsToTT_M-50
 ./split_filelist.sh analysisMacro_ztt.conf DYJetsToTT_M-50 20
 
+echo "Creating file list for sample DYJetsToTT_M-50_amcatnlo"
+cp DYJetsToLL_M-50_amcatnlo DYJetsToTT_M-50_amcatnlo
+./split_filelist.sh analysisMacro_ztt.conf DYJetsToTT_M-50_amcatnlo 20
+
 k=0
 while [ $k -lt ${#samples_VV[@]} ] 
 do
-    echo "Creating file list for sample" ${samples_VV[$k]} 
+    echo "Creating file list for sample" ${names_VV[$k]} 
 
-    ls /pnfs/desy.de/cms/tier2/store/user/lsreelat/NTuples/2017/HtoAA/VV_inclusive/${samples_VV[$k]}*/*root > ${names_VV[$k]}
+    ls /pnfs/desy.de/cms/tier2/store/user/lsreelat/NTuples/2017/HtoAA/VV_inclusive/${samples_VV[$k]}/*root > ${names_VV[$k]}
     ./split_filelist.sh analysisMacro_ztt.conf ${names_VV[$k]} 20
       
     k=`expr $k + 1` 

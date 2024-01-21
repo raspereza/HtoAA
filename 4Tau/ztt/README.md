@@ -64,20 +64,22 @@ The content of the default configuration file looks like this
 # configuration file to create datacards
 # for measurement of trk id/iso with Z->tautau
 InputFolder = /nfs/dust/cms/user/rasp/Run/MuTrk/PuppiMET
-DatacardsFolder = /nfs/dust/cms/user/rasp/HtoAA/datacards/TrkID/PuppiMET
-PlotFolder = /nfs/dust/cms/user/rasp/HtoAA/datacards/TrkID/PuppiMET/plots
+DatacardsFolder = /nfs/dust/cms/user/rasp/HtoAA/datacards/TrkID/PuppiMET/NLO
+PlotFolder = /nfs/dust/cms/user/rasp/HtoAA/datacards/TrkID/PuppiMET/NLO/plots
 NBins = 14
 XMin = 20
 XMax = 160
 NBinsZmm = 1
-XMinZmm = 76
-XMaxZmm = 106
+XMinZmm = 70
+XMaxZmm = 112
 CutLowMT = 30
-CutHighMT = 60
+CutHighMT = 50
 DeltaPhiCut = 2.0
 TrkPtCutForCones = 10.0
 UseZMuMu = true
-FloatFakes = true 
+FloatFakes = true
+IsNLO = true
+ControlPlotsZmm = false
 ```
 
 The meaning of the configuration parameters is explained below
@@ -96,6 +98,8 @@ The meaning of the configuration parameters is explained below
 * `TrkPtCutForCones` : lower cut on track pT in measurements for random isolation cones
 * `UseZMuMu` : if true, Z->mumu control region is included in the fit and rate parameter, controlling normalisation of the DY process, is introduced; otherwise Z->mumu control region is removed from the measurement.
 * `FloatFakes` : if true, normalisation of jet->tau fake background is floated freely in the fit, otherwise log-normal uncertainty of 30% is assigned to this background.   
+* `IsNLO` : if true, NLO Drell-Yan samples produced with the amcAtNLO generator, are used in the analysis; otherwise LO Drell-Yan samples produced with MadGraph, are used.
+* `ControlPlotsZmm` : if true, code will only plot control distributions in the Z->mumu control region without producing datacards for statistical inference; otherwise datacards are produced.
 
 Before running the code, don't forget to properly set paths to the folder where datacards will be stored (argument `DatacardsFolder`) and where plots will be saved (argument `PlotFolder`).
 
@@ -132,4 +136,4 @@ The output of the fit is saved in the same folder, where datacards are stored, u
 ```
 fitDiagnostics_$bin_$era_$option.root
 ``` 
-The output file contains results of the fit, including computed value of track ID/Iso scale factor (nuisance parameter named `r`), as well as prefit and postfit shapes which can be used to produce nice looking plots. 
+The output file contains results of the fit, including computed value of track ID/Iso scale factor (nuisance parameter named `r`), as well as prefit and postfit shapes which can be used to produce distribution prior to the fit and after the fit. 

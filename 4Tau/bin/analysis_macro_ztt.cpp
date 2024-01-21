@@ -225,6 +225,7 @@ int main(int argc, char * argv[]) {
   Int_t           gentau_fromHardProcess[100];
 
   float genweight;
+  float genweightInit;
 
   UInt_t genparticles_noutgoing;
 
@@ -292,6 +293,8 @@ int main(int argc, char * argv[]) {
   bool isTOP  = TStrName.Contains("TTTo");
   bool isZTT  = TStrName.Contains("DYJetsToTT");
   bool isDY   = TStrName.Contains("DYJets");
+  bool isNLO  = TStrName.Contains("amcatnlo");
+  //  bool reweightZPt = false;
 
   bool applyGoodRunSelection = isData;
 
@@ -302,16 +305,20 @@ int main(int argc, char * argv[]) {
     std::cout << std::endl;
   }
   else {
-    std::cout << "=====================" << std::endl;
-    std::cout << "=== Running on MC ===" << std::endl;
-    std::cout << "=====================" << std::endl;
+    std::cout << "=========================" << std::endl;
+    std::cout << "===== Running on MC =====" << std::endl;
+    std::cout << "=========================" << std::endl;
     std::cout << std::endl; 
     if (isDY) {
-      std::cout << "=== Running on DYJets =====" << std::endl;
-      std::cout << "activated Z pt reweighting " << std::endl;
+      std::cout << "=== Running on DYJets ====" << std::endl;
+      std::cout << "-> activated Z pt reweighting" << std::endl;
+      if (isNLO) 
+	std::cout << "= running on NLO samples =" << std::endl;
+      else 
+	std::cout << "= running on LO samples  =" << std::endl;
       std::cout << std::endl;
       if (isZTT) {
-	std::cout<< "== Selecting Z->tautau ===" << std::endl;
+	std::cout<< "=== Selecting Z->tautau ====" << std::endl;
 	std::cout<<std::endl;
       }
     }
@@ -414,7 +421,15 @@ int main(int argc, char * argv[]) {
 
   // ------------------------------------------------------
   // Z->mumu control region
-  TH1D * massMuMuH    = new TH1D("massMuMuH","",60,60.,120.);
+  TH1D * massMuMuH     = new TH1D("massMuMuH","",150,50.,200.);
+  TH1D * ptLeadingMuH  = new TH1D("ptLeadingMuH","",200,0.,200.);
+  TH1D * ptTrailingMuH = new TH1D("ptTrailingMuH","",200,0.,200.);
+  TH1D * etaLeadingMuH = new TH1D("etaLeadingMuH","",24,-2.4,2.4);
+  TH1D * etaTrailingMuH = new TH1D("etaTrailingMuH","",24,-2.4,2.4);
+  TH1D * ptMuMuH = new TH1D("ptMuMuH","",200,0.,200.);
+
+  // 2D distribution
+  TH2D * pTmassMuMuH = new TH2D("pTmassMuMuH","",200,0.,1000.,190,50.,1000.);
 
   // ********************************************
   // * mu-trk invariant mass in various regions *
@@ -579,7 +594,22 @@ int main(int argc, char * argv[]) {
 
   // ZPt corrections
   TFile * zptWorkSpaceFile = new TFile(ZptWorkspaceFileName);
-  RooWorkspace *zptCorr = (RooWorkspace*)zptWorkSpaceFile->Get("w");
+
+
+  TH2D * zptCorr_LO = (TH2D*)zptWorkSpaceFile->Get("zptmass_weight");
+  int zptNbinsX_LO = zptCorr_LO->GetNbinsX();
+  int zptNbinsY_LO = zptCorr_LO->GetNbinsY();
+  float ZPtMax_LO = zptCorr_LO->GetXaxis()->GetBinLowEdge(zptNbinsX_LO+1);
+  float ZMassMax_LO = zptCorr_LO->GetYaxis()->GetBinLowEdge(zptNbinsY_LO+1);
+
+  TH2D * zptCorr_NLO = (TH2D*)zptWorkSpaceFile->Get("DY_NLO");
+  int zptNbinsX_NLO = zptCorr_NLO->GetNbinsX();
+  int zptNbinsY_NLO = zptCorr_NLO->GetNbinsY();
+  float ZPtMax_NLO = zptCorr_NLO->GetXaxis()->GetBinLowEdge(zptNbinsX_NLO+1);
+  float ZMassMax_NLO = zptCorr_NLO->GetYaxis()->GetBinLowEdge(zptNbinsY_NLO+1);
+
+  //  std::cout << "ZPtMax = " << ZPtMax
+  //	    << "  ZMassMax = " << ZMassMax << std::endl;
 
   ScaleFactor * SF_muonTrigger = new ScaleFactor();
   SF_muonTrigger->init_ScaleFactor(TString(cmsswBase)+"/src/"+TString(MuonTriggerEffFile));
@@ -721,7 +751,7 @@ int main(int argc, char * argv[]) {
    tree_->SetBranchAddress("numtruepileupinteractions",&numtruepileupinteractions);
 
    if (!isData) {
-     inittree_->SetBranchAddress("genweight",&genweight);
+     inittree_->SetBranchAddress("genweight",&genweightInit);
      tree_->SetBranchAddress("genweight",&genweight);
      tree_->SetBranchAddress("genparticles_count", &genparticles_count);
      tree_->SetBranchAddress("genparticles_e", genparticles_e);
@@ -776,7 +806,7 @@ int main(int argc, char * argv[]) {
 
      float generator_weight = 1.0;
      if (!isData) {
-       if (genweight<0.0) 
+       if (genweightInit<0.0) 
 	 generator_weight = -1.0;
      }
      histWeightsH->Fill(1.0,generator_weight);
@@ -887,17 +917,25 @@ int main(int argc, char * argv[]) {
      if (!isData) {
        
        if (isDY) { // applying Z pt mass weights
+	 TH2D * zptCorr = zptCorr_LO;
+	 float ZMassMax = ZMassMax_LO;
+	 float ZPtMax = ZPtMax_LO;
+	 if (isNLO) {
+	   zptCorr = zptCorr_NLO;
+	   ZMassMax = ZMassMax_NLO;
+	   ZPtMax = ZPtMax_NLO;
+	 }
 	 float bosonMass = genBosonLV.M();
 	 float bosonPt = genBosonLV.Pt();
 	 if (bosonMass>50.0) {
 	   float bosonMassX = bosonMass;
 	   float bosonPtX = bosonPt;
-	   if (bosonMassX>1000.) bosonMassX = 1000.;
-	   if (bosonPtX<1.)      bosonPtX = 1.;
-	   if (bosonPtX>1000.)   bosonPtX = 1000.;
-	   zptCorr->var("z_gen_pt")->setVal(bosonPtX);
-	   zptCorr->var("z_gen_mass")->setVal(bosonMassX);
-	   zptmassweight = zptCorr->function("zptmass_weight_nom")->getVal();
+	   if (bosonMassX>ZMassMax) bosonMassX = ZMassMax - 0.1;
+	   if (bosonPtX<1.)         bosonPtX = 1.;
+	   if (bosonPtX>ZPtMax)     bosonPtX = ZPtMax - 0.1;
+	   int xbin = zptCorr->GetXaxis()->FindBin(bosonPtX);
+	   int ybin = zptCorr->GetYaxis()->FindBin(bosonMassX);
+	   zptmassweight = zptCorr->GetBinContent(xbin,ybin);
 	   //	   std::cout << "bosonMass = " << bosonMass << "  bosonPt = " << bosonPt << " " << "  zptweight = " << zptmassweight << std::endl;
 	 } 
 	 weight *= zptmassweight; 
@@ -1117,7 +1155,7 @@ int main(int argc, char * argv[]) {
        } // loop over first muon       
 
        if (maxPairPT>0) {
-	 float mumu_weight = 1.0;
+	 float mumu_eff_weight = 1.0;
 	 if (!isData) {
 	   correctionWS->var("m_pt")->setVal(muon_pt[indexMu1]);
 	   correctionWS->var("m_eta")->setVal(muon_eta[indexMu1]);
@@ -1125,6 +1163,10 @@ int main(int argc, char * argv[]) {
 	   weight_ID1 *= correctionWS->function("m_trk_ratio")->getVal();
 	   float trig_eff_Data1 = correctionWS->function("m_trg_ic_data")->getVal();
 	   float trig_eff_MC1   = correctionWS->function("m_trg_ic_mc")->getVal();
+	   if (muon_pt[indexMu1]<ptMuonCut) {
+	     trig_eff_Data1 = 0.0;
+	     trig_eff_MC1 = 0.0;
+	   }
 	   
 	   correctionWS->var("m_pt")->setVal(muon_pt[indexMu2]);
 	   correctionWS->var("m_eta")->setVal(muon_eta[indexMu2]);
@@ -1132,6 +1174,10 @@ int main(int argc, char * argv[]) {
 	   weight_ID2 *= correctionWS->function("m_trk_ratio")->getVal();
 	   float trig_eff_Data2 = correctionWS->function("m_trg_ic_data")->getVal();
 	   float trig_eff_MC2   = correctionWS->function("m_trg_ic_mc")->getVal();
+	   if (muon_pt[indexMu2]<ptMuonCut) {
+	     trig_eff_Data2 = 0.0;
+	     trig_eff_MC2 = 0.0;
+	   }
 
 	   //	   std::cout << "eta(mu1) = " << muon_eta[indexMu1]
 	   //		     << "  eta(mu2) = " << muon_eta[indexMu2] << std::endl;
@@ -1143,23 +1189,25 @@ int main(int argc, char * argv[]) {
 	   float trig_eff_MC = 1.0 - (1.0-trig_eff_MC1)*(1.0-trig_eff_MC2);
 	   float trig_SF = 1.0;
 	   if (trig_eff_MC>0.01) trig_SF = trig_eff_Data/trig_eff_MC;
-	   mumu_weight = weight_ID1 * weight_ID2 * trig_SF;
+	   mumu_eff_weight = weight_ID1 * weight_ID2 * trig_SF;
 	   //	   std::cout << "mu1 weight = " << weight_ID1 << std::endl;
 	   //	   std::cout << "mu2 weight = " << weight_ID2 << std::endl;
 	   //	   std::cout << "trg weight = " << trig_SF << std::endl;
-	   //	   std::cout << "mumu_weight = " << mumu_weight << std::endl; 
+	   //	   std::cout << "mumu_eff_weight = " << mumu_eff_weight << std::endl; 
 	 }
 	 TLorentzVector mu1LV; mu1LV.SetXYZM(muon_px[indexMu1],muon_py[indexMu1],muon_pz[indexMu1],MuMass);
 	 TLorentzVector mu2LV; mu2LV.SetXYZM(muon_px[indexMu2],muon_py[indexMu2],muon_pz[indexMu2],MuMass);
 	 float mumuMass = (mu1LV+mu2LV).M();
+	 float mumuPt = (mu1LV+mu2LV).Pt();
 	 //	 std::cout << "mumuMass = " << mumuMass << std::endl;
-	 if (isData) {
-	   massMuMuH->Fill(mumuMass,1.);
-	 }
-	 else {
-	   //	   std::cout << "weight = " << weight*mumu_weight << std::endl;
-	   massMuMuH->Fill(mumuMass,weight*mumu_weight);
-	 }
+	 float mumu_weight = weight*mumu_eff_weight;
+	 massMuMuH->Fill(mumuMass,mumu_weight);
+	 pTmassMuMuH->Fill(mumuPt,mumuMass,mumu_weight);
+	 ptMuMuH->Fill(mumuPt,mumu_weight);
+	 ptLeadingMuH->Fill(mu1LV.Pt(),mumu_weight);
+	 ptTrailingMuH->Fill(mu2LV.Pt(),mumu_weight);
+	 etaLeadingMuH->Fill(mu1LV.Eta(),mumu_weight);
+	 etaTrailingMuH->Fill(mu2LV.Eta(),mumu_weight);
 	 /*
 	 float neutralHadIsoMu = muon_neutralHadIso[indexMu1];
 	 float photonIsoMu = muon_photonIso[indexMu1];

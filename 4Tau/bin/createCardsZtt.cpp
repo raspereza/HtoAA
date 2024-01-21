@@ -23,6 +23,21 @@
 
 using namespace std;
 
+std::map<TString,std::vector<TString>> groups = {
+  {"EWK",{"WW_13TeV-pythia8",
+	  "WZ_13TeV-pythia8",
+	  "ZZ_13TeV-pythia8",
+	  "WJetsToLNu"}},
+  
+  {"TT",{"TTTo2L2Nu",
+	 "TTToSemiLeptonic",
+	 "TTToHadronic",
+	 "ST_t-channel_top",
+	 "ST_t-channel_antitop",
+	 "ST_tW_top",
+	 "ST_tW_antitop" }},
+};
+
 std::map<TString,double> eraLumi = {
   {"2016_preVFP", 19520.},
   {"2016_postVFP",16810.},
@@ -38,26 +53,6 @@ std::map<TString, TString> LUMI_label = {
   {"2018"     ,"2018, 59.8 fb^{-1}"}
 };
 
-std::map<TString,std::vector<TString>> groups = {
-  {"EWK",{"WW_13TeV-pythia8",
-	  "WZ_13TeV-pythia8",
-	  "ZZ_13TeV-pythia8",
-	  "WJetsToLNu"}},
-
-  {"TT",{"TTTo2L2Nu",
-	 "TTToSemiLeptonic",
-	 "TTToHadronic",
-	 "ST_t-channel_top",
-	 "ST_t-channel_antitop",
-	 "ST_tW_top",
-	 "ST_tW_antitop" }},
-
-  {"ZLL",{"DYJetsToLL_M-10to50",
-	  "DYJetsToLL_M-50"}},
-
-  {"ZTT",{"DYJetsToTT_M-50"}}
-  
-};
 
 std::map<TString, double> sample_xsec_2016pre = {
   {"WW_13TeV-pythia8",118.7},
@@ -73,7 +68,9 @@ std::map<TString, double> sample_xsec_2016pre = {
   {"TTToHadronic",377.96},
   {"DYJetsToLL_M-10to50",21610.0},
   {"DYJetsToLL_M-50",6077.22},
-  {"DYJetsToTT_M-50",6077.22}
+  {"DYJetsToTT_M-50",6077.22},
+  {"DYJetsToLL_M-50_amcatnlo",6077.22},
+  {"DYJetsToTT_M-50_amcatnlo",6077.22}
   
 };
 
@@ -92,6 +89,8 @@ std::map<TString, double> sample_xsec_2016post = {
   {"DYJetsToLL_M-10to50",21610.0},
   {"DYJetsToLL_M-50",6077.22},
   {"DYJetsToTT_M-50",6077.22},
+  {"DYJetsToLL_M-50_amcatnlo",6077.22},
+  {"DYJetsToTT_M-50_amcatnlo",6077.22}
   
 };
 
@@ -108,8 +107,10 @@ std::map<TString, double> sample_xsec_2017 = {
   {"TTToSemiLeptonic",365.35},
   {"TTToHadronic",377.96},
   {"DYJetsToLL_M-10to50",21610.0},
-  {"DYJetsToLL_M-50",6077.22}, // scale factor from Z->mumu
-  {"DYJetsToTT_M-50",6077.22}, // scale factor from Z->mumu
+  {"DYJetsToLL_M-50",6077.22}, 
+  {"DYJetsToTT_M-50",6077.22}, 
+  {"DYJetsToLL_M-50_amcatnlo",6077.22},
+  {"DYJetsToTT_M-50_amcatnlo",6077.22}
   
 };
 
@@ -126,8 +127,10 @@ std::map<TString, double> sample_xsec_2018 = {
   {"TTToSemiLeptonic",365.35},
   {"TTToHadronic",377.96},
   {"DYJetsToLL_M-10to50",21610.0},
-  {"DYJetsToLL_M-50",6077.22}, // scale factor from Z->mumu
-  {"DYJetsToTT_M-50",6077.22}, // scale factor from Z->mumu
+  {"DYJetsToLL_M-50",6077.22}, 
+  {"DYJetsToTT_M-50",6077.22}, 
+  {"DYJetsToLL_M-50_amcatnlo",6077.22},
+  {"DYJetsToTT_M-50_amcatnlo",6077.22}
   
 };
 
@@ -150,12 +153,30 @@ std::map<TString,double> sysSamplesZTT = {
 };
 
 std::map<TString,double> sysSamplesZMM = {
-  {"ZLL",0.05},
-  {"ZTT",0.05},
+  {"ZLL",0.07},
+  {"ZTT",0.07},
   {"EWK",0.2},
   {"TT" ,0.2},
 };
 
+std::map<TString, TString > xtitleZmm = {
+  {"massMuMuH","dimuon mass [GeV]"},
+  {"ptMuMuH","dimuon p_{T} [GeV]"},
+  {"ptLeadingMuH","leading muon p_{T} [GeV]"},
+  {"ptTrailingMuH","trailing muon p_{T} [GeV]"},
+  {"etaLeadingMuH","leading muon #eta"},
+  {"etaTrailingMuH","trailing muon #eta"}
+};
+
+std::map<TString,std::vector<float> > histRangesZmm = {
+  {"massMuMuH",{30,60,120}},
+  {"ptMuMuH",{50,0,100}},
+  {"ptLeadingMuH",{50,0,100}},
+  {"ptTrailingMuH",{50,0,100}},
+  {"etaLeadingMuH",{24,-2.4,2.4}},
+  {"etaTrailingMuH",{24,-2.4,2.4}},
+};
+  
 // color map
 std::map<TString,TString> colorSamples = {
   {"ZLL","#4496C8"},
@@ -165,9 +186,8 @@ std::map<TString,TString> colorSamples = {
   {"QCD","#FFCCFF"}
 };
 
-
 std::vector<TString> eras = {"2016","2017","2018"};
-
+  
 //  ***** TREE from which datacards are produced ***********  
 //  TTree * mutrkTree = new TTree("mutrkTree","Muon Track Tree");
 //  mutrkTree->Branch("os",&os_tree,"os/O");
@@ -254,7 +274,7 @@ void fixNegativeBins(TH1D * hist) {
   for (int ib=1; ib<=nbins; ++ib) {
     double x = hist->GetBinContent(ib);
     if (x<0) {
-      hist->SetBinContent(ib,0.0);
+  hist->SetBinContent(ib,0.0);
       hist->SetBinError(ib,0.0);
     }      
   }    
@@ -273,11 +293,8 @@ std::map<TString, TH1D*> GetHistos(TString histName,
   
   std::map<TString, TH1D*> histograms;
   std::map<TString, double> sample_xsec = sample_xsec_ERA[era];
-  std::cout << std::endl;
-  std::cout << "+++++++++++++++++++++++++++++++++++++" << std::endl;
-  std::cout << std::endl;
-  std::cout << " Extracting histogram " << histName << std::endl;
-  std::cout << " Era " << era << "   Region " << region << std::endl;
+  std::cout << "-- extracting histogram " << histName << std::endl;
+  std::cout << "-- era : " << era << "    region : " << region << std::endl;
   std::cout << std::endl;
    
   double lumi = eraLumi[era];
@@ -294,9 +311,9 @@ std::map<TString, TH1D*> GetHistos(TString histName,
   double xMin = histDataOld->GetBinLowEdge(1);
   double xMax = histDataOld->GetBinLowEdge(nBins+1);
 
-    std::cout << "Histogram " << histName << " : " << "nbins = " << nBins
-	    << " , min = " << xMin
-	    << " , max = " << xMax << std::endl;
+  std::cout << "histogram " << histName << " : " << "nbins = " << nBins
+	    << "   xmin = " << xMin
+	    << "   xmax = " << xMax << std::endl;
   std::cout << std::endl;
 
   //  double bins[300];
@@ -342,6 +359,7 @@ std::map<TString, TH1D*> GetHistos(TString histName,
 
 }
 
+
 // =========================================================
 // ========= Getting histograms from Trees =================
 // =========================================================
@@ -361,10 +379,8 @@ std::map<TString, TH1D*> GetHistosFromTree(TString treeName,
 
   double lumi = eraLumi[era];
 
-  std::cout << "+++++++++++++++++++++++++++++++++++++" << std::endl;
-  std::cout << std::endl;
-  std::cout << "Filling histograms from " << treeName << std::endl;
-  std::cout << "Era : " << era << "   Region " << region << std::endl;
+  std::cout << "-- filling histograms from " << treeName << std::endl;
+  std::cout << "-- era : " << era << "   region : " << region << std::endl;
   std::cout << std::endl;
 
   TString cutsOS  = "weight*("+cuts+"&&os>0.5)";
@@ -506,9 +522,8 @@ std::map<TString,double> GetNormQCD(
   results["scale"]=scale;
   results["error"]=escale;
 
-  std::cout << std::endl;
-  std::cout << "Era = " << era << "  Region = " << region << std::endl; 
-  printf("QCD OS/SS ratio = %4.2f +/- %4.2f\n",scale,escale);
+  std::cout << "-- era = " << era << "  region = " << region << std::endl; 
+  printf("--> QCD OS/SS ratio = %4.2f +/- %4.2f\n",scale,escale);
   std::cout << std::endl;
 
   return results;
@@ -552,11 +567,11 @@ void Plot(std::map<TString, TH1D*> histograms,
 	  TString region,
 	  TString legend,
 	  TString era,
+	  bool plotLegend,
 	  TString plotdir) {
 
-  std::cout << std::endl;
-  std::cout << "Plotting distributions " << region << std::endl;
-  std::cout << "Era = " << era << "  Region " << region << std::endl;
+  std::cout << "-- plotting distribution " << std::endl;
+  std::cout << "-- era : " << era << "  region : " << region << std::endl;
   std::cout << std::endl;
 
   SetStyle();
@@ -567,7 +582,7 @@ void Plot(std::map<TString, TH1D*> histograms,
 
   std::map<TString,TH1D*> plot_sample;
   std::map<TString,double> sysSamples = sysSamplesZTT;
-  if (region=="zmm") sysSamples = sysSamplesZMM;
+  if (region.Contains("zmm")) sysSamples = sysSamplesZMM;
   for (auto sysSample : sysSamples) {
     TString name = sysSample.first;
     double sys = sysSample.second;
@@ -586,7 +601,7 @@ void Plot(std::map<TString, TH1D*> histograms,
   TH1D * TT  = plot_sample["TT"];
   TH1D * EWK = plot_sample["EWK"];
   TH1D * QCD = NULL;
-  if (region=="zmm") {
+  if (region.Contains("zmm")) {
     QCD = (TH1D*)EWK->Clone("QCD_zmm"); 
     int nbins = QCD->GetNbinsX();
     for (int bin=1; bin<=nbins; ++bin) {
@@ -599,15 +614,15 @@ void Plot(std::map<TString, TH1D*> histograms,
     QCD = plot_sample["QCD"];
   }
 
-  printf("ZLL   : %7.0f\n",ZLL->GetSumOfWeights());
-  printf("EWK   : %7.0f\n",EWK->GetSumOfWeights());
-  printf("TT    : %7.0f\n",TT->GetSumOfWeights());
-  printf("QCD   : %7.0f\n",QCD->GetSumOfWeights());
-  printf("ZTT   : %7.0f\n",ZTT->GetSumOfWeights());
+  printf("ZLL   : %8.0f\n",ZLL->GetSumOfWeights());
+  printf("EWK   : %8.0f\n",EWK->GetSumOfWeights());
+  printf("TT    : %8.0f\n",TT->GetSumOfWeights());
+  printf("QCD   : %8.0f\n",QCD->GetSumOfWeights());
+  printf("ZTT   : %8.0f\n",ZTT->GetSumOfWeights());
 
   TT->Add(TT,QCD,1.,1.);
   EWK->Add(EWK,TT,1.,1.);
-  if (region=="zmm") {
+  if (region.Contains("zmm")) {
     ZTT->Add(ZTT,EWK,1.,1.);
     ZLL->Add(ZLL,ZTT,1.,1.);
   } 
@@ -616,7 +631,7 @@ void Plot(std::map<TString, TH1D*> histograms,
     ZTT->Add(ZTT,ZLL,1.,1.);
   }
   TH1D * bkgdErr = NULL;
-  if (region=="zmm") {
+  if (region.Contains("zmm")) {
     bkgdErr = (TH1D*)ZLL->Clone("bkgdErr");
   }
   else {
@@ -627,8 +642,8 @@ void Plot(std::map<TString, TH1D*> histograms,
   bkgdErr->SetMarkerStyle(21);
   bkgdErr->SetMarkerSize(0);
   printf("----------------\n");
-  printf("Total : %7.0f\n",bkgdErr->GetSumOfWeights());
-  printf("Data  : %7.0f\n",Data->GetSumOfWeights());
+  printf("Total : %8.0f\n",bkgdErr->GetSumOfWeights());
+  printf("Data  : %8.0f\n",Data->GetSumOfWeights());
   std::cout << std::endl;
   
   for (int iB=1; iB<=nBins; ++iB) {
@@ -656,7 +671,7 @@ void Plot(std::map<TString, TH1D*> histograms,
 
   TCanvas * canv = MakeCanvas("canv","",600,600);
 
-  if (region=="zmm") {
+  if (region.Contains("zmm")) {
     ZLL->Draw("h");
   }
   else {
@@ -670,7 +685,7 @@ void Plot(std::map<TString, TH1D*> histograms,
   Data->Draw("e1same");
     
   TLegend * leg;
-  if (region=="zmm") {
+  if (region.Contains("zmm")) {
     leg = new TLegend(0.66,0.57,0.90,0.75);
     leg->SetTextSize(0.04);    
   }
@@ -681,7 +696,7 @@ void Plot(std::map<TString, TH1D*> histograms,
   SetLegendStyle(leg);
   leg->SetHeader(legend);
   leg->AddEntry(Data,"Data","lp");
-  if (region=="zmm") {
+  if (region.Contains("zmm")) {
     leg->AddEntry(ZLL,"Simulation","f");
     //    leg->AddEntry(EWK,"other","f");
   }
@@ -692,7 +707,8 @@ void Plot(std::map<TString, TH1D*> histograms,
     leg->AddEntry(TT,"t#bar{t}","f");
     leg->AddEntry(QCD,"QCD","f");
   }
-  leg->Draw();
+  if (plotLegend)
+    leg->Draw();
 
   lumi_13TeV = LUMI_label[era];
   writeExtraText = true;
@@ -701,7 +717,6 @@ void Plot(std::map<TString, TH1D*> histograms,
 
   canv->RedrawAxis();
   canv->Update();
-  std::cout << std::endl;
   canv->Print(plotdir+"/"+region+"_"+era+".png");
   std::cout << std::endl;
   delete canv;
@@ -735,7 +750,6 @@ void WriteDatacardsZMM(std::map<TString, TH1D*> histograms,
   // Creating datacards ->
   TString fileName = region + "_" + era + ".root";
 
-  std::cout << std::endl;
   std::cout << "Writing shapes to " << fileName << std::endl;
 
   TFile * fileOutput = new TFile(folder+"/"+fileName,"recreate");
@@ -776,7 +790,7 @@ void WriteDatacardsZMM(std::map<TString, TH1D*> histograms,
   textFile << "eff_m        lnN    1.03    1.03    1.03" << std::endl;
   textFile << "ewkXsec      lnN       -    1.05       -" << std::endl;
   textFile << "tjXsec       lnN       -       -    1.07" << std::endl;
-  textFile << "ZNorm rateParam " << region << " ZLL  1.0 [0.5,1.0]" << std::endl; 
+  textFile << "ZNorm rateParam " << region << " ZLL  1.0 [0.5,1.5]" << std::endl; 
   textFile << std::endl;
 
 }
@@ -1016,29 +1030,29 @@ void WriteDatacards(std::map<TString, TH1D*> histograms,
   textFile << "qcdNorm   lnN     -      -      -      -      -      -      -      -  " << QCDErr << std::endl;
   // znorm
   if (isZnorm) {
-    textFile << "ZNorm rateParam " << region << " ZTT_Tau 1.0 [0.5,1.0]" << std::endl;
-    textFile << "ZNorm rateParam " << region << " ZTT_Jet 1.0 [0.5,1.0]" << std::endl;
-    textFile << "ZNorm rateParam " << region << " ZLL_Jet 1.0 [0.5,1.0]" << std::endl;
-    textFile << "ZNorm rateParam " << region << " ZLL_Mu  1.0 [0.5,1.0]" << std::endl;
+    textFile << "ZNorm rateParam " << region << " ZTT_Tau 1.0 [0.5,1.5]" << std::endl;
+    textFile << "ZNorm rateParam " << region << " ZTT_Jet 1.0 [0.5,1.5]" << std::endl;
+    textFile << "ZNorm rateParam " << region << " ZLL_Jet 1.0 [0.5,1.5]" << std::endl;
+    textFile << "ZNorm rateParam " << region << " ZLL_Mu  1.0 [0.5,1.5]" << std::endl;
   }
   // float fakes
   if (floatFakes) {
-    textFile << "JFakeEWK rateParam " << region << " ZTT_Jet 1.0 [0.0,5.0]" << std::endl;
-    textFile << "JFakeEWK rateParam " << region << " ZLL_Jet 1.0 [0.0,5.0]" << std::endl;
-    textFile << "JFakeTTJ rateParam " << region << " TT_Jet  1.0 [0.0,5.0]" << std::endl;
-    textFile << "JFakeEWK rateParam " << region << " EWK_Jet 1.0 [0.0,5.0]" << std::endl;
+    textFile << "JFake rateParam " << region << " ZTT_Jet 1.0 [0.0,5.0]" << std::endl;
+    textFile << "JFake rateParam " << region << " ZLL_Jet 1.0 [0.0,5.0]" << std::endl;
+    textFile << "JFake rateParam " << region << " TT_Jet  1.0 [0.0,5.0]" << std::endl;
+    textFile << "JFake rateParam " << region << " EWK_Jet 1.0 [0.0,5.0]" << std::endl;
     if (lowpt)
       textFile << "MuonVeto  lnN     -      -      -      -      -      -      -   1.30     -" << std::endl;
     else 
       textFile << "MuonVeto rateParam " << region << " ZLL_Mu 1.0 [0.0,5.0]" << std::endl;
   }
   else {
-    textFile << "JFakeEWK  lnN     -      -      -   1.30   1.30     -    1.30      -     -" << std::endl;
-    textFile << "JFakeTTJ  lnN     -      -      -      -      -   1.30      -      -     -" << std::endl;
+    textFile << "JFakeEWK  lnN     -      -      -   1.50   1.50     -    1.50      -     -" << std::endl;
+    textFile << "JFakeTTJ  lnN     -      -      -      -      -   1.50      -      -     -" << std::endl;
     if (lowpt)
       textFile << "MuonVeto  lnN     -      -      -      -      -      -      -   1.30     -" << std::endl; 
     else 
-      textFile << "MuonVeto  lnN     -      -      -      -      -      -      -   1.60     -" << std::endl;
+      textFile << "MuonVeto  lnN     -      -      -      -      -      -      -   2.00     -" << std::endl;
   }
   textFile << "* autoMCStats 0" << std::endl;
   
@@ -1070,6 +1084,7 @@ int main (int argc, char * argv[])
   const float xmin = cfg.get<float>("XMin");
   const float xmax = cfg.get<float>("XMax");
   const int nbins = cfg.get<int>("NBins");
+  const string histName = cfg.get<string>("HistNameZmm");
   const float xminZmm = cfg.get<float>("XMinZmm");
   const float xmaxZmm = cfg.get<float>("XMaxZmm");
   const int nbinsZmm = cfg.get<int>("NBinsZmm");
@@ -1079,17 +1094,35 @@ int main (int argc, char * argv[])
   const string trkPtCut = cfg.get<string>("TrkPtCutForCones");
   const bool useZmumu = cfg.get<bool>("UseZMuMu");
   const bool floatFakes = cfg.get<bool>("FloatFakes");
+  const bool isNLO = cfg.get<bool>("IsNLO");
+  const bool controlPlots = cfg.get<bool>("ControlPlotsZmm"); 
+  // **** end configuration ****
 
+  // define regions and measurement bins
   vector<TString> pTbins = {"5to10","5to15","10to15","15to20","20toInf"};
   vector<TString> dRcones = {"cone0","cone0p15","cone0p30","cone0p45"};
+  vector<TString> mT_regions = {"lowMT", "highMT"};
 
+  // define cuts ->
   TString TrkPtCut = TString("trkpt>")+TString(trkPtCut);
+  TString DeltaPhiCut = TString("dphimutrk>")+TString(dPhi);
   TString CutLowMT = TString("mt<")+TString(lowMT);
   TString CutHighMT = TString("mt>")+TString(highMT);
   TString DatacardsDir(carddir);
+
+  // plotting and datacards folders ->
   TString PlotDir(plotdir);
   TString dir(inputdir);
-  TString DeltaPhiCut = TString("dphimutrk>")+TString(dPhi);
+  
+  // LO or NLO DT samples ->
+  if (isNLO) {
+    groups["ZLL"] = {"DYJetsToLL_M-10to50","DYJetsToLL_M-50_amcatnlo"};
+    groups["ZTT"] = {"DYJetsToTT_M-50_amcatnlo"};
+  }
+  else {
+    groups["ZLL"] = {"DYJetsToLL_M-10to50","DYJetsToLL_M-50"};
+    groups["ZTT"] = {"DYJetsToTT_M-50"};
+  }
 
   std::map<TString,TString> ptcuts = {
     {"5to15","trkpt>5.0&&trkpt<15.0"},
@@ -1106,7 +1139,7 @@ int main (int argc, char * argv[])
 
   TString era(argv[2]);
 
-  if (era=="2016"||era=="2017"||era=="2018") {
+  if (era=="2016"||era=="2017"||era=="2018"||era=="2016_preVFP"||era=="2016_postVFP") {
     std::cout << std::endl;
     std::cout << "Era : " << era << std::endl;
     std::cout << std::endl;
@@ -1129,7 +1162,7 @@ int main (int argc, char * argv[])
   if (era=="2016") era_current = "2016_preVFP";
   files = accessFiles(dir,era_current);
   if (era=="2016") {
-    era_current = "2016_postVFP";
+  era_current = "2016_postVFP";
     filesX = accessFiles(dir,era_current);
   }
 
@@ -1140,42 +1173,78 @@ int main (int argc, char * argv[])
   for (int iB=0; iB<=nbins; ++iB)
     bins[iB] = x0 + width*double(iB);
 
-  std::vector<TString> mT_regions = {"lowMT", "highMT"};
 
-  // Checking ZLL sample  
+  // ZLL histogram name -->
+  TString HistNameDY(histName);
 
-  double binsZmm[50];
-  double widthZmm = (xmaxZmm-xminZmm)/double(nbinsZmm);
-  for (int bin=0; bin<=nbinsZmm; ++bin) 
-    binsZmm[bin] = xminZmm + double(bin)*widthZmm;
+  std::map<TString, std::vector<float> > histogramsDY;
+  if (controlPlots) 
+    histogramsDY = histRangesZmm;
+  else 
+    histogramsDY[HistNameDY] = {float(nbinsZmm),xminZmm,xmaxZmm};
 
-  TString regionZmm = "zmm";
-  TString histName("massMuMuH");
+  for (auto histoDY : histogramsDY) {
+  
+    TString HistName = histoDY.first;
+    std::vector<float> bn = histoDY.second;
 
-  era_current = era;
-  if (era=="2016") era_current = "2016_preVFP";
-  std::map<TString, TH1D*> histsZmm = GetHistos(histName,
-						era_current,
-						regionZmm,
-						files,
-						nbinsZmm,
-						binsZmm);
-  if (era=="2016") {
-    era_current = "2016_postVFP";
-    std::map<TString, TH1D*> histsZmmX = GetHistos(histName,
-						   era_current,
-						   regionZmm,
-						   filesX,
-						   nbinsZmm,
-						   binsZmm);
+    int nbinsDY = int(bn[0]+0.1);
+    double xminDY = bn[1];
+    double xmaxDY = bn[2];
+    double binsDY[100];
 
-    addHistograms(histsZmm,histsZmmX);
+    double widthDY = (xmaxDY-xminDY)/double(nbinsDY);
+    for (int bin=0; bin<=nbinsDY; ++bin) 
+      binsDY[bin] = xminDY + double(bin)*widthDY;
+
+    TString regionZmm("zmm");
+    if (controlPlots) { 
+      regionZmm += "_"+HistName;
+    }
+
+    era_current = era;
+    if (era=="2016") era_current = "2016_preVFP";
+    std::map<TString, TH1D*> histsZmm = GetHistos(HistName,
+						  era_current,
+						  regionZmm,
+						  files,
+						  nbinsDY,
+						  binsDY);
+    if (era=="2016") {
+      era_current = "2016_postVFP";
+      std::map<TString, TH1D*> histsZmmX = GetHistos(HistName,
+						     era_current,
+						     regionZmm,
+						     filesX,
+						     nbinsDY,
+						     binsDY);
+      addHistograms(histsZmm,histsZmmX);
+      
+    }
+
+    TString legend("Z#rightarrow#mu#mu");
+    bool plotLegend = true;
+    if (HistName=="etaLeadingMuH"||HistName=="etaTrailingMuH")
+      plotLegend = false;
+
+    if (controlPlots) {
+      std::cout << std::endl;
+      std::cout << "-- Control plot Z->mumu (rebinned) -> " << HistName << " : nbins = " << nbinsDY
+		<< "   xmin = " << xminDY
+		<< "   xmax = " << xmaxDY << std::endl;
+    }
+  
+    Plot(histsZmm,xtitleZmm[HistName],regionZmm,legend,era,plotLegend,PlotDir);
+    if (!controlPlots) 
+      WriteDatacardsZMM(histsZmm,regionZmm,era,DatacardsDir);
+
+    std::cout << "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
+    std::cout << std::endl;
 
   }
-  TString xtitle("dimuon mass [GeV]");
-  TString legend("Z#rightarrow#mu#mu");
-  Plot(histsZmm,xtitle,regionZmm,legend,era,PlotDir);
-  WriteDatacardsZMM(histsZmm,regionZmm,era,DatacardsDir);
+  if (controlPlots)
+    return 0;
+
 
   // *********************
   // *** track pT bins ***
@@ -1264,7 +1333,10 @@ int main (int argc, char * argv[])
       bool isFakes = floatFakes;
       bool isZnorm = useZmumu;
       WriteDatacards(histos,norm,isFakes,isZnorm,region,era,DatacardsDir);
-      Plot(histos,xtitle,region,legend,era,PlotDir);
+      bool plotLegend = true;
+      if (mt=="highMT"&&(pt=="20toInf"))
+	plotLegend = false;
+      Plot(histos,xtitle,region,legend,era,plotLegend,PlotDir);
 
     }
   }
@@ -1361,7 +1433,8 @@ int main (int argc, char * argv[])
       bool isFakes = floatFakes;
       bool isZnorm = useZmumu;
       WriteDatacards(histos,norm,isFakes,isZnorm,region,era,DatacardsDir);
-      Plot(histos,xtitle,region,legend,era,PlotDir);
+      bool plotLegend = true;
+      Plot(histos,xtitle,region,legend,era,plotLegend,PlotDir);
 
     }
   }

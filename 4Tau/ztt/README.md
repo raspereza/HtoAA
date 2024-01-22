@@ -52,14 +52,14 @@ in loop. To merge output RooT files for one sample use script [hadd.sh](https://
 
 ## Creation of datacards for the measurement of track ID and isolation scale factors 
 
-Analysis macro [analysis_macro_ztt.cpp](https://github.com/raspereza/HtoAA/blob/main/4Tau/bin/analysis_macro_ztt.cpp) selects muon+track candidates, fulfilling set of loose requirements. Muon must meet nominal ID criteria and loose relative isolation criterion, relIso<0.4. The 1-prong tau candidate is required to meet all criteria of the nominal analysis. Both same-sign and opposite sign pairs of muon and 1-prong tau candidates are selected. The sample of same-sign pairs is used to estimate QCD background. No cut on transverse mass of muon and MET is applied in the selection of muon-track pairs. The macro `analysis_macro_ztt.cpp` fills tuple named `mutrkTree` with the [set of variables](https://github.com/raspereza/HtoAA/blob/main/4Tau/bin/analysis_macro_ztt.cpp#L441-L536) used to create datacards for the measurement of the 1-prong tau ID scale factors. 
+Analysis macro [analysis_macro_ztt.cpp](https://github.com/raspereza/HtoAA/blob/main/4Tau/bin/analysis_macro_ztt.cpp) selects muon+track candidates, fulfilling set of loose requirements. Muon must meet nominal ID criteria and loose relative isolation criterion, relIso<0.4. The 1-prong tau candidate is required to meet all criteria of the nominal analysis. Both same-sign and opposite sign pairs of muon and 1-prong tau candidates are selected. The sample of same-sign pairs is used to estimate QCD background contribution to the selected sample. The macro `analysis_macro_ztt.cpp` fills tuple named `mutrkTree` with the [set of variables](https://github.com/raspereza/HtoAA/blob/main/4Tau/bin/analysis_macro_ztt.cpp#L441-L536) used to create datacards for the measurement of the 1-prong tau ID scale factors. No cut on transverse mass of muon and MET is applied at the stage of tuple production. This cut is applied later in the analysis.
 
 The datacards are created by macro [createCardsZtt.cpp](https://github.com/raspereza/HtoAA/blob/main/4Tau/bin/createCardsZtt.cpp). It is executed with two arguments, configuration file [Cards.conf](https://github.com/raspereza/HtoAA/blob/main/4Tau/ztt/Cards.conf) and era (2016, 2017 or 2018; the code compines 2016_preVFP and 2016_post datasets in 2016 dataset). Example of running:
 ```
 createCardsZtt Cards.conf 2017
 ``` 
 
-The default configuration file looks like this
+The default configuration looks like this
 ```
 # configuration file to create datacards
 # for measurement of trk id/iso with Z->tautau
@@ -103,14 +103,14 @@ The meaning of the configuration parameters is explained below
 
 Before running the code, don't forget to properly set paths to the folder where datacards will be stored (argument `DatacardsFolder`) and where plots will be saved (argument `PlotFolder`).
 
-Measurement of the track ID/Iso scale factors is performed in three regions (two regions if the Z->mumu control region is excluded):
+Measurement of the 1-prong tau ID scale factors is performed in three regions (two regions, if the Z->mumu control region is not used):
 * `Z->mumu` control region (excluded if `UseZMuMu = false`)
 * `lowMT` region (measurement region enriched in Z->tautau signal) and
 * `highMT` region (control region enriched in jet->tau fakes).
 
-When selecting events in `lowMT` and `highMT` region, extra muon veto requirement is applied to suppress contribution of Z->mumu events.
+When selecting events in `lowMT` and `highMT` regions, extra muon veto requirement is applied to suppress contribution of Z->mumu events.
 
-The macro loops over measurement bins and creates datacards for `lowMT` and `highMT` regions. 
+The macro loops over measurement bins and creates datacards for the `lowMT` and `highMT` regions. 
 
 Measurement bins include:
 * bins of track pT : 5to10, 10to15, 5to15, 15to20, 20toInf (bin 5to15 is introduced as we might consider merging two pT ranges of 5to10 and 10to15 into one);
@@ -118,23 +118,22 @@ Measurement bins include:
 
 Additionally, datacards are created for the Z->mumu control region (if `UseZMuMu = true`).
 
-The QCD multijet background is extrapolated from `lowMT` (`highMT`) sideband regions containing same-sign muon-track pairs. Extrapolation factors from the same-sign region to the opposite sign region are determined with a sample of events with anti-isolated muon: relative isolation of muon is required to be 0.2<relIso(muon)<0.4. 
+The QCD multijet background is extrapolated from the `lowMT` (`highMT`) sideband regions containing same-sign muon-track pairs. Extrapolation factors from the same-sign region to the opposite sign region are determined using the sample of events with anti-isolated muon: relative isolation of muon is required to be 0.2<relIso(muon)<0.4. 
 
-RooT files with templates and ascii files with cards for statistical analysis are saved in the folder specified by argument `DatacardsFolder` under the names:
+RooT files with templates and ascii files with datacards for statistical analysis are saved in the folder specified by argument `DatacardsFolder` under the names:
 * `zmm_$era.txt(root)` : datacards and shapes in the Z->mumu control region;
 * `ztt_lowMT_$bin_$era.txt(root)` : datacards and shapes in the `lowMT` measurement region;
 * `ztt_highMT_$bin_$era.txt(root)` : datacards and shapes in the `highMT` control region;
-Here `$era = 2016, 2017, 2018` and `$bin` is one of aforementioned measurement bins.
+Here `$era = 2016, 2017, 2018` and `$bin` is one of the aforementioned measurement bins.
 
-The produced datacards are used to measure track ID/Iso scale factors. They are extracted from the maximum-likelihood fits, performed individually for each measurement bin. In the `lowMT` (`highMT`) regions the fit to data is performed in the distribution of the muon-track invariant mass. For the Z->mumu region, meant to constrain normalisation of the DY process, it is sufficient to introduce a single bin, e.g. all dimuons with mass in the range [70,112] GeV. 
+The produced datacards are used to measure track ID/Iso scale factors by doing the maximum-likelihood fits individually for each measurement bin. In the `lowMT` (`highMT`) regions the fit to data is performed in the distribution of the muon-track invariant mass. For the Z->mumu region, it is sufficient to introduce a single bin, for example select dimuons with the invariant mass in the range [70,112] GeV. 
+Fits are performed with four unconstrained rate parameters:
+* 1-prong tau ID scale factor (this is our parameter of interest) acts on templates, accounting for events with genuine 1-prong tau leptons  in the `lowMT` and `highMT` regions;
+* jet->tau fake rate scale factor is assumed to be unknow a-priori and is introduced as freely floating rate parameter associated with simulated templates, where reconstructed 1-prong tau candidate is faked by hadronic jet;
+* scale factor of the extra muon veto - this is a rate parameter, which controls normalisation of the Z->mumu templates in the `lowMT` and `highMT` regions.
+* normalisation of the DY process scales all DY templates in `lowMT`, `highMT` and Z->mumu regions 
 
-The fit is performed with four unconstrained rate parameters:
-* 1-prong tau ID scale factor (this is our parameter of interest, POI) : it acts on templates with genuine 1-prong tau leptons;
-* jet->tau fake rate scale factor : it is assumed to be unknow a-priori and is introduced as freely floating rate parameter associated with simulated templates, where reconstructed 1-prong tau candidate is faked by hadronic jet;
-* scale factor of the extra muon veto : this is a rate parameter, which controls normalisation of the Z->mumu templates in the `lowMT` and `highMT` regions.
-* normalisation of the DY process : this is a rate parameter, acting on all DY templates in `lowMT`, `highMT` 
-
-Systematic uncertainties (such as theory uncertainty in cross sections of physics process, uncertainty in the muon ID, isolation  , are accounted for in the statistical inference through subsidiary nuisance parameters, affecting shape and normalisation of the fitted simulated templates.
+Systematic uncertainties (such as theory uncertainty in cross sections of physics process, uncertainty in the muon ID, isolation and trigger, etc) are accounted for through subsidiary nuisance parameters, affecting shape and normalisation of the fitted simulated templates.
 
 For each measurement bin, fit yields the maximum-likelihood estimates of the four aforementioned rate parameters, one of them being of primary interest for us - 1-prong tau ID scale factor. 
 
@@ -151,4 +150,4 @@ The output of the fit is saved in the same folder, where datacards are stored, u
 ```
 fitDiagnostics_$bin_$era_$option.root
 ``` 
-The output file contains results of the fit, including computed value of track ID/Iso scale factor (nuisance parameter named `r`), as well as prefit and postfit shapes which can be used to produce distribution prior to the fit and after the fit. 
+The output file contains results of the fit, including computed value of track ID/Iso scale factor (nuisance parameter named `r`), as well as prefit and postfit shapes which can be used to produce distributions of the fitted variable before and after the fit. 

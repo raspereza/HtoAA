@@ -1470,8 +1470,8 @@ int main(int argc, char * argv[]) {
        float Pdata_hf_up = 1.;
        float Pdata_hf_down = 1.;
        float Pmc = 1.;
-       float Pmc_lf = 1.;
-       float Pmc_hf = 1.;
+       float Pdata_lf = 1.;
+       float Pdata_hf = 1.;
        unsigned int nbtags = 0;
        unsigned int nbtags_jesUp = 0;
        unsigned int nbtags_jesDown =0;
@@ -1542,71 +1542,80 @@ int main(int argc, char * argv[]) {
 
 	   bool tagged = btagDiscr>btagCut;
 
-	   //
-           if (isData && tagged){
-	     if (pfjet_pt[jet]>bjetPt)
-	       nbtags++;
-           }
+	   // counting b-tagged jets for both data and MC
+           if (tagged){
+	     if (isData) {
+	       if (pfjet_pt[jet]>bjetPt) {
+		 nbtags++;
+		 nbtags_jesUp++;
+		 nbtags_jesUp++;
+	       }
+	     }
+	     else { 
+	       float pfjet_pt_jesUp = (1.0+pfjet_jecUncertainty[jet])*pfjet_pt[jet];
+	       float pfjet_pt_jesDown = (1.0-pfjet_jecUncertainty[jet])*pfjet_pt[jet];
+	       if (pfjet_pt[jet]>bjetPt) nbtags++; // central estimate
+	       if (pfjet_pt_jesUp>bjetPt) nbtags_jesUp++; // jesUp
+	       if (pfjet_pt_jesDown>bjetPt) nbtags_jesDown++; // jesDown
+	     }
+	   }
 	   
-	   // BTag correction (promote/demote)
+	   // BTag correction
 	   if (!isData && applyBTagSF) {
 
-	     float pfjet_pt_jesUp = (1.0+pfjet_jecUncertainty[jet])*pfjet_pt[jet];
-	     float pfjet_pt_jesDown = (1.0-pfjet_jecUncertainty[jet])*pfjet_pt[jet];
-
 	     int flavor = TMath::Abs(pfjet_flavour[jet]);
+
 	     float tageff = tagEff_Light->GetBinContent(tagEff_Light->FindBin(JetPtForBTag, JetEtaForBTag));
 	     float jet_scalefactor = reader_Light.eval_auto_bounds("central",BTagEntry::FLAV_UDSG,JetEtaForBTag,JetPtForBTag);
 	     float jet_scalefactor_up = reader_Light.eval_auto_bounds("up",BTagEntry::FLAV_UDSG,JetEtaForBTag,JetPtForBTag);
 	     float jet_scalefactor_down = reader_Light.eval_auto_bounds("down",BTagEntry::FLAV_UDSG,JetEtaForBTag,JetPtForBTag);
+
 	     if (flavor==4) { 
 	       tageff = tagEff_C->GetBinContent(tagEff_C->FindBin(JetPtForBTag,JetEtaForBTag));
 	       jet_scalefactor = reader_C.eval_auto_bounds("central",BTagEntry::FLAV_C,JetEtaForBTag,JetPtForBTag);
 	       jet_scalefactor_up = reader_C.eval_auto_bounds("up",BTagEntry::FLAV_C,JetEtaForBTag,JetPtForBTag);
 	       jet_scalefactor_down = reader_C.eval_auto_bounds("down",BTagEntry::FLAV_C,JetEtaForBTag,JetPtForBTag);
 	     }
+
 	     if (flavor==5) { 
 	       tageff = tagEff_B->GetBinContent(tagEff_B->FindBin(JetPtForBTag,JetEtaForBTag));
 	       jet_scalefactor = reader_B.eval_auto_bounds("central",BTagEntry::FLAV_B,JetEtaForBTag,JetPtForBTag);
 	       jet_scalefactor_up = reader_B.eval_auto_bounds("up",BTagEntry::FLAV_B,JetEtaForBTag,JetPtForBTag);
 	       jet_scalefactor_down = reader_B.eval_auto_bounds("down",BTagEntry::FLAV_B,JetEtaForBTag,JetPtForBTag);
 	     }
-	     if (tagged) {  
 
-	       if (pfjet_pt[jet]>bjetPt) nbtags++;
-	       if (pfjet_pt_jesUp>bjetPt) nbtags_jesUp++;
-	       if (pfjet_pt_jesDown>bjetPt) nbtags_jesDown++;
-
-	       Pmc = Pmc*tageff;
-	       Pdata = Pdata*jet_scalefactor*tageff;
-
-	       if (flavor==4||flavor==5) {
-		 Pmc_hf = Pmc_hf*tageff;
-		 Pdata_hf_up = Pdata_hf_up*jet_scalefactor_up*tageff;
-		 Pdata_hf_down = Pdata_hf_down*jet_scalefactor_down*tageff;
+	     if (pfjet_pt[jet]>bjetPt) {
+	       if (tagged) {
+		 Pmc = Pmc*tageff;
+		 Pdata = Pdata*jet_scalefactor*tageff;
+		 
+		 if (flavor==4||flavor==5) {
+		   Pdata_hf      = Pdata_hf*jet_scalefactor*tageff;
+		   Pdata_hf_up   = Pdata_hf_up*jet_scalefactor_up*tageff;
+		   Pdata_hf_down = Pdata_hf_down*jet_scalefactor_down*tageff;
+		 }
+		 else {
+		   Pdata_lf = Pdata_lf*jet_scalefactor*tageff;
+		   Pdata_lf_up = Pdata_lf_up*jet_scalefactor_up*tageff;
+		   Pdata_lf_down = Pdata_lf_down*jet_scalefactor_up*tageff;
+		 }
 	       }
 	       else {
-		 Pmc_lf = Pmc_lf*tageff;
-		 Pdata_lf_up = Pdata_lf_up*jet_scalefactor_up*tageff;
-		 Pdata_lf_down = Pdata_lf_down*jet_scalefactor_up*tageff;
-	       }
-	     }
-	     else {
 
-	       Pmc = Pmc*(1-tageff);
-	       Pdata = Pdata*(1.0-jet_scalefactor*tageff);
-
-	       if (flavor==4 || flavor==5) {
-		 Pmc_hf = Pmc_hf*(1-tageff);
-		 Pdata_hf_up = Pdata_hf_up*(1.0-jet_scalefactor_up*tageff);
-		 Pdata_hf_down = Pdata_hf_down*(1.0-jet_scalefactor_down*tageff);
+		 Pmc = Pmc*(1-tageff);
+		 Pdata = Pdata*(1.0-jet_scalefactor*tageff);
+		 
+		 if (flavor==4 || flavor==5) {
+		   Pdata_hf = Pdata_hf*(1-jet_scalefactor*tageff);
+		   Pdata_hf_up = Pdata_hf_up*(1.0-jet_scalefactor_up*tageff);
+		   Pdata_hf_down = Pdata_hf_down*(1.0-jet_scalefactor_down*tageff);
+		 }
+		 else {
+		   Pdata_lf = Pdata_lf*(1-jet_scalefactor*tageff);
+		   Pdata_lf_up = Pdata_lf_up*(1.0-jet_scalefactor_up*tageff);
+		   Pdata_lf_down = Pdata_lf_down*(1.0-jet_scalefactor_down*tageff);
+		 }
 	       }
-	       else {
-		 Pmc_lf = Pmc_lf*(1-tageff);
-                 Pdata_lf_up = Pdata_lf_up*(1.0-jet_scalefactor_up*tageff);
-                 Pdata_lf_down = Pdata_lf_down*(1.0-jet_scalefactor_down*tageff);
-	       }
-
 	     }
 	   }
 	 }
@@ -1618,26 +1627,19 @@ int main(int argc, char * argv[]) {
 
        if (ApplyBTagVeto && nbtags>0) continue;
 
-
        //       std::cout << "nbtags = " << nbtags << std::endl;
-       if (!isData) { 
+       if (!isData && applyBTagSF) { 
 	 weight_btag = Pdata/Pmc;
 	 // some protection
-	 if (weight_btag<0.01) weight_btag=0.01;
-	 if (Pmc_hf<0.01) Pmc_hf=0.01;
-	 if (Pmc_lf<0.01) Pmc_lf=0.01;
+	 if (weight_btag<1e-3) weight_btag=1e-3;
+	 if (Pdata_hf<1e-3) Pdata_hf=1e-3;
+	 if (Pdata_lf<1e-3) Pdata_lf=1e-3;
 	 // std::cout << "weight_btag = " << weight_btag << std::endl;
 	 weight *= weight_btag;
-	 weight_btag_up = Pdata_hf_up/Pmc_hf;
-	 weight_btag_down = Pdata_hf_down/Pmc_hf;	 
-	 weight_mistag_up = Pdata_lf_up/Pmc_lf;
-	 weight_mistag_down = Pdata_lf_down/Pmc_lf;
-
-	 // relative to total btag weight
-	 weight_btag_up = weight_btag_up/weight_btag;
-	 weight_btag_down = weight_btag_down/weight_btag;
-	 weight_mistag_up = weight_mistag_up/weight_btag;
-	 weight_mistag_down = weight_mistag_down/weight_btag;
+	 weight_btag_up = Pdata_hf_up/Pdata_hf;
+	 weight_btag_down = Pdata_hf_down/Pdata_hf;	 
+	 weight_mistag_up = Pdata_lf_up/Pdata_lf;
+	 weight_mistag_down = Pdata_lf_down/Pdata_lf;
 
        }
      }

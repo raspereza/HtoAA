@@ -87,6 +87,28 @@ int main(int argc, char * argv[]) {
 
   TString PileUpDataFile(pileUpDataFile);
   TString PileUpMCFile(pileUpMCFile);
+  // BTag SF file
+  const string BtagSfFile = cfg.get<string>("BtagSfFile");
+  BTagCalibration calib = BTagCalibration(bTagAlgorithm, BtagSfFile);
+  BTagCalibrationReader reader_B = BTagCalibrationReader(BTagEntry::OP_MEDIUM, "central",{"up","down"});
+  BTagCalibrationReader reader_C = BTagCalibrationReader(BTagEntry::OP_MEDIUM, "central",{"up","down"});
+  BTagCalibrationReader reader_Light = BTagCalibrationReader(BTagEntry::OP_MEDIUM, "central",{"up","down"}); 
+
+  reader_B.load(calib, BTagEntry::FLAV_B, "comb");
+  reader_C.load(calib, BTagEntry::FLAV_C, "comb");
+  reader_Light.load(calib, BTagEntry::FLAV_UDSG, "incl");
+  
+  // BTAG efficiency for various flavours ->
+  TString fileBtagEff = (TString)cfg.get<string>("BtagMCeffFile");
+  TFile *fileTagging  = new TFile(fileBtagEff);
+  TH2F  *tagEff_B     = (TH2F*)fileTagging->Get("btag_eff_b");
+  TH2F  *tagEff_C     = (TH2F*)fileTagging->Get("btag_eff_c");
+  TH2F  *tagEff_Light = (TH2F*)fileTagging->Get("btag_eff_oth");
+
+  float MaxBJetPt = 1000.;
+  float MinBJetPt = 20.;
+  float MaxBJetEta = 2.4;
+  float MinBJetEta = 0.0;
 
   // ********** end of configuration *******************
 
@@ -133,6 +155,12 @@ int main(int argc, char * argv[]) {
   Int_t    pfjet_flavour[200];   //[pfjet_count]
   Float_t  pfjet_btag[200][10];   //[pfjet_count]
 
+  UInt_t   genjets_count;
+  Float_t  genjets_pt[200];   //[genjets_count]
+  Float_t  genjets_eta[200];   //[genjets_count]
+  Float_t  genjets_phi[200];   //[genjets_count]
+
+
   std::map<std::string, int> * hltriggerresults = new std::map<std::string, int>() ;
   std::map<std::string, int> * hltriggerprescales = new std::map<std::string, int>() ;
   std::vector<std::string>   * hltfilters = new std::vector<std::string>();
@@ -162,19 +190,24 @@ int main(int argc, char * argv[]) {
   PUofficial->set_h_data(PU_data);
   PUofficial->set_h_MC(PU_mc);
 
-  float MaxBJetPt = 1000.;
-  float MinBJetPt = 20.;
-  float MaxBJetEta = 2.4;
-  float MinBJetEta = 0.0;
-
   TFile * file = new TFile(FullName+TString(".root"),"recreate");
   file->cd("");
   
   float weight;
   float mcweight;
   float puweight;
+  float btagweight;
+  float btagweight_hf_up;
+  float btagweight_hf_down;
+  float btagweight_lf_up;
+  float btagweight_lf_down;
 
   unsigned int nbtag;
+  unsigned int nbtag_jes_up;
+  unsigned int nbtag_jes_down;
+  unsigned int nbtag_jer_up;
+  unsigned int nbtag_jer_down;
+
   unsigned int njets;
   unsigned int njetspt20;
   float ptjet[100];
@@ -209,6 +242,11 @@ int main(int argc, char * argv[]) {
   tuple->Branch("mcweight",&mcweight,"mcweight/F");
   tuple->Branch("puweight",&puweight,"puweight/F");
   tuple->Branch("weight",&weight,"weight/F");
+  tuple->Branch("btagweight",&btagweight,"btagweight/F");
+  tuple->Branch("btagweight_hf_up",&btagweight_hf_up,"btagweight_hf_up/F");
+  tuple->Branch("btagweight_hf_down",&btagweight_hf_down,"btagweight_hf_down/F");
+  tuple->Branch("btagweight_lf_up",&btagweight_lf_up,"btagweight_lf_up/F");
+  tuple->Branch("btagweight_lf_down",&btagweight_lf_down,"btagweight_lf_down/F");
 
   tuple->Branch("pdgPosLep",&pdgPosLep,"pdgPosLep/I");
   tuple->Branch("ptPosLep",&ptPosLep,"ptPosLep/F");
@@ -233,6 +271,10 @@ int main(int argc, char * argv[]) {
   tuple->Branch("njets",&njets,"njets/i");
   tuple->Branch("njetspt20",&njetspt20,"njetspt20/i");
   tuple->Branch("nbtag",&nbtag,"nbtag/i");
+  tuple->Branch("nbtag_jes_up",&nbtag_jes_up,"nbtag_jes_up/i");
+  tuple->Branch("nbtag_jes_down",&nbtag_jes_down,"nbtag_jes_down/i");
+  tuple->Branch("nbtag_jer_up",&nbtag_jer_up,"nbtag_jer_up/i");
+  tuple->Branch("nbtag_jer_down",&nbtag_jer_down,"nbtag_jer_down/i");
 
   tuple->Branch("ptjet",ptjet,"ptjet[njets]/F");
   tuple->Branch("etajet",etajet,"etajet[njets]/F");
@@ -296,6 +338,11 @@ int main(int argc, char * argv[]) {
    tree_->SetBranchAddress("pfjet_neutralmulti",pfjet_neutralmulti);
    tree_->SetBranchAddress("pfjet_flavour",pfjet_flavour);
    tree_->SetBranchAddress("pfjet_btag",pfjet_btag);
+
+   tree_->SetBranchAddress("genjets_count", &genjets_count);
+   tree_->SetBranchAddress("genjets_pt", genjets_pt);
+   tree_->SetBranchAddress("genjets_eta", genjets_eta);
+   tree_->SetBranchAddress("genjets_phi", genjets_phi);
 
    tree_->SetBranchAddress("numtruepileupinteractions",&numtruepileupinteractions);
 
@@ -385,8 +432,9 @@ int main(int argc, char * argv[]) {
      ptNegTau = -1.0;
 
      for (unsigned int igen=0; igen<gentau_count; ++igen) {
-       //       std::cout << "gentau " << igen << " fromHardProcess = " << gentau_fromHardProcess[igen]	
-	 //		 << "  lastCopy = " << gentau_isLastCopy[igen] << std::endl;
+       //       std::cout << "gentau " << igen 
+       //                 << " fromHardProcess = " << gentau_fromHardProcess[igen]	
+       //                 << "  lastCopy = " << gentau_isLastCopy[igen] << std::endl;
        bool accept = gentau_fromHardProcess[igen]==1 && gentau_isLastCopy[igen]==1;
        if (!accept) continue;
        TLorentzVector genLV;
@@ -474,14 +522,22 @@ int main(int argc, char * argv[]) {
 
      njets = 0;
      nbtag = 0;
+     nbtag_jes_up = 0;
+     nbtag_jes_down = 0;
+     nbtag_jer_up = 0;
+     nbtag_jer_down = 0;
      njetspt20 = 0;
 
+     btagweight = 1;
+     btagweight_lf_up = 1;
+     btagweight_lf_down = 1;
+     btagweight_hf_up = 1;
+     btagweight_hf_down = 1;
+     
      for (unsigned int jet=0; jet<pfjet_count; ++jet) {
 	 
        float absJetEta = TMath::Abs(pfjet_eta[jet]);
        float jetPt = pfjet_pt[jet];
-
-       if (jetPt<jetPtCut) continue;
        if (absJetEta>jetEtaCut) continue;
 
        bool jetId = tightJetID(pfjet_e[jet],
@@ -493,8 +549,7 @@ int main(int argc, char * argv[]) {
 			       pfjet_chargedemenergy[jet],
 			       pfjet_neutralmulti[jet],
 			       pfjet_chargedmulti[jet],
-			       era);
-	 
+			       era);	 
        if (!jetId) continue;
 
        float dR = deltaR(etaPosLep,phiPosLep,
@@ -512,15 +567,21 @@ int main(int argc, char * argv[]) {
        dR = deltaR(etaNegTau,phiNegTau,
 		   pfjet_eta[jet],pfjet_phi[jet]);
        if (dR<dRJetLep) continue;
-
-       ptjet[njets] = pfjet_pt[jet];
-       etajet[njets] = pfjet_eta[jet];
-       phijet[njets] = pfjet_phi[jet];
-       ejet[njets] = pfjet_e[jet];
-       flavorjet[njets] = pfjet_flavour[jet];
-       tagjet[njets] = false;
        
-       if (absJetEta<bjetEtaCut&&jetPt>bjetPtCut&&isCorrectBTag) {
+       float genJetPt = jetPt;
+       float dRmin = 0.4;
+       for (unsigned int genjet=0; genjet<genjets_count; ++genjet) {
+	 float dRjets = deltaR(pfjet_eta[jet],pfjet_phi[jet],
+			       genjets_eta[genjet],genjets_phi[genjet]);
+	 if (dRjets<dRmin) {
+	   dRmin = dRjets;
+	   genJetPt = genjets_pt[genjet];
+	 }
+       }
+
+       bool tagged = false;
+
+       if (absJetEta<bjetEtaCut) {
 
 	 njetspt20++;
 	 
@@ -530,13 +591,21 @@ int main(int argc, char * argv[]) {
 	 if (BTagAlgorithm=="pfDeepFlavourJetTags")
 	   btagDiscr += pfjet_btag[jet][nBTagDiscriminant3];
 	 
-	 bool tagged = btagDiscr>btagCut;
+	 tagged = btagDiscr>btagCut;
 	 if (tagged) {
-	   nbtag++;
-	   tagjet[njets] = true;
+	   if (jetPt>jetPtCut) nbtag++;
 	 }
+
        }
-       njets++;
+       if (jetPt>jetPtCut) {
+	 ptjet[njets] = pfjet_pt[jet];
+	 etajet[njets] = pfjet_eta[jet];
+	 phijet[njets] = pfjet_phi[jet];
+	 ejet[njets] = pfjet_e[jet];
+	 flavorjet[njets] = pfjet_flavour[jet];
+	 tagjet[njets] = tagged;
+	 njets++;
+       }
      }
      
      tuple->Fill();

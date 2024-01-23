@@ -127,7 +127,7 @@ int main(int argc, char * argv[]) {
   BTagCalibrationReader reader_Light = BTagCalibrationReader(BTagEntry::OP_TIGHT, "central",{"up","down"});
   reader_B.load(calib, BTagEntry::FLAV_B, "comb");
   reader_C.load(calib, BTagEntry::FLAV_C, "comb");
-  reader_Light.load(calib, BTagEntry::FLAV_UDSG, "comb");
+  reader_Light.load(calib, BTagEntry::FLAV_UDSG, "incl");
   
   // BTAG efficiency for various flavours ->
   TString fileBtagEff = (TString)cfg.get<string>("BtagMCeffFile");

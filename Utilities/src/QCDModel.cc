@@ -1,6 +1,12 @@
 #include "HtoAA/Utilities/interface/QCDModel.h"
+#include "HtoAA/Utilities/interface/HtoH.h"
 
-QCDModel::QCDModel(TString fileName) {
+QCDModel::QCDModel(TString fileName, vector<double> bins) {
+
+  double xbins[200];
+  int nbins = bins.size()-1;
+  for (int ib=0; ib<=nbins; ++ib) 
+    xbins[ib] = bins[ib];
 
   file = new TFile(fileName);
   std::cout << fileName << std::endl;
@@ -32,10 +38,12 @@ QCDModel::QCDModel(TString fileName) {
 
 	    // mass distributions
 	    histName = "Mass_" + name + "_SS";
-	    pdfMassSS[iF][iQ][iMom][mu][iR] = (TH1D*)file->Get(histName);
+	    TH1D * hist = (TH1D*)file->Get(histName);
+	    pdfMassSS[iF][iQ][iMom][mu][iR] = (TH1D*)TH1DtoTH1D(hist,nbins,xbins,true,"_X");
       
 	    histName = "Mass_" + name;
-	    pdfMass[iF][iQ][iMom][mu][iR] = (TH1D*)file->Get(histName);
+	    hist = (TH1D*)file->Get(histName);
+	    pdfMass[iF][iQ][iMom][mu][iR] = (TH1D*)TH1DtoTH1D(hist,nbins,xbins,true,"_X");
 	    
 	    // numerator : pass selection
 	    histName = "passMu_" + name + "_SS";
@@ -93,7 +101,7 @@ double QCDModel::getMassPdf(unsigned int pMom,
 			    int region, 
 			    unsigned int flav, 
 			    unsigned int qnet, 
-			    double mass, 
+			    unsigned int mass, 
 			    bool inclusive) {
   
   if (pMom>(nPartMom-1)) pMom = nPartMom - 1;
@@ -105,12 +113,10 @@ double QCDModel::getMassPdf(unsigned int pMom,
 
   double output = 1.0;
   if (inclusive) {
-    int bin = pdfMass[flav][qnet][pMom][muMom][region]->FindBin(mass);
-    output  = pdfMass[flav][qnet][pMom][muMom][region]->GetBinContent(bin);
+    output  = pdfMass[flav][qnet][pMom][muMom][region]->GetBinContent(mass);
   }
   else {
-    int bin = pdfMassSS[flav][qnet][pMom][muMom][region]->FindBin(mass);
-    output  = pdfMassSS[flav][qnet][pMom][muMom][region]->GetBinContent(bin);
+    output  = pdfMassSS[flav][qnet][pMom][muMom][region]->GetBinContent(mass);
   }
   return output;
 

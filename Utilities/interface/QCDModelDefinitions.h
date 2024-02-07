@@ -10,11 +10,11 @@ const double xMax = 20.;
 const unsigned int nPartMom = 3;
 const float partonMomBins[nPartMom+1] = {0,30,50,1000};
 
-const unsigned int nMuMom = 4;
+const unsigned int nMuMom = 3;
 const float muonMomBins[nMuMom+1] = {0,20,30,1000};
 
 const unsigned int nFlav = 4;
-const TString partonFlavor[nFlav] = {"g","udsg","c","b"};
+const TString partonFlavor[nFlav] = {"g","uds","c","b"};
 
 const unsigned int nNetQ = 2;
 const TString muonPartonNetCharge[nNetQ] = {"opposite","same"};
@@ -28,8 +28,7 @@ const TString partonMomRange[nPartMom] = {
 const TString muonMomRange[nMuMom] = {
   "muonPtLt20",
   "muonPt20to30",
-  "muonPt30to50",
-  "muonPtGt50"
+  "muonPtGt30"
 };
 
 const unsigned int nReg = 2;

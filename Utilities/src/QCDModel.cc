@@ -5,8 +5,10 @@ QCDModel::QCDModel(TString fileName, vector<double> bins) {
 
   double xbins[200];
   int nbins = bins.size()-1;
-  for (int ib=0; ib<=nbins; ++ib) 
+  for (int ib=0; ib<=nbins; ++ib) {
     xbins[ib] = bins[ib];
+    
+  }
 
   file = new TFile(fileName);
   std::cout << fileName << std::endl;
@@ -39,17 +41,35 @@ QCDModel::QCDModel(TString fileName, vector<double> bins) {
 	    // mass distributions
 	    histName = "Mass_" + name + "_SS";
 	    TH1D * hist = (TH1D*)file->Get(histName);
+	    if (hist==NULL) {
+	      cout << "histogram " << histName << " is absent" << endl;
+	      exit(-1);
+	    }
 	    pdfMassSS[iF][iQ][iMom][mu][iR] = (TH1D*)TH1DtoTH1D(hist,nbins,xbins,true,"_X");
       
 	    histName = "Mass_" + name;
 	    hist = (TH1D*)file->Get(histName);
+	    if (hist==NULL) {
+	      cout << "histogram " << histName << " is absent" << endl;
+	      exit(-1);
+	    }
 	    pdfMass[iF][iQ][iMom][mu][iR] = (TH1D*)TH1DtoTH1D(hist,nbins,xbins,true,"_X");
 	    
 	    // numerator : pass selection
 	    histName = "passMu_" + name + "_SS";
+	    hist = (TH1D*)file->Get(histName);
+	    if (hist==NULL) {
+	      cout << "histogram " << histName << " is absent" << endl;
+	      exit(-1);
+	    }
 	    passSS[iF][iQ][iMom][mu][iR] = (TH1D*)file->Get(histName);
 	    
 	    histName = "passMu_" + name;
+	    hist = (TH1D*)file->Get(histName);
+	    if (hist==NULL) {
+	      cout << "histogram " << histName << " is absent" << endl;
+	      exit(-1);
+	    }
 	    pass[iF][iQ][iMom][mu][iR] = (TH1D*)file->Get(histName);
 	  }
 	}

@@ -244,6 +244,11 @@ int main(int argc, char * argv[]) {
   float muon_neutralHadIso[1000];
   float muon_photonIso[1000];
   float muon_puIso[1000];
+  float muon_r03_sumChargedHadronPt[1000];
+  float muon_r03_sumChargedParticlePt[1000];
+  float muon_r04_sumChargedHadronPt[1000];
+  float muon_r04_sumChargedParticlePt[1000];
+
   bool muon_isPF[1000];
   bool muon_isGlobal[1000];
   bool muon_isTracker[1000];
@@ -346,12 +351,34 @@ int main(int argc, char * argv[]) {
   TH1D * etaTrailingMuH = new TH1D("etaTrailingMuH","",48,-2.4,2.4);
   TH1D * dimuonMassH = new TH1D("dimuonMassH","",500,0,500);
 
+  TH1D * ptLeadingIsoMuH = new TH1D("ptLeadingIsoMuH","",400,0,400);
+  TH1D * ptTrailingIsoMuH = new TH1D("ptTrailingIsoMuH","",400,0,400);
+  TH1D * etaLeadingIsoMuH = new TH1D("etaLeadingIsoMuH","",48,-2.4,2.4);
+  TH1D * etaTrailingIsoMuH = new TH1D("etaTrailingIsoMuH","",48,-2.4,2.4);
+  TH1D * dimuonMassIsoH = new TH1D("dimuonMassIsoH","",500,0,500);
+
   TH1D * nTracksLeadingMuH = new TH1D("nTracksLeadingMuH","",21,-0.5,20.5);
   TH1D * nTracksTrailingMuH = new TH1D("nTracksTrailingMuH","",21,-0.5,20.5);
   TH1D * nSigTracksLeadingMuH = new TH1D("nSigTracksLeadingMuH","",21,-0.5,20.5);
   TH1D * nSigTracksTrailingMuH = new TH1D("nSigTracksTrailingMuH","",21,-0.5,20.5);
   TH1D * nSoftTracksLeadingMuH = new TH1D("nSoftTracksLeadingMuH","",21,-0.5,20.5);
   TH1D * nSoftTracksTrailingMuH = new TH1D("nSoftTracksTrailingMuH","",21,-0.5,20.5);
+
+  TH1D * ptRatioTrkLeadingMuH = new TH1D("ptRatioTrkLeadingMuH","",500,0.,5.);
+  TH1D * ptRatioTrkTrailingMuH = new TH1D("ptRatioTrkTrailingMuH","",500,0.,5.);
+  TH1D * ptRatioTrkMuH = new TH1D("ptRatioTrkMuH","",500,0.,5.);
+  
+  TH1D * ptRatioHadLeadingMuH = new TH1D("ptRatioHadLeadingMuH","",500,0.,5.);
+  TH1D * ptRatioHadTrailingMuH = new TH1D("ptRatioHadTrailingMuH","",500,0.,5.);
+  TH1D * ptRatioHadMuH = new TH1D("ptRatioHadMuH","",500,0.,5.);
+
+  TH1D * IsoTrkLeadingMuH = new TH1D("IsoTrkLeadingMuH","",500,0.,5.);
+  TH1D * IsoTrkTrailingMuH = new TH1D("IsoTrkTrailingMuH","",500,0.,5.);
+  TH1D * IsoTrkMuH = new TH1D("IsoTrkMuH","",500,0.,5.);
+  
+  TH1D * IsoHadLeadingMuH = new TH1D("IsoHadLeadingMuH","",500,0.,5.);
+  TH1D * IsoHadTrailingMuH = new TH1D("IsoHadTrailingMuH","",500,0.,5.);
+  TH1D * IsoHadMuH = new TH1D("IsoHadMuH","",500,0.,5.);
   
   // isolated muons
   TH1D * ptTrackLeadingMuH = new TH1D("ptTrackLeadingMuH","",100,0,100);
@@ -833,6 +860,47 @@ int main(int argc, char * argv[]) {
   ScaleFactor * SF_muon8 = new ScaleFactor();
   SF_muon8->init_ScaleFactor(TString(cmsswBase)+"/src/HtoAA/data/"+TString(Muon8TriggerFile));
 
+  // isolation efficiency for era 2017
+  TH1D * Mu17Iso_data = NULL;
+  TH1D * Mu8Iso_data = NULL;
+  TH1D * Mu17Iso_mc = NULL;
+  TH1D * Mu8Iso_mc = NULL;
+  float muonIsoMax = 10.;
+  if (era==2017) {
+    TString pathMuon17 = TString(cmsswBase)+"/src/HtoAA/data/"+TString(Muon17TriggerFile);
+    TString pathMuon8  = TString(cmsswBase)+"/src/HtoAA/data/"+TString(Muon8TriggerFile);
+    TFile * fileMu17 = new TFile(pathMuon17);
+    TFile * fileMu8 = new TFile(pathMuon8);
+
+    Mu17Iso_data = (TH1D*)fileMu17->Get("ZMass_Iso_Data");
+    if (Mu17Iso_data==NULL) {
+      std::cout << "histogram ZMass_Iso_Data is not found in file " << std::endl;
+      std::cout << pathMuon17 << std::endl;
+      exit(-1);
+    }
+    Mu17Iso_mc = (TH1D*)fileMu17->Get("ZMass_Iso_MC");
+    if (Mu17Iso_mc==NULL) {
+      std::cout << "histogram ZMass_Iso_MC is not found in file " << std::endl;
+      std::cout << pathMuon17 << std::endl;
+      exit(-1);
+    }
+
+    Mu8Iso_data = (TH1D*)fileMu8->Get("ZMass_Iso_Data");
+    if (Mu8Iso_data==NULL) {
+      std::cout << "histogram ZMass_Iso_Data is not found in file " << std::endl;
+      std::cout << pathMuon8 << std::endl;
+      exit(-1);
+    }
+    Mu8Iso_mc = (TH1D*)fileMu8->Get("ZMass_Iso_MC");
+    if (Mu8Iso_mc==NULL) {
+      std::cout << "histogram ZMass_Iso_MC is not found in file " << std::endl;
+      std::cout << pathMuon8 << std::endl;
+      exit(-1);
+    }
+    int nbins = Mu17Iso_data->GetNbinsX();
+    muonIsoMax = Mu17Iso_data->GetBinLowEdge(nbins+1);
+  }
+
   // Correction workspace
   //  TString corrWorkspaceFileName = TString(cmsswBase)+"/src/HtoAA/data/"+CorrectionsWorkspaceFileName;
   TFile * correctionWorkSpaceFile = new TFile(CorrectionsWorkspaceFileName);
@@ -923,6 +991,10 @@ int main(int argc, char * argv[]) {
    tree_->SetBranchAddress("muon_dxyerr", muon_dxyerr);
    tree_->SetBranchAddress("muon_dz", muon_dz);
    tree_->SetBranchAddress("muon_dzerr", muon_dzerr);
+   tree_->SetBranchAddress("muon_r03_sumChargedHadronPt",muon_r03_sumChargedHadronPt);
+   tree_->SetBranchAddress("muon_r03_sumChargedParticlePt",muon_r03_sumChargedParticlePt);
+   tree_->SetBranchAddress("muon_r04_sumChargedHadronPt",muon_r04_sumChargedHadronPt);
+   tree_->SetBranchAddress("muon_r04_sumChargedParticlePt",muon_r04_sumChargedParticlePt);
    tree_->SetBranchAddress("muon_chargedHadIso", muon_chargedHadIso);
    tree_->SetBranchAddress("muon_neutralHadIso", muon_neutralHadIso);
    tree_->SetBranchAddress("muon_photonIso", muon_photonIso);
@@ -1212,18 +1284,22 @@ int main(int argc, char * argv[]) {
 	 if (muonLV2.Pt()>muonLV1.Pt()) {
 	   muonIndexLeading = muonIndex2;
 	 }
-	 /*	 
-		 for (unsigned int iPion=0; iPion<genPions.size(); ++iPion) {
-		 unsigned int pionIndex = genPions.at(iPion);
-		 TLorentzVector pionLV; pionLV.SetXYZT(genparticles_px[pionIndex],
-		 genparticles_py[pionIndex],
+	 
+	 for (unsigned int iPion=0; iPion<genPions.size(); ++iPion) {
+	   unsigned int pionIndex = genPions.at(iPion);
+	   TLorentzVector pionLV; pionLV.SetXYZT(genparticles_px[pionIndex],
+						 genparticles_py[pionIndex],
 						 genparticles_pz[pionIndex],
 						 genparticles_e[pionIndex]);
-						 pionPtH->Fill(pionLV.Pt(),weight);
-						 float dRMuonPion = 1e+8;
-						 TLorentzVector muLV;
-						 unsigned int muIndex = 0;
-	 */
+	   pionPtH->Fill(pionLV.Pt(),weight);
+	   float dRMuonPion = deltaR(muonLV1.Eta(),muonLV1.Phi(),
+				     pionLV.Eta(),pionLV.Phi());
+	   float dRMuon2Pion = deltaR(muonLV2.Eta(),muonLV2.Phi(),
+				      pionLV.Eta(),pionLV.Phi());
+
+	   if (dRMuon2Pion<dRMuonPion) dRMuonPion = dRMuon2Pion;
+	   deltaRMuonPionH->Fill(dRMuonPion,weight);
+	 }
 	 for (unsigned int iMuon=0; iMuon<genMuons.size(); ++iMuon) {
 	   unsigned int muonIndex = genMuons.at(iMuon);
 	   TLorentzVector muLV; muLV.SetXYZT(genparticles_px[muonIndex],
@@ -1338,7 +1414,6 @@ int main(int argc, char * argv[]) {
 	       genmutrk2_M = mupionLV.M();
 	     */
 	   }
-	   //	   deltaRMuonPionH->Fill(dRMuonPion,weight);
 	   muonPtH->Fill(muLV.Pt(),weight);
 	   TLorentzVector dimuonsLV = muonLV1 + muonLV2;
 	   dimuons_DR = deltaR(muonLV1.Eta(),muonLV1.Phi(),
@@ -1418,7 +1493,7 @@ int main(int argc, char * argv[]) {
      puWeightH->Fill(puweight,1.0);
      weight *= puweight;
 
-     // checking if dimuon trigger bit is ON (obsolete : do just trigger match
+     // checking if dimuon trigger bit is ON (obsolete : do just trigger match)
      /*
      bool isDimuonTrigger = false;
      bool triggerFound = false;
@@ -1433,32 +1508,33 @@ int main(int argc, char * argv[]) {
      }
      if (!triggerFound) 
        std::cout << "HLT path " << DiMuonTriggerName << " is not found" << std::endl;
+
+     if (!isDimuonTrigger) continue;
+
+     unsigned int ntrig = hltriggerresults->size();
+     std::cout << "ntrig = " << ntrig << std::endl;
+     for (std::map<string,int>::iterator it=hltriggerresults->begin(); it!=hltriggerresults->end(); ++it) 
+       std::cout << it->first << "  :  "  << it->second << std::endl;
+     std::cout << std::endl;
+
+     unsigned int npres = hltriggerprescales->size();
+     std::cout << "npres = " << npres << std::endl;
+     for (std::map<string,int>::iterator it=hltriggerprescales->begin(); it!=hltriggerprescales->end(); ++it) 
+       std::cout << it->first << "  :  "  << it->second << std::endl;
+     std::cout << std::endl;
      */
-
-     //     if (!isDimuonTrigger) continue;
-     //     unsigned int ntrig = hltriggerresults->size();
-     //     std::cout << "ntrig = " << ntrig << std::endl;
-     //     for (std::map<string,int>::iterator it=hltriggerresults->begin(); it!=hltriggerresults->end(); ++it) 
-     //       std::cout << it->first << "  :  "  << it->second << std::endl;
-     //     std::cout << std::endl;
-
-     //     unsigned int npres = hltriggerprescales->size();
-     //     std::cout << "npres = " << npres << std::endl;
-     //     for (std::map<string,int>::iterator it=hltriggerprescales->begin(); it!=hltriggerprescales->end(); ++it) 
-     //       std::cout << it->first << "  :  "  << it->second << std::endl;
-     //     std::cout << std::endl;
 
      // ******************
      // applying btag veto
      // ******************
-
-     //     std::cout << "Ok 1" << std::endl;
+     // std::cout << "Ok 1" << std::endl;
 
      float weight_btag = 1.0; 
      float weight_btag_up = 1.0;
      float weight_btag_down = 1.0;
      float weight_mistag_up = 1.0;
      float weight_mistag_down = 1.0;
+
      if (ApplyBTagVeto) {
        int nBTagDiscriminant1 = -1;
        int nBTagDiscriminant2 = -1;
@@ -1510,9 +1586,18 @@ int main(int argc, char * argv[]) {
 	 for (unsigned int jet=0; jet<pfjet_count; ++jet) {
 	   
 	   float absEta = TMath::Abs(pfjet_eta[jet]);
+	   if (absEta>bjetEta) continue;
+
 	   float JetPtForBTag = pfjet_pt[jet];
 	   float JetEtaForBTag = absEta;
 	   float jetEta = pfjet_eta[jet];
+
+	   //
+	   //	   if (pfjet_pt[jet]<bjetPt) 
+	   //	     std::cout << "jet : pT = " << pfjet_pt[jet]
+	   //		       << "  eta = " << pfjet_eta[jet]
+	   //		       << "  phi = " << pfjet_phi[jet] << std::endl;
+	   //
 
 	   bool jetId = tightJetID(pfjet_e[jet],
 				   pfjet_eta[jet],
@@ -1532,8 +1617,6 @@ int main(int argc, char * argv[]) {
 	   if (JetEtaForBTag > MaxBJetEta) JetEtaForBTag = MaxBJetEta - 0.01;
 	   if (JetEtaForBTag < MinBJetEta) JetEtaForBTag = MinBJetEta + 0.01;
 	   
-	   if (absEta>bjetEta) continue;
-
 	   float btagDiscr = pfjet_btag[jet][nBTagDiscriminant1];
 	   if (BTagAlgorithm=="pfDeepFlavourJetTags"||BTagAlgorithm=="pfDeepCSVJetTags")
 	     btagDiscr += pfjet_btag[jet][nBTagDiscriminant2];
@@ -1585,7 +1668,9 @@ int main(int argc, char * argv[]) {
 	     }
 
 	     if (pfjet_pt[jet]>bjetPt) {
+
 	       if (tagged) {
+
 		 Pmc = Pmc*tageff;
 		 Pdata = Pdata*jet_scalefactor*tageff;
 		 
@@ -1597,8 +1682,9 @@ int main(int argc, char * argv[]) {
 		 else {
 		   Pdata_lf = Pdata_lf*jet_scalefactor*tageff;
 		   Pdata_lf_up = Pdata_lf_up*jet_scalefactor_up*tageff;
-		   Pdata_lf_down = Pdata_lf_down*jet_scalefactor_up*tageff;
+		   Pdata_lf_down = Pdata_lf_down*jet_scalefactor_down*tageff;
 		 }
+
 	       }
 	       else {
 
@@ -1615,33 +1701,49 @@ int main(int argc, char * argv[]) {
 		   Pdata_lf_up = Pdata_lf_up*(1.0-jet_scalefactor_up*tageff);
 		   Pdata_lf_down = Pdata_lf_down*(1.0-jet_scalefactor_down*tageff);
 		 }
+
 	       }
+
 	     }
 	   }
 	 }
        }
 
+       if (!isData && applyBTagSF) { 
+	 weight_btag = Pdata/Pmc;
+	 // some protection against low weights ->
+	 if (Pdata_hf<1e-4) {Pdata_hf=1e-4; Pdata_hf_up=1e-4; Pdata_hf_down=1e-4;}
+	 if (Pdata_lf<1e-4) {Pdata_lf=1e-4; Pdata_lf_up=1e-4; Pdata_lf_down=1e-4;} 
+	 weight *= weight_btag;
+	 weight_btag_up = Pdata_hf_up/Pdata_hf;
+	 weight_btag_down = Pdata_hf_down/Pdata_hf;
+	 weight_mistag_up = Pdata_lf_up/Pdata_lf;
+	 weight_mistag_down = Pdata_lf_down/Pdata_lf;
+	 /*
+	 std::cout << "nbtags = " << nbtags << std::endl;
+	 std::cout << "Pdata = " << Pdata 
+		   << "  Pdata_lf = " << Pdata_lf 
+		   << "  Pdata_hf = " << Pdata_hf
+		   << "  Pdata_lf*Pdata_hf = " << Pdata_lf*Pdata_hf << std::endl;
+	 std::cout << "weight_btag = " << weight_btag 
+		   << "  weight_btag_up = " << weight_btag_up
+		   << "  weight_btag_down = " << weight_btag_down
+		   << "  weight_mistag_up = " << weight_mistag_up 
+		   << "  weight_mistag_down = " << weight_mistag_down << std::endl;
+	 */
+       }
+
+       //       if (nbtags!=nbtags_jesDown||nbtags) 
+       //	 std::cout << "nbtags = " << nbtags 
+       //		   << "   nbtags_jesDown = " << nbtags_jesDown
+       //		   << "   nbtags_jesUp = " << nbtags_jesUp 
+       //		   << std::endl;
        if (nbtags==0) counter_btagH->Fill(1.,weight);
        if (nbtags_jesUp==0) counter_btag_jesUpH->Fill(1.,weight);
        if (nbtags_jesDown==0) counter_btag_jesDownH->Fill(1.,weight);
 
-       if (ApplyBTagVeto && nbtags>0) continue;
+       if (nbtags>0) continue;
 
-       //       std::cout << "nbtags = " << nbtags << std::endl;
-       if (!isData && applyBTagSF) { 
-	 weight_btag = Pdata/Pmc;
-	 // some protection
-	 if (weight_btag<1e-3) weight_btag=1e-3;
-	 if (Pdata_hf<1e-3) Pdata_hf=1e-3;
-	 if (Pdata_lf<1e-3) Pdata_lf=1e-3;
-	 // std::cout << "weight_btag = " << weight_btag << std::endl;
-	 weight *= weight_btag;
-	 weight_btag_up = Pdata_hf_up/Pdata_hf;
-	 weight_btag_down = Pdata_hf_down/Pdata_hf;	 
-	 weight_mistag_up = Pdata_lf_up/Pdata_lf;
-	 weight_mistag_down = Pdata_lf_down/Pdata_lf;
-
-       }
      }
      //     std::cout << "Ok 2" << std::endl;
      // finding HLT filters in the HLT Filter library
@@ -1661,20 +1763,25 @@ int main(int argc, char * argv[]) {
        if (HLTFilter==MuonHighPtFilterName) {
 	 nMu17Leg = i;
 	 isMu17Leg = true;
+	 //	 std::cout << HLTFilter << ":" << i << std::endl;
        }
        if (HLTFilter==MuonLowPtFilterName1||HLTFilter==MuonLowPtFilterName2) {
 	 nMu8Leg = i;
 	 isMu8Leg = true;
+	 //	 std::cout << HLTFilter << ":" << i << std::endl;
        }
        if (HLTFilter==DiMuonDzFilterName) {
 	 nDZFilter = i;
 	 isDZFilter = true;
+	 //	 std::cout << HLTFilter << ":" << i << std::endl;
        }
        if (HLTFilter==DiMuonSameSignFilterName) {
 	 nSSFilter = i;
 	 isSSFilter = true;
+	 //	 std::cout << HLTFilter << ":" << i <<  std::endl;
        }
      }
+     //     std::cout << std::endl;
      
      if (!isMu17Leg) {
        cout << "Filter " << MuonHighPtFilterName << " not found " << endl;
@@ -1695,51 +1802,23 @@ int main(int argc, char * argv[]) {
        exit(-1);
      }
      
-     // ********************
+     // **********************
      // selecting good muons
-     // ********************
+     // **********************
      vector<unsigned int> muons; muons.clear();
-     vector<bool> passSingleMu; passSingleMu.clear();
-     vector<bool> passMu17; passMu17.clear();
-     vector<bool> passMu8;  passMu8.clear();
-     vector<bool> passMu12; passMu12.clear();
-     vector<bool> passMu10; passMu10.clear();
-     vector<bool> passMu5;  passMu5.clear();
-     vector<bool> passMu45; passMu45.clear();
      for(UInt_t i=0;i<muon_count;i++){
        bool muonID = muon_isMedium[i]; // MC 
-       //       if (isData) {
-       //	 if (event_run >= 278820 && muon_isMedium[i]) muonID = true; // Run2016G-H
-       //	 if (event_run < 278820  && muon_isICHEP[i]) muonID = true; // Run2016B-F
-       //       }
+       // if (isData) {
+       //   if (event_run >= 278820 && muon_isMedium[i]) muonID = true; // Run2016G-H
+       //   if (event_run < 278820  && muon_isICHEP[i]) muonID = true; // Run2016B-F
+       // }
        if (!muonID) continue;
        if(fabs(muon_dxy[i])>dxyMuonCut) continue;
        if(fabs(muon_dz[i])>dzMuonCut) continue;
        if(muon_pt[i]<ptMuonLowCut) continue;
        if(fabs(muon_eta[i])>etaMuonLowCut) continue;
-       //      cout << "muon pt = " << muon_pt[i] << endl;
-       rand.SetSeed((int)((muon_eta[i]+2.41)*100000));
-       double rannum  = rand.Rndm();
-       // old staff for trigger efficiency studies
-       double effMu17 = MuLegEfficiency(muon_pt[i],muon_eta[i],17.0,2.4);
-       double effMu8  = MuLegEfficiency(muon_pt[i],muon_eta[i],8.0,2.4);
-       double effMu12 = MuLegEfficiency(muon_pt[i],muon_eta[i],12.0,2.4);
-       double effMu10 = MuLegEfficiency(muon_pt[i],muon_eta[i],10.0,2.4);
-       double effMu5  = MuLegEfficiency(muon_pt[i],muon_eta[i],5.0,2.4);
-       double effMu45 = MuLegEfficiency(muon_pt[i],muon_eta[i],45.0,2.1);
-       bool isMu17fired = effMu17 > rannum;
-       bool isMu8fired  = effMu8  > rannum;
-       bool isMu12fired = effMu12 > rannum;
-       bool isMu10fired = effMu10 > rannum;
-       bool isMu5fired  = effMu5  > rannum;
-       bool isMu45fired = effMu45 > rannum;
-       passMu17.push_back(isMu17fired);
-       passMu12.push_back(isMu12fired);
-       passMu10.push_back(isMu10fired);
-       passMu8.push_back(isMu8fired);
-       passMu5.push_back(isMu5fired);
-       passMu45.push_back(isMu45fired);
-       //
+       //       cout << "SumPt(0p3) = " << muon_r03_sumChargedHadronPt[i] 
+       //	    << "   SumPt(0p4) = " << muon_r04_sumChargedHadronPt[i] << endl;
        muons.push_back(i);
      }
      
@@ -1747,78 +1826,6 @@ int main(int argc, char * argv[]) {
       
      if (muons.size()<2) continue; // quit event if number of good muons < 2
      counter_MuonSizeGTE2H->Fill(1.,weight);
-
-     //     std::cout << "Ok 3" << std::endl;
-
-     // ************************************************
-     // ********** Some trigger studies ****************
-     // *** TripleMu triggers vs. DoubleMuSS trigger ***
-     // ************************************************
-
-     // checking 4-muon final states
-     if (muons.size()>=numberOfMuons) {
-       bool isSingleMuon = false;
-       for (unsigned int im=0; im<muons.size(); ++im) {
-	 if (passMu45.at(im)) {
-	   isSingleMuon = true;
-	   break;
-	 }
-       }
-       bool isDoubleMuSS = false;
-       for (unsigned int im1=0; im1<muons.size()-1; ++im1) {
-	 for (unsigned int im2=im1+1; im2<muons.size(); ++im2) {
-	   int mu1 = muons.at(im1);
-	   int mu2 = muons.at(im2);
-	   if (muon_charge[mu1]*muon_charge[mu2]>0.0) {
-	     if ( (passMu17.at(im1)&&passMu8.at(im2)) || (passMu17.at(im2)&&passMu8.at(im1))) {
-	       isDoubleMuSS = true;
-	       break;
-	     }
-	   }
-	 }
-	 if (isDoubleMuSS) break;
-       }
-       // 012
-       bool triple012 = (passMu12.at(0)&&passMu10.at(1)&&passMu5.at(2));
-       bool triple021 = (passMu12.at(0)&&passMu10.at(2)&&passMu5.at(1));
-       bool triple102 = (passMu12.at(1)&&passMu10.at(0)&&passMu5.at(2));
-       bool triple120 = (passMu12.at(1)&&passMu10.at(2)&&passMu5.at(0));
-       bool triple210 = (passMu12.at(2)&&passMu10.at(1)&&passMu5.at(0));
-       bool triple201 = (passMu12.at(2)&&passMu10.at(0)&&passMu5.at(1));
-       bool Triple012 = triple012 || triple021 || triple102 || triple120 || triple210 || triple201;
-       // 013
-       bool Triple013 = false;
-       if (muons.size()>3) {
-	 bool triple013 = (passMu12.at(0)&&passMu10.at(1)&&passMu5.at(3));
-	 bool triple031 = (passMu12.at(0)&&passMu10.at(3)&&passMu5.at(1));
-	 bool triple103 = (passMu12.at(1)&&passMu10.at(0)&&passMu5.at(3));
-	 bool triple130 = (passMu12.at(1)&&passMu10.at(3)&&passMu5.at(0));
-	 bool triple310 = (passMu12.at(3)&&passMu10.at(1)&&passMu5.at(0));
-	 bool triple301 = (passMu12.at(3)&&passMu10.at(0)&&passMu5.at(1));
-	 Triple013 = triple013 || triple031 || triple103 || triple130 || triple310 || triple301;
-       }
-       // 123
-       bool Triple123 = false;
-       if (muons.size()>3) {
-	 bool triple123 = (passMu12.at(1)&&passMu10.at(2)&&passMu5.at(3));
-	 bool triple132 = (passMu12.at(1)&&passMu10.at(3)&&passMu5.at(2));
-	 bool triple213 = (passMu12.at(2)&&passMu10.at(1)&&passMu5.at(3));
-	 bool triple231 = (passMu12.at(2)&&passMu10.at(3)&&passMu5.at(1));
-	 bool triple312 = (passMu12.at(3)&&passMu10.at(1)&&passMu5.at(2));
-	 bool triple321 = (passMu12.at(3)&&passMu10.at(2)&&passMu5.at(1));
-	 Triple123 = triple123 || triple132 || triple213 || triple231 || triple312 || triple321;
-       }
-       // TripleMu
-       bool isTripleMuon = Triple012 || Triple013 || Triple123;
-       if (isSingleMuon) histWeightsSingleMuH->Fill(1.0,weight);
-       if (isDoubleMuSS) histWeightsDoubleMuSSH->Fill(1.0,weight);
-       if (isTripleMuon) histWeightsTripleMuH->Fill(1.0,weight);
-       bool isAllTriggers = isTripleMuon || isDoubleMuSS || isSingleMuon;
-       if (isAllTriggers) histWeightsAllTriggersH->Fill(1.0,weight);
-
-     }
-
-     //     std::cout << "Ok 4" << std::endl;
 
      // *************************
      // selection of dimuon pairs 
@@ -1911,8 +1918,6 @@ int main(int argc, char * argv[]) {
        }
      }
 
-     //     std::cout << "Ok 5 " << std::endl;
-
      if (iLeading<0) continue;
      if (iTrailing<0) continue;
 
@@ -1924,6 +1929,37 @@ int main(int argc, char * argv[]) {
        double etaLeading = muon_eta[iLeading];
        double ptTrailing = muon_pt[iTrailing];
        double etaTrailing = muon_eta[iTrailing];
+
+       double isoLeading = muon_r03_sumChargedHadronPt[iLeading]/ptLeading;
+       double isoTrailing = muon_r03_sumChargedHadronPt[iTrailing]/ptTrailing;
+
+       if (isoLeading<=0) isoLeading = 0.01;
+       if (isoLeading>=muonIsoMax) isoLeading = muonIsoMax - 0.01;
+
+       if (isoTrailing<=0) isoTrailing = 0.01;
+       if (isoTrailing>=muonIsoMax) isoTrailing = muonIsoMax - 0.01;
+
+       double iso17DataLeading  = 1.0;
+       double iso17DataTrailing = 1.0;
+       double iso17MCLeading    = 1.0;
+       double iso17MCTrailing   = 1.0;
+
+       double iso8DataLeading  = 1.0;
+       double iso8DataTrailing = 1.0;
+       double iso8MCLeading    = 1.0;
+       double iso8MCTrailing   = 1.0;
+
+       if (era==2017) {
+	 iso17DataLeading  = Mu17Iso_data->GetBinContent(Mu17Iso_data->FindBin(isoLeading));
+	 iso17DataTrailing = Mu17Iso_data->GetBinContent(Mu17Iso_data->FindBin(isoTrailing));
+	 iso17MCLeading    = Mu17Iso_mc->GetBinContent(Mu17Iso_mc->FindBin(isoLeading));
+	 iso17MCTrailing   = Mu17Iso_mc->GetBinContent(Mu17Iso_mc->FindBin(isoTrailing));
+
+	 iso8DataLeading  = Mu8Iso_data->GetBinContent(Mu8Iso_data->FindBin(isoLeading));
+	 iso8DataTrailing = Mu8Iso_data->GetBinContent(Mu8Iso_data->FindBin(isoTrailing));
+	 iso8MCLeading    = Mu8Iso_mc->GetBinContent(Mu8Iso_mc->FindBin(isoLeading));
+	 iso8MCTrailing   = Mu8Iso_mc->GetBinContent(Mu8Iso_mc->FindBin(isoTrailing));
+       }
 
        if (ptLeading<10.0) ptLeading = 10.01;
        if (ptTrailing<10.0) ptTrailing = 10.01;
@@ -1939,6 +1975,7 @@ int main(int argc, char * argv[]) {
        correctionWS->var("m_eta")->setVal(etaTrailing);
        double idTrailingW = correctionWS->function("m_id_ic_ratio")->getVal();
        double trkTrailingW = correctionWS->function("m_trk_ratio")->getVal();
+
        idTrailingWeight = idTrailingW * trkTrailingW;
 
        //       std::cout << "after weighting" << std::endl;
@@ -1953,9 +1990,41 @@ int main(int argc, char * argv[]) {
        double effMu17MCLeading = SF_muon17->get_EfficiencyMC(ptLeading,etaLeading); 
        double effMu8MCLeading = SF_muon8->get_EfficiencyMC(ptLeading,etaLeading); 
 
+       if (era==2017) {
+
+	 effMu17dataTrailing *= iso17DataTrailing;
+	 effMu8dataTrailing  *= iso8DataTrailing;
+
+	 effMu17dataLeading  *= iso17DataLeading;
+	 effMu8dataLeading   *= iso8DataLeading;
+
+	 effMu17MCTrailing *= iso17MCTrailing;
+	 effMu8MCTrailing  *= iso8MCTrailing;
+
+	 effMu17MCLeading  *= iso17MCLeading;
+	 effMu8MCLeading   *= iso8MCLeading;
+
+       }
+
+       /*
+       if (era==2017) {
+	 std::cout << "iso(leading)  = " << isoLeading << std::endl;
+	 std::cout << "iso(trailing) = " << isoTrailing << std::endl;
+	 std::cout << "effIso17(leading) : data = " <<  iso17DataLeading 
+		   << "  mc = " << iso17MCLeading << std::endl;
+	 std::cout << "effIso8(leading) : data = " <<  iso8DataLeading 
+		   << "  mc = " << iso8MCLeading << std::endl;
+	 std::cout << "effIso17(trailing) : data = " <<  iso17DataTrailing 
+		   << "  mc = " << iso17MCTrailing << std::endl;
+	 std::cout << "effIso8(trailing) : data = " <<  iso8DataTrailing
+		   << "  mc = " << iso8MCTrailing << std::endl;
+       }
+       */
+
        double trigWeightData = effMu17dataLeading*effMu8dataTrailing + effMu17dataTrailing*effMu8dataLeading - effMu17dataLeading*effMu17dataTrailing;
        double trigWeightMC = effMu17MCLeading*effMu8MCTrailing + effMu17MCTrailing*effMu8MCLeading - effMu17MCLeading*effMu17MCTrailing;
 
+       
        if (applyTriggerMatch) {
 	 if (trigWeightMC>0)
 	   triggerWeight = trigWeightData/trigWeightMC;
@@ -2128,7 +2197,7 @@ int main(int argc, char * argv[]) {
      if (neutralIsoLeading<0) neutralIsoLeading = 0;
      float isoLeading = (chargedIsoLeading+neutralIsoLeading)/muon_pt[iLeading];
      
-     float chargedIsoTrailing = 0;
+     float chargedIsoTrailing = muon_chargedHadIso[iTrailing];
      for (unsigned int iTrk=0; iTrk<trkSigTrailingMu.size(); ++iTrk) {
        unsigned int indexTrack = trkSigTrailingMu.at(iTrk);       
        if (trkSigDRTrailingMu.at(iTrk)<0.4) {
@@ -2143,7 +2212,150 @@ int main(int argc, char * argv[]) {
      float neutralIsoTrailing = muon_neutralHadIso[iTrailing] + muon_photonIso[iTrailing] - 0.5*muon_puIso[iTrailing];
      if (neutralIsoTrailing<0) neutralIsoTrailing = 0;
      float isoTrailing = (chargedIsoTrailing+neutralIsoTrailing)/muon_pt[iTrailing];
+
+     // ********************
+     // Check isolations -->
+     // ********************    
+     /*
+     if (trkSigLeadingMu.size()==1) {
+       unsigned int iTrkLeading  = trkSigLeadingMu.at(0);
+       double ptRatioLeading = track_pt[iTrkLeading]/muon_pt[iLeading];
+       double dRTrkMuonLeading = deltaR(muon_eta[iLeading],muon_phi[iLeading],
+					track_eta[iTrkLeading],track_phi[iTrkLeading]);
+       if (ptRatioLeading>0.5) {
+	 printf("Leading ---->\n");
+	 printf(" ptRatio = %5.2f   dR(trk,mu) = %5.2f\n",ptRatioLeading,dRTrkMuonLeading);
+	 printf(" muon  : pT  = %5.2f  eta = %5.2f  phi = %5.2f  q = %2i\n",
+		muon_pt[iLeading],muon_eta[iLeading],muon_phi[iLeading],int(muon_charge[iLeading]));
+	 printf(" track : pT  = %5.2f  eta = %5.2f  phi = %5.2f  q = %2i  ID = %4i\n",
+		track_pt[iTrkLeading],
+		track_eta[iTrkLeading],
+		track_phi[iTrkLeading],
+		int(track_charge[iTrkLeading]),
+		track_ID[iTrkLeading]);
+	 printf(" iso   : had = %5.2f\n",muon_chargedHadIso[iLeading]);
+	 printf(" ptHad : 0p3 = %5.2f  0p4 = %5.2f\n",
+		muon_r03_sumChargedHadronPt[iLeading],
+		muon_r04_sumChargedHadronPt[iLeading]);
+	 printf(" ptAll : 0p3 = %5.2f  0p4 = %5.2f\n",
+		muon_r03_sumChargedParticlePt[iLeading],
+		muon_r04_sumChargedParticlePt[iLeading]);
+	 for (unsigned int im=0; im<muon_count; ++im) {
+	   printf(" muon %2i -> pT = %5.2f  eta = %5.2f  phi = %5.2f iso = %5.2f\n",
+		  im,muon_pt[im],muon_eta[im],muon_phi[im],muon_r03_sumChargedHadronPt[im]);
+	 }
+	 unsigned int trigobj = 0;
+	 for (unsigned int it=0; it<trigobject_count; ++it) {
+	   bool trigObj_Mu17 = trigobject_filters[it][nMu17Leg];
+	   bool trigObj_Mu8  = trigobject_filters[it][nMu8Leg];
+	   bool trigObj_SS   = trigobject_filters[it][nSSFilter];
+	   bool trigObj_DZ   = trigobject_filters[it][nDZFilter];
+	   bool validObject  = (trigObj_Mu17||trigObj_Mu8)&&trigObj_SS&&trigObj_DZ;
+	   if (validObject) {
+	     printf(" trig %2i -> pT = %5.2f  eta = %5.2f  phi = %5.2f\n",
+		    trigobj,trigobject_pt[it],trigobject_eta[it],trigobject_phi[it]);
+	     trigobj++;
+	   }
+	 }
+	 std::cout << std::endl;
+       }     
+     }
+    
+     if (trkSigTrailingMu.size()==1) {
+       unsigned int iTrkTrailing = trkSigTrailingMu.at(0); 
+       double ptRatioTrailing = track_pt[iTrkTrailing]/muon_pt[iTrailing];
+       double dRTrkMuonTrailing = deltaR(muon_eta[iTrailing],muon_phi[iTrailing],
+					track_eta[iTrkTrailing],track_phi[iTrkTrailing]);
+       if (ptRatioTrailing>0.5) {
+	 printf("Trailing ---->\n");
+	 printf(" ptRatio = %5.2f   dR(trk,mu) = %5.2f\n",ptRatioTrailing,dRTrkMuonTrailing);
+	 printf(" muon  : pT  = %5.2f  eta = %5.2f  phi = %5.2f  q = %2i\n",
+		muon_pt[iTrailing],muon_eta[iTrailing],muon_phi[iTrailing],int(muon_charge[iTrailing]));
+	 printf(" track : pT  = %5.2f  eta = %5.2f  phi = %5.2f  q = %2i  ID = %4i\n",
+		track_pt[iTrkTrailing],
+		track_eta[iTrkTrailing],
+		track_phi[iTrkTrailing],
+		int(track_charge[iTrkTrailing]),
+		track_ID[iTrkTrailing]);
+	 printf(" iso   : had = %5.2f\n",muon_chargedHadIso[iTrailing]);
+	 printf(" ptHad : 0p3 = %5.2f  0p4 = %5.2f\n",
+		muon_r03_sumChargedHadronPt[iTrailing],
+		muon_r04_sumChargedHadronPt[iTrailing]);
+	 printf(" ptAll : 0p3 = %5.2f  0p4 = %5.2f\n",
+		muon_r03_sumChargedParticlePt[iTrailing],
+		muon_r04_sumChargedParticlePt[iTrailing]);
+	 for (unsigned int im=0; im<muon_count; ++im) {
+	   printf(" muon %2i -> pT = %5.2f  eta = %5.2f  phi = %5.2f iso = %5.2f\n",
+		  im,muon_pt[im],muon_eta[im],muon_phi[im],muon_r03_sumChargedHadronPt[im]);
+	 }
+	 unsigned int trigobj = 0;
+	 for (unsigned int it=0; it<trigobject_count; ++it) {
+	   bool trigObj_Mu17 = trigobject_filters[it][nMu17Leg];
+	   bool trigObj_Mu8  = trigobject_filters[it][nMu8Leg];
+	   bool trigObj_SS   = trigobject_filters[it][nSSFilter];
+	   bool trigObj_DZ   = trigobject_filters[it][nDZFilter];
+	   bool validObject  = (trigObj_Mu17||trigObj_Mu8)&&trigObj_SS&&trigObj_DZ;
+	   if (validObject) {
+	     printf(" trig %2i -> pT = %5.2f  eta = %5.2f  phi = %5.2f\n",
+		    trigobj,trigobject_pt[it],trigobject_eta[it],trigobject_phi[it]);
+	     trigobj++;
+	   }
+	 }
+	 std::cout << std::endl;
+       }     
+     }
+     */
+     float isoTrkLeading = muon_r03_sumChargedParticlePt[iLeading]/muon_pt[iLeading];
+     float isoHadLeading = muon_r03_sumChargedHadronPt[iLeading]/muon_pt[iLeading];
+
+     float isoTrkTrailing = muon_r03_sumChargedParticlePt[iTrailing]/muon_pt[iTrailing];
+     float isoHadTrailing = muon_r03_sumChargedHadronPt[iTrailing]/muon_pt[iTrailing];
      
+     IsoTrkLeadingMuH->Fill(isoTrkLeading,weight);
+     IsoTrkTrailingMuH->Fill(isoTrkTrailing,weight);
+     IsoTrkMuH->Fill(isoTrkLeading,weight);
+     IsoTrkMuH->Fill(isoTrkTrailing,weight);
+
+     IsoHadLeadingMuH->Fill(isoHadLeading,weight);
+     IsoHadTrailingMuH->Fill(isoHadTrailing,weight);
+     IsoHadMuH->Fill(isoHadLeading,weight);
+     IsoHadMuH->Fill(isoHadTrailing,weight);
+
+     if (trkSigLeadingMu.size()==1) {
+       unsigned int iTrk = trkSigLeadingMu.at(0);
+       int id = TMath::Abs(track_ID[iTrk]);
+       float pttrk = track_pt[iTrk];
+       float ptratio = pttrk/muon_pt[iLeading];
+       ptRatioTrkLeadingMuH->Fill(ptratio,weight);
+       ptRatioTrkMuH->Fill(ptratio,weight);
+       if (id!=13) { 
+	 ptRatioHadLeadingMuH->Fill(ptratio,weight);
+	 ptRatioHadMuH->Fill(ptratio,weight);	 
+       }
+     }
+
+     if (trkSigTrailingMu.size()==1) {
+       unsigned int iTrk = trkSigTrailingMu.at(0);
+       int id = TMath::Abs(track_ID[iTrk]);
+       float pttrk = track_pt[iTrk];
+       float ptratio = pttrk/muon_pt[iTrailing];
+       ptRatioTrkTrailingMuH->Fill(ptratio,weight);
+       ptRatioTrkMuH->Fill(ptratio,weight);
+       if (id!=13) { 
+	 ptRatioHadTrailingMuH->Fill(ptratio,weight);
+	 ptRatioHadMuH->Fill(ptratio,weight);	 
+       }
+     }
+
+     if (isoHadTrailing<0.3&&isoHadLeading<0.3) {
+       ptLeadingIsoMuH->Fill(muon_pt[iLeading],weight);
+       ptTrailingIsoMuH->Fill(muon_pt[iTrailing],weight);
+       etaLeadingIsoMuH->Fill(muon_eta[iLeading],weight);
+       etaTrailingIsoMuH->Fill(muon_eta[iTrailing],weight);
+       dimuonMassIsoH->Fill(dimuonMass,weight);
+     }
+
+    
      // definition of signal muon+track
      bool signalLeadingMu  = trkLeadingMu.size()==1 && trkSigLeadingMu.size()==1;
      bool signalTrailingMu = trkTrailingMu.size()==1 && trkSigTrailingMu.size()==1;
@@ -2460,28 +2672,37 @@ int main(int argc, char * argv[]) {
        dRMuTrkSelH->Fill(dRLeadingMuTrk,weight);
        dRMuTrkSelH->Fill(dRTrailingMuTrk,weight);
 
+       float masshigh = massTrkMuLeading;
+       float masslow = massTrkMuTrailing;
+       
+       if (masshigh<masslow) {
+	 masshigh = massTrkMuTrailing;
+	 masslow = massTrkMuLeading;
+       }
+
        InvMassLeadingH->Fill(massTrkMuLeading,weight);
        InvMassTrailingH->Fill(massTrkMuTrailing,weight);
        InvMassH->Fill(massTrkMuLeading,weight);
        InvMassH->Fill(massTrkMuTrailing,weight);
-       InvMass2DH->Fill(massTrkMuLeading,massTrkMuTrailing,weight);
+       InvMass2DH->Fill(masslow,masshigh, weight);
+
        // btag variations for heavy flavours : up ->
        InvMassH_btagUp->Fill(massTrkMuLeading,weight*weight_btag_up);
        InvMassH_btagUp->Fill(massTrkMuTrailing,weight*weight_btag_up);
-       InvMass2DH_btagUp->Fill(massTrkMuLeading,massTrkMuTrailing,weight*weight_btag_up);
+       InvMass2DH_btagUp->Fill(masslow,masshigh,weight*weight_btag_up);
        // btag variations for heavy flavours : down ->
        InvMassH_btagDown->Fill(massTrkMuLeading,weight*weight_btag_down);
        InvMassH_btagDown->Fill(massTrkMuTrailing,weight*weight_btag_down);
-       InvMass2DH_btagDown->Fill(massTrkMuLeading,massTrkMuTrailing,weight*weight_btag_down);
+       InvMass2DH_btagDown->Fill(masslow,masshigh,weight*weight_btag_down);
 
        // mistag variations for light flavours : up ->
        InvMassH_mistagUp->Fill(massTrkMuLeading,weight*weight_mistag_up);
        InvMassH_mistagUp->Fill(massTrkMuTrailing,weight*weight_mistag_up);
-       InvMass2DH_mistagUp->Fill(massTrkMuLeading,massTrkMuTrailing,weight*weight_mistag_up);
+       InvMass2DH_mistagUp->Fill(masslow,masshigh,weight*weight_mistag_up);
        // mistag variations for light flavours : down ->
        InvMassH_mistagDown->Fill(massTrkMuLeading,weight*weight_mistag_down);
        InvMassH_mistagDown->Fill(massTrkMuTrailing,weight*weight_mistag_down);
-       InvMass2DH_mistagDown->Fill(massTrkMuLeading,massTrkMuTrailing,weight*weight_mistag_down);
+       InvMass2DH_mistagDown->Fill(masslow,masshigh,weight*weight_mistag_down);
        
      }
 
@@ -2624,7 +2845,7 @@ int main(int argc, char * argv[]) {
 
        counter_ControlYEventsH->Fill(1.0,weight);
 
-       // filling tuple if m1,m2 > 5 GeV
+       // filling tuple if m1,m2 > 4 GeV
        if (massLeadingMuonTrk>4.0&&massTrailingMuonTrk>4.0) {
 	 t_event = event_nr;
 	 t_run = event_run;

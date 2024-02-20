@@ -1892,13 +1892,15 @@ int main(int argc, char * argv[]) {
 	 bool isTriggerMatched = true;
 	 if (applyTriggerMatch) {
 	   isTriggerMatched = (mu1MatchMu17&&mu2MatchMu8&&mu1PtHigh&&mu2PtLow)||(mu1MatchMu8&&mu2MatchMu17&&mu1PtLow&&mu2PtHigh);
-	   isTriggerMatched = isTriggerMatched && mu1MatchSS && mu2MatchSS;
-	   if (DiMuonTriggerName.Contains("HLT_Mu17_Mu8_SameSign")&&isData) {
-	     if (event_run<=274442||event_run>=280919) // when dZ filter is present
+	   if (isData) {
+	     isTriggerMatched = isTriggerMatched && mu1MatchSS && mu2MatchSS;
+	     if (era==2016) {
+	       if (event_run<=274442||event_run>=280919) // when dZ filter is present
+		 isTriggerMatched = isTriggerMatched && mu1MatchDz && mu2MatchDz;
+	     }
+	     if (era==2017) // DZ filter 
 	       isTriggerMatched = isTriggerMatched && mu1MatchDz && mu2MatchDz;
 	   }
-	   if (DiMuonTriggerName.Contains("HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ")) 
-	     isTriggerMatched = isTriggerMatched && mu1MatchDz && mu2MatchDz;
 	 }
 	 else {
 	   isTriggerMatched = (mu1PtHigh&&mu2PtLow) || (mu1PtLow&&mu2PtHigh);

@@ -347,15 +347,19 @@ int main(int argc, char * argv[]) {
   // histograms after dimuon selection
   TH1D * ptLeadingMuH = new TH1D("ptLeadingMuH","",400,0,400);
   TH1D * ptTrailingMuH = new TH1D("ptTrailingMuH","",400,0,400);
-  TH1D * etaLeadingMuH = new TH1D("etaLeadingMuH","",48,-2.4,2.4);
-  TH1D * etaTrailingMuH = new TH1D("etaTrailingMuH","",48,-2.4,2.4);
-  TH1D * dimuonMassH = new TH1D("dimuonMassH","",500,0,500);
 
   TH1D * ptLeadingIsoMuH = new TH1D("ptLeadingIsoMuH","",400,0,400);
   TH1D * ptTrailingIsoMuH = new TH1D("ptTrailingIsoMuH","",400,0,400);
-  TH1D * etaLeadingIsoMuH = new TH1D("etaLeadingIsoMuH","",48,-2.4,2.4);
-  TH1D * etaTrailingIsoMuH = new TH1D("etaTrailingIsoMuH","",48,-2.4,2.4);
+
+  TH1D * ptLeadingNonIsoMuH = new TH1D("ptLeadingNonIsoMuH","",400,0,400);
+  TH1D * ptTrailingNonIsoMuH = new TH1D("ptTrailingNonIsoMuH","",400,0,400);
+
+  TH1D * etaLeadingMuH = new TH1D("etaLeadingMuH","",48,-2.4,2.4);
+  TH1D * etaTrailingMuH = new TH1D("etaTrailingMuH","",48,-2.4,2.4);
+  
+  TH1D * dimuonMassH = new TH1D("dimuonMassH","",500,0,500);
   TH1D * dimuonMassIsoH = new TH1D("dimuonMassIsoH","",500,0,500);
+  TH1D * dimuonMassNonIsoH = new TH1D("dimuonMassNonIsoH","",500,0,500);
 
   TH1D * nTracksLeadingMuH = new TH1D("nTracksLeadingMuH","",21,-0.5,20.5);
   TH1D * nTracksTrailingMuH = new TH1D("nTracksTrailingMuH","",21,-0.5,20.5);
@@ -462,6 +466,20 @@ int main(int argc, char * argv[]) {
   TH1D * counter_ControlEventsH=new TH1D("counter_ControlEventsH","",1,0.,2.);         
   TH1D * counter_ControlXEventsH=new TH1D("counter_ControlXEventsH","",1,0.,2.);         
   TH1D * counter_ControlYEventsH=new TH1D("counter_ControlYEventsH","",1,0.,2.);         
+
+  // BTag counters
+  TH1D * counter_btagCorrUp = new TH1D("counter_btagCorrUp","",1,0.,2.);
+  TH1D * counter_btagCorrDown = new TH1D("counter_btagCorrDown","",1,0.,2.);
+
+  TH1D * counter_btagUncorrUp = new TH1D("counter_btagUncorrUp","",1,0.,2.);
+  TH1D * counter_btagUncorrDown = new TH1D("counter_btagUncorrDown","",1,0.,2.);
+
+  TH1D * counter_mistagCorrUp = new TH1D("counter_mistagCorrUp","",1,0.,2.);
+  TH1D * counter_mistagCorrDown = new TH1D("counter_mistagCorrDown","",1,0.,2.);
+
+  TH1D * counter_mistagUncorrUp = new TH1D("counter_mistagUncorrUp","",1,0.,2.);
+  TH1D * counter_mistagUncorrDown = new TH1D("counter_mistagUncorrDown","",1,0.,2.);
+
 
   // Counter btags
   TH1D * counter_btagH = new TH1D("counter_btagH","",1,0.,2.);
@@ -814,9 +832,12 @@ int main(int argc, char * argv[]) {
   BTagCalibrationReader reader_Light;
   if (applyBTagSF && !isData) {
     calib = BTagCalibration(bTagAlgorithm, BtagSfFile);
-    reader_B = BTagCalibrationReader(BTagEntry::OP_TIGHT, "central",{"up","down"});
-    reader_C = BTagCalibrationReader(BTagEntry::OP_TIGHT, "central",{"up","down"});
-    reader_Light = BTagCalibrationReader(BTagEntry::OP_TIGHT, "central",{"up","down"});
+    reader_B = BTagCalibrationReader(BTagEntry::OP_TIGHT, "central",
+				     {"up","down","up_correlated","down_correlated","up_uncorrelated","down_uncorrelated"});
+    reader_C = BTagCalibrationReader(BTagEntry::OP_TIGHT, "central",
+				     {"up","down","up_correlated","down_correlated","up_uncorrelated","down_uncorrelated"});
+    reader_Light = BTagCalibrationReader(BTagEntry::OP_TIGHT, "central",
+					 {"up","down","up_correlated","down_correlated","up_uncorrelated","down_uncorrelated"});
     reader_B.load(calib, BTagEntry::FLAV_B, "comb");
     reader_C.load(calib, BTagEntry::FLAV_C, "comb");
     reader_Light.load(calib, BTagEntry::FLAV_UDSG, "incl");
@@ -840,15 +861,78 @@ int main(int argc, char * argv[]) {
   float MinBJetEta = 0.0;
 
   // MET filters for data
-  std::vector<TString> metfilters = {
-    "Flag_HBHENoiseFilter",
-    "Flag_HBHENoiseIsoFilter",
-    "Flag_globalSuperTightHalo2016Filter",
-    "Flag_EcalDeadCellTriggerPrimitiveFilter",
-    "Flag_goodVertices",
-    "Flag_BadPFMuonFilter",
-    "Flag_eeBadScFilter"
-  };
+  std::vector<TString> metfilters;
+  if (isData) {
+    if (era==2016) {
+      metfilters = {
+	"Flag_HBHENoiseFilter",
+	"Flag_HBHENoiseIsoFilter",
+	"Flag_globalSuperTightHalo2016Filter",
+	"Flag_EcalDeadCellTriggerPrimitiveFilter",
+	"Flag_goodVertices",
+	"Flag_BadPFMuonFilter",
+	"Flag_eeBadScFilter"      
+      };
+    }
+    if (era==2017) {    
+      metfilters = {
+	"Flag_HBHENoiseFilter",
+	"Flag_HBHENoiseIsoFilter",
+	"Flag_globalSuperTightHalo2016Filter",
+	"Flag_EcalDeadCellTriggerPrimitiveFilter",
+	"Flag_goodVertices",
+	"Flag_BadPFMuonFilter",
+	"ecalBadCalibReducedMINIAODFilter",
+	"Flag_eeBadScFilter"
+      };
+    }
+    if (era==2018) {
+      metfilters = {
+	"Flag_HBHENoiseFilter",
+	"Flag_HBHENoiseIsoFilter",
+	"Flag_globalSuperTightHalo2016Filter",
+	"Flag_EcalDeadCellTriggerPrimitiveFilter",
+	"Flag_goodVertices",
+	"Flag_BadPFMuonFilter",
+	"ecalBadCalibReducedMINIAODFilter",
+	"Flag_eeBadScFilter"
+      };
+    }
+  }
+  else {
+    if (era==2016) {
+      metfilters = {
+	"Flag_HBHENoiseFilter",
+	"Flag_HBHENoiseIsoFilter",
+	"Flag_globalSuperTightHalo2016Filter",
+	"Flag_EcalDeadCellTriggerPrimitiveFilter",
+	"Flag_goodVertices",
+	"Flag_BadPFMuonFilter"
+      };
+    }
+    if (era==2017) {    
+      metfilters = {
+	"Flag_HBHENoiseFilter",
+	"Flag_HBHENoiseIsoFilter",
+	"Flag_globalSuperTightHalo2016Filter",
+	"Flag_EcalDeadCellTriggerPrimitiveFilter",
+	"Flag_goodVertices",
+	"Flag_BadPFMuonFilter",
+	"ecalBadCalibReducedMINIAODFilter"
+      };
+    }
+    if (era==2018) {
+      metfilters = {
+	"Flag_HBHENoiseFilter",
+	"Flag_HBHENoiseIsoFilter",
+	"Flag_globalSuperTightHalo2016Filter",
+	"Flag_EcalDeadCellTriggerPrimitiveFilter",
+	"Flag_goodVertices",
+	"Flag_BadPFMuonFilter",
+	"ecalBadCalibReducedMINIAODFilter"
+      };
+    }
+  }
 
   std::vector<TString> badmufilter = {
     "Flag_BadPFMuonFilter"
@@ -1490,6 +1574,13 @@ int main(int argc, char * argv[]) {
 	}
      }
 
+     // MET filters
+     bool passedMETFilters = passedFilters(flags,metfilters);
+     if (!passedMETFilters) {
+       std::cout << "MET filters not passed : run = " << event_run << "    event = " << event_nr << std::endl;
+       continue;
+     }
+
      puWeightH->Fill(puweight,1.0);
      weight *= puweight;
 
@@ -1530,10 +1621,24 @@ int main(int argc, char * argv[]) {
      // std::cout << "Ok 1" << std::endl;
 
      float weight_btag = 1.0; 
+
      float weight_btag_up = 1.0;
      float weight_btag_down = 1.0;
+
+     float weight_btag_corr_up = 1.0;
+     float weight_btag_corr_down = 1.0;
+
+     float weight_btag_uncorr_up = 1.0;
+     float weight_btag_uncorr_down = 1.0;
+
      float weight_mistag_up = 1.0;
      float weight_mistag_down = 1.0;
+
+     float weight_mistag_corr_up = 1.0;
+     float weight_mistag_corr_down = 1.0;
+
+     float weight_mistag_uncorr_up = 1.0;
+     float weight_mistag_uncorr_down = 1.0;
 
      if (ApplyBTagVeto) {
        int nBTagDiscriminant1 = -1;
@@ -1545,9 +1650,21 @@ int main(int argc, char * argv[]) {
        float Pdata_lf_down = 1.;
        float Pdata_hf_up = 1.;
        float Pdata_hf_down = 1.;
+
+       float Pdata_lf_corr_up = 1.;
+       float Pdata_lf_corr_down = 1.;
+       float Pdata_hf_corr_up = 1.;
+       float Pdata_hf_corr_down = 1.;
+
+       float Pdata_lf_uncorr_up = 1.;
+       float Pdata_lf_uncorr_down = 1.;
+       float Pdata_hf_uncorr_up = 1.;
+       float Pdata_hf_uncorr_down = 1.;
+
        float Pmc = 1.;
        float Pdata_lf = 1.;
        float Pdata_hf = 1.;
+
        unsigned int nbtags = 0;
        unsigned int nbtags_jesUp = 0;
        unsigned int nbtags_jesDown =0;
@@ -1650,21 +1767,44 @@ int main(int argc, char * argv[]) {
 
 	     float tageff = tagEff_Light->GetBinContent(tagEff_Light->FindBin(JetPtForBTag, JetEtaForBTag));
 	     float jet_scalefactor = reader_Light.eval_auto_bounds("central",BTagEntry::FLAV_UDSG,JetEtaForBTag,JetPtForBTag);
+
 	     float jet_scalefactor_up = reader_Light.eval_auto_bounds("up",BTagEntry::FLAV_UDSG,JetEtaForBTag,JetPtForBTag);
 	     float jet_scalefactor_down = reader_Light.eval_auto_bounds("down",BTagEntry::FLAV_UDSG,JetEtaForBTag,JetPtForBTag);
+
+	     float jet_scalefactor_corr_up = reader_Light.eval_auto_bounds("up_correlated",BTagEntry::FLAV_UDSG,JetEtaForBTag,JetPtForBTag);
+	     float jet_scalefactor_corr_down = reader_Light.eval_auto_bounds("down_correlated",BTagEntry::FLAV_UDSG,JetEtaForBTag,JetPtForBTag);
+
+	     float jet_scalefactor_uncorr_up = reader_Light.eval_auto_bounds("up_uncorrelated",BTagEntry::FLAV_UDSG,JetEtaForBTag,JetPtForBTag);
+	     float jet_scalefactor_uncorr_down = reader_Light.eval_auto_bounds("down_uncorrelated",BTagEntry::FLAV_UDSG,JetEtaForBTag,JetPtForBTag);
 
 	     if (flavor==4) { 
 	       tageff = tagEff_C->GetBinContent(tagEff_C->FindBin(JetPtForBTag,JetEtaForBTag));
 	       jet_scalefactor = reader_C.eval_auto_bounds("central",BTagEntry::FLAV_C,JetEtaForBTag,JetPtForBTag);
+
 	       jet_scalefactor_up = reader_C.eval_auto_bounds("up",BTagEntry::FLAV_C,JetEtaForBTag,JetPtForBTag);
 	       jet_scalefactor_down = reader_C.eval_auto_bounds("down",BTagEntry::FLAV_C,JetEtaForBTag,JetPtForBTag);
+
+	       jet_scalefactor_corr_up = reader_C.eval_auto_bounds("up_correlated",BTagEntry::FLAV_C,JetEtaForBTag,JetPtForBTag);
+	       jet_scalefactor_corr_down = reader_C.eval_auto_bounds("down_correlated",BTagEntry::FLAV_C,JetEtaForBTag,JetPtForBTag);
+
+	       jet_scalefactor_uncorr_up = reader_C.eval_auto_bounds("up_uncorrelated",BTagEntry::FLAV_C,JetEtaForBTag,JetPtForBTag);
+	       jet_scalefactor_uncorr_down = reader_C.eval_auto_bounds("down_uncorrelated",BTagEntry::FLAV_C,JetEtaForBTag,JetPtForBTag);
+
 	     }
 
 	     if (flavor==5) { 
 	       tageff = tagEff_B->GetBinContent(tagEff_B->FindBin(JetPtForBTag,JetEtaForBTag));
 	       jet_scalefactor = reader_B.eval_auto_bounds("central",BTagEntry::FLAV_B,JetEtaForBTag,JetPtForBTag);
+
 	       jet_scalefactor_up = reader_B.eval_auto_bounds("up",BTagEntry::FLAV_B,JetEtaForBTag,JetPtForBTag);
 	       jet_scalefactor_down = reader_B.eval_auto_bounds("down",BTagEntry::FLAV_B,JetEtaForBTag,JetPtForBTag);
+
+	       jet_scalefactor_corr_up = reader_B.eval_auto_bounds("up_correlated",BTagEntry::FLAV_B,JetEtaForBTag,JetPtForBTag);
+	       jet_scalefactor_corr_down = reader_B.eval_auto_bounds("down_correlated",BTagEntry::FLAV_B,JetEtaForBTag,JetPtForBTag);
+
+	       jet_scalefactor_uncorr_up = reader_B.eval_auto_bounds("up_uncorrelated",BTagEntry::FLAV_B,JetEtaForBTag,JetPtForBTag);
+	       jet_scalefactor_uncorr_down = reader_B.eval_auto_bounds("down_uncorrelated",BTagEntry::FLAV_B,JetEtaForBTag,JetPtForBTag);
+
 	     }
 
 	     if (pfjet_pt[jet]>bjetPt) {
@@ -1676,13 +1816,29 @@ int main(int argc, char * argv[]) {
 		 
 		 if (flavor==4||flavor==5) {
 		   Pdata_hf      = Pdata_hf*jet_scalefactor*tageff;
+
 		   Pdata_hf_up   = Pdata_hf_up*jet_scalefactor_up*tageff;
 		   Pdata_hf_down = Pdata_hf_down*jet_scalefactor_down*tageff;
+
+		   Pdata_hf_corr_up   = Pdata_hf_corr_up*jet_scalefactor_corr_up*tageff;
+		   Pdata_hf_corr_down = Pdata_hf_corr_down*jet_scalefactor_corr_down*tageff;
+
+		   Pdata_hf_uncorr_up   = Pdata_hf_uncorr_up*jet_scalefactor_uncorr_up*tageff;
+		   Pdata_hf_uncorr_down = Pdata_hf_uncorr_down*jet_scalefactor_uncorr_down*tageff;
+
 		 }
 		 else {
 		   Pdata_lf = Pdata_lf*jet_scalefactor*tageff;
+
 		   Pdata_lf_up = Pdata_lf_up*jet_scalefactor_up*tageff;
 		   Pdata_lf_down = Pdata_lf_down*jet_scalefactor_down*tageff;
+
+		   Pdata_lf_corr_up = Pdata_lf_corr_up*jet_scalefactor_corr_up*tageff;
+		   Pdata_lf_corr_down = Pdata_lf_corr_down*jet_scalefactor_corr_down*tageff;
+
+		   Pdata_lf_uncorr_up = Pdata_lf_uncorr_up*jet_scalefactor_uncorr_up*tageff;
+		   Pdata_lf_uncorr_down = Pdata_lf_uncorr_down*jet_scalefactor_uncorr_down*tageff;
+
 		 }
 
 	       }
@@ -1693,13 +1849,30 @@ int main(int argc, char * argv[]) {
 		 
 		 if (flavor==4 || flavor==5) {
 		   Pdata_hf = Pdata_hf*(1-jet_scalefactor*tageff);
+
 		   Pdata_hf_up = Pdata_hf_up*(1.0-jet_scalefactor_up*tageff);
 		   Pdata_hf_down = Pdata_hf_down*(1.0-jet_scalefactor_down*tageff);
+
+		   Pdata_hf_corr_up = Pdata_hf_corr_up*(1.0-jet_scalefactor_corr_up*tageff);
+		   Pdata_hf_corr_down = Pdata_hf_corr_down*(1.0-jet_scalefactor_corr_down*tageff);
+
+		   Pdata_hf_uncorr_up = Pdata_hf_uncorr_up*(1.0-jet_scalefactor_uncorr_up*tageff);
+		   Pdata_hf_uncorr_down = Pdata_hf_uncorr_down*(1.0-jet_scalefactor_uncorr_down*tageff);
+
 		 }
 		 else {
+
 		   Pdata_lf = Pdata_lf*(1-jet_scalefactor*tageff);
+
 		   Pdata_lf_up = Pdata_lf_up*(1.0-jet_scalefactor_up*tageff);
 		   Pdata_lf_down = Pdata_lf_down*(1.0-jet_scalefactor_down*tageff);
+
+		   Pdata_lf_corr_up = Pdata_lf_corr_up*(1.0-jet_scalefactor_corr_up*tageff);
+		   Pdata_lf_corr_down = Pdata_lf_corr_down*(1.0-jet_scalefactor_corr_down*tageff);
+
+		   Pdata_lf_uncorr_up = Pdata_lf_uncorr_up*(1.0-jet_scalefactor_uncorr_up*tageff);
+		   Pdata_lf_uncorr_down = Pdata_lf_uncorr_down*(1.0-jet_scalefactor_uncorr_down*tageff);
+
 		 }
 
 	       }
@@ -1715,21 +1888,36 @@ int main(int argc, char * argv[]) {
 	 if (Pdata_hf<1e-4) {Pdata_hf=1e-4; Pdata_hf_up=1e-4; Pdata_hf_down=1e-4;}
 	 if (Pdata_lf<1e-4) {Pdata_lf=1e-4; Pdata_lf_up=1e-4; Pdata_lf_down=1e-4;} 
 	 weight *= weight_btag;
+
 	 weight_btag_up = Pdata_hf_up/Pdata_hf;
 	 weight_btag_down = Pdata_hf_down/Pdata_hf;
+
+	 weight_btag_corr_up = Pdata_hf_corr_up/Pdata_hf;
+	 weight_btag_corr_down = Pdata_hf_corr_down/Pdata_hf;
+
+	 weight_btag_uncorr_up = Pdata_hf_uncorr_up/Pdata_hf;
+	 weight_btag_uncorr_down = Pdata_hf_uncorr_down/Pdata_hf;
+
 	 weight_mistag_up = Pdata_lf_up/Pdata_lf;
 	 weight_mistag_down = Pdata_lf_down/Pdata_lf;
+
+	 weight_mistag_corr_up = Pdata_lf_corr_up/Pdata_lf;
+	 weight_mistag_corr_down = Pdata_lf_corr_down/Pdata_lf;
+
+	 weight_mistag_uncorr_up = Pdata_lf_uncorr_up/Pdata_lf;
+	 weight_mistag_uncorr_down = Pdata_lf_uncorr_down/Pdata_lf;
+
 	 /*
 	 std::cout << "nbtags = " << nbtags << std::endl;
 	 std::cout << "Pdata = " << Pdata 
 		   << "  Pdata_lf = " << Pdata_lf 
 		   << "  Pdata_hf = " << Pdata_hf
 		   << "  Pdata_lf*Pdata_hf = " << Pdata_lf*Pdata_hf << std::endl;
-	 std::cout << "weight_btag = " << weight_btag 
-		   << "  weight_btag_up = " << weight_btag_up
-		   << "  weight_btag_down = " << weight_btag_down
-		   << "  weight_mistag_up = " << weight_mistag_up 
-		   << "  weight_mistag_down = " << weight_mistag_down << std::endl;
+	 std::cout << "weight_btag = " << weight_btag << std::endl;
+	 std::cout << "weight_btag_corr     down/up = " << weight_btag_corr_down << "/" << weight_btag_corr_up << std::endl;
+	 std::cout << "weight_btag_uncorr   down/up = " << weight_btag_uncorr_down << "/" << weight_btag_uncorr_up << std::endl; 
+	 std::cout << "weight_mistag_corr   down/up = " << weight_mistag_corr_down << "/" << weight_mistag_corr_up << std::endl;
+	 std::cout << "weight_mistag_uncorr down/up = " << weight_mistag_uncorr_down << "/" << weight_mistag_uncorr_up << std::endl;
 	 */
        }
 
@@ -2036,6 +2224,9 @@ int main(int argc, char * argv[]) {
 
        triggerWeight *= effDzSS;
 
+       // comment it out !!!!
+       triggerWeight = 1.0;
+
        /*       
        std::cout << "pT(leading) = " << ptLeading
 		 << "   eta(leading) = " << etaLeading
@@ -2088,6 +2279,22 @@ int main(int argc, char * argv[]) {
      etaLeadingMuH->Fill(muon_eta[iLeading],weight);
      etaTrailingMuH->Fill(muon_eta[iTrailing],weight);
      counter_MuonKinematicsH->Fill(1.0,weight); 
+
+     float iso1 = muon_r03_sumChargedHadronPt[iLeading]/muon_pt[iLeading];
+     float iso2 = muon_r03_sumChargedHadronPt[iTrailing]/muon_pt[iTrailing];
+
+     if (iso1<0.4&&iso2<0.4) {
+       dimuonMassIsoH->Fill(dimuonMass,weight);
+       ptLeadingIsoMuH->Fill(muon_pt[iLeading],weight);
+       ptTrailingIsoMuH->Fill(muon_pt[iLeading],weight);
+     }
+
+     if (iso1>0.4&&iso2>0.4) {
+       dimuonMassNonIsoH->Fill(dimuonMass,weight);
+       ptLeadingNonIsoMuH->Fill(muon_pt[iLeading],weight);
+       ptTrailingNonIsoMuH->Fill(muon_pt[iLeading],weight);
+     }
+
 
      TLorentzVector Met4; Met4.SetXYZM(metx,mety,0,0);
 
@@ -2349,15 +2556,6 @@ int main(int argc, char * argv[]) {
        }
      }
 
-     if (isoHadTrailing<0.3&&isoHadLeading<0.3) {
-       ptLeadingIsoMuH->Fill(muon_pt[iLeading],weight);
-       ptTrailingIsoMuH->Fill(muon_pt[iTrailing],weight);
-       etaLeadingIsoMuH->Fill(muon_eta[iLeading],weight);
-       etaTrailingIsoMuH->Fill(muon_eta[iTrailing],weight);
-       dimuonMassIsoH->Fill(dimuonMass,weight);
-     }
-
-    
      // definition of signal muon+track
      bool signalLeadingMu  = trkLeadingMu.size()==1 && trkSigLeadingMu.size()==1;
      bool signalTrailingMu = trkTrailingMu.size()==1 && trkSigTrailingMu.size()==1;
@@ -2617,6 +2815,17 @@ int main(int argc, char * argv[]) {
      // *************
      if (signalRegion) {
        counter_FinalEventsH->Fill(1.,weight);
+
+       counter_btagCorrUp->Fill(1.,weight*weight_btag_corr_up);
+       counter_btagCorrDown->Fill(1.,weight*weight_btag_corr_down);
+       counter_mistagCorrUp->Fill(1.,weight*weight_mistag_corr_up);
+       counter_mistagCorrDown->Fill(1.,weight*weight_mistag_corr_down);
+
+       counter_btagUncorrUp->Fill(1.,weight*weight_btag_uncorr_up);
+       counter_btagUncorrDown->Fill(1.,weight*weight_btag_uncorr_down);
+       counter_mistagUncorrUp->Fill(1.,weight*weight_mistag_uncorr_up);
+       counter_mistagUncorrDown->Fill(1.,weight*weight_mistag_uncorr_down);
+
        int iTrkLeading = trkSigLeadingMu[0];
        TLorentzVector TrackLeading4; TrackLeading4.SetXYZM(track_px[iTrkLeading],
 							   track_py[iTrkLeading],

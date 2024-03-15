@@ -98,6 +98,7 @@ void PlotMass1D(float xLower = 0, // lower boundary in x axis
     float xN23 = histN23->GetBinContent(i)/normN23;
     float eN23 = histN23->GetBinError(i)/normN23;
     float xN45 = histN45->GetBinContent(i)/normN45;
+    float eN45 = histN45->GetBinError(i)/normN45;
 
     float xcorr = xN45/xN23;
     float xCentral = xN23;
@@ -106,10 +107,15 @@ void PlotMass1D(float xLower = 0, // lower boundary in x axis
 
     float xUp = xcorr*xCentral;
     float xDown = xCentral/xcorr;
+
+    float eStatUp = xUp*eN45/x45;
+    float eStatDown = xDown*eN45/x45;
+
     histBkgUp->SetBinContent(i,xUp);
     histBkgDown->SetBinContent(i,xDown);
+    histBkgUp->SetBinError(i,eStatDown);
+    histBkgDown->SetBinError(i,eStatUp);
   }
-
 
   double normBkg   = histBkg->GetSumOfWeights();
   double normBkgUp = histBkgUp->GetSumOfWeights();
@@ -119,8 +125,9 @@ void PlotMass1D(float xLower = 0, // lower boundary in x axis
     float xC = histBkg->GetBinContent(i);
     float xU = histBkgUp->GetBinContent(i);
     float errStat = histBkg->GetBinError(i);
-    float errSys = 2*(xU-xC);
-    float eTot = TMath::Sqrt(errSys*errSys+errStat*errStat);
+    float errSys = xU-xC;
+    float errStatUp = histBkgUp->GetBinError(i);
+    float eTot = TMath::Sqrt(errSys*errSys+errStat*errStat+errStatUp*errStatUp);
     hist->SetBinContent(i,hist->GetBinContent(i)/norm);
     hist->SetBinError(i,hist->GetBinError(i)/norm);
     histBkg->SetBinContent(i,xC);
@@ -278,8 +285,6 @@ void PlotMass1D(float xLower = 0, // lower boundary in x axis
   upper->SetFrameBorderSize(10);
 
   std::cout << "Background : " << histBkg->GetSumOfWeights() << std::endl;
-
-  hist4->Scale(1.05);
 
   histBkg->Draw("hist");
   histErr->Draw("e2same");

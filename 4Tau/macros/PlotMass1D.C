@@ -113,8 +113,8 @@ void PlotMass1D(float xLower = 0, // lower boundary in x axis
 
     histBkgUp->SetBinContent(i,xUp);
     histBkgDown->SetBinContent(i,xDown);
-    histBkgUp->SetBinError(i,eStatDown);
-    histBkgDown->SetBinError(i,eStatUp);
+    histBkgUp->SetBinError(i,eStatUp);
+    histBkgDown->SetBinError(i,eStatDown);
   }
 
   double normBkg   = histBkg->GetSumOfWeights();

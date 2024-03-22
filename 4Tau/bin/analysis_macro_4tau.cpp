@@ -154,6 +154,13 @@ int main(int argc, char * argv[]) {
   const float effDzSS        = cfg.get<float>("effDzSS");
   const unsigned int numberOfMuons = cfg.get<unsigned int>("NumberOfMuons");
 
+  // track id/iso 
+  const float trackIsoSF = cfg.get<float>("TrackIsolationSF"); 
+  const float InterceptErr = cfg.get<float>("InterceptErr");
+  const float SlopeErr = cfg.get<float>("SlopeErr");
+  const float Correlation = cfg.get<float>("Correlation");
+
+  // btagging
   const bool ApplyBTagVeto = cfg.get<bool>("ApplyBTagVeto");
   const string bTagAlgorithm = cfg.get<string>("BTagAlgorithm");
   const string bTagDiscriminator1 = cfg.get<string>("BTagDiscriminator1");
@@ -431,6 +438,13 @@ int main(int argc, char * argv[]) {
   TH1D * InvMassH_jesDown = new TH1D("InvMassH_jesDown","",100,0.,20.);
   TH2D * InvMass2DH_jesDown = new TH2D("InvMass2DH_jesDown","",100,0.,20.,100,0.,20.);
 
+  // trk iso SF variations
+  TH1D * InvMassH_trkIsoUp = new TH1D("InvMassH_trkIsoUp","",100,0.,20.);
+  TH2D * InvMass2DH_trkIsoUp = new TH2D("InvMass2DH_trkIsoUp","",100,0.,20.,100,0.,20.);
+  
+  TH1D * InvMassH_trkIsoDown = new TH1D("InvMassH_trkIsoDown","",100,0.,20.);
+  TH2D * InvMass2DH_trkIsoDown = new TH2D("InvMass2DH_trkIsoDown","",100,0.,20.,100,0.,20.);
+
   //
   
   TH1D * MetSelH = new TH1D("MetH","",400,0.,400.);
@@ -480,8 +494,6 @@ int main(int argc, char * argv[]) {
   TH1D * counter_mistagUncorrUp = new TH1D("counter_mistagUncorrUp","",1,0.,2.);
   TH1D * counter_mistagUncorrDown = new TH1D("counter_mistagUncorrDown","",1,0.,2.);
 
-
-  // Counter btags
   TH1D * counter_btagH = new TH1D("counter_btagH","",1,0.,2.);
   TH1D * counter_btag_jesUpH = new TH1D("counter_btag_jesUpH","",1,0.,2.);
   TH1D * counter_btag_jesDownH = new TH1D("counter_btag_jesDownH","",1,0.,2.);
@@ -1618,10 +1630,10 @@ int main(int argc, char * argv[]) {
      // ******************
      // applying btag veto
      // ******************
+    
      // std::cout << "Ok 1" << std::endl;
 
      float weight_btag = 1.0; 
-
      float weight_btag_up = 1.0;
      float weight_btag_down = 1.0;
 
@@ -1808,7 +1820,6 @@ int main(int argc, char * argv[]) {
 	     }
 
 	     if (pfjet_pt[jet]>bjetPt) {
-
 	       if (tagged) {
 
 		 Pmc = Pmc*tageff;
@@ -1840,7 +1851,6 @@ int main(int argc, char * argv[]) {
 		   Pdata_lf_uncorr_down = Pdata_lf_uncorr_down*jet_scalefactor_uncorr_down*tageff;
 
 		 }
-
 	       }
 	       else {
 
@@ -1874,9 +1884,7 @@ int main(int argc, char * argv[]) {
 		   Pdata_lf_uncorr_down = Pdata_lf_uncorr_down*(1.0-jet_scalefactor_uncorr_down*tageff);
 
 		 }
-
 	       }
-
 	     }
 	   }
 	 }
@@ -2165,7 +2173,6 @@ int main(int argc, char * argv[]) {
        correctionWS->var("m_eta")->setVal(etaTrailing);
        double idTrailingW = correctionWS->function("m_id_ic_ratio")->getVal();
        double trkTrailingW = correctionWS->function("m_trk_ratio")->getVal();
-
        idTrailingWeight = idTrailingW * trkTrailingW;
 
        //       std::cout << "after weighting" << std::endl;
@@ -2214,7 +2221,6 @@ int main(int argc, char * argv[]) {
        double trigWeightData = effMu17dataLeading*effMu8dataTrailing + effMu17dataTrailing*effMu8dataLeading - effMu17dataLeading*effMu17dataTrailing;
        double trigWeightMC = effMu17MCLeading*effMu8MCTrailing + effMu17MCTrailing*effMu8MCLeading - effMu17MCLeading*effMu17MCTrailing;
 
-       
        if (applyTriggerMatch) {
 	 if (trigWeightMC>0)
 	   triggerWeight = trigWeightData/trigWeightMC;
@@ -2223,9 +2229,6 @@ int main(int argc, char * argv[]) {
 	 triggerWeight = trigWeightData;
 
        triggerWeight *= effDzSS;
-
-       // comment it out !!!!
-       triggerWeight = 1.0;
 
        /*       
        std::cout << "pT(leading) = " << ptLeading
@@ -2852,7 +2855,59 @@ int main(int argc, char * argv[]) {
        float dRTrailingMuTrk = deltaR(TrailingMuon4.Eta(),TrailingMuon4.Phi(),
 				      TrackTrailing4.Eta(),TrackTrailing4.Phi());
 
+       // *************************
+       // applying track id/iso SF
+       // *************************
 
+       double weight_trk_leading_iso_Up = 1;
+       double weight_trk_leading_iso_Down = 1;
+       double weight_trk_trailing_iso_Up = 1;
+       double weight_trk_trailing_iso_Down = 1;
+       double weight_trk_iso_Up = 1;
+       double weight_trk_iso_Down = 1;
+
+       if (!isData) {
+
+         double SFIsoLeading = trackIsoSF;
+         double SFIsoTrailing = trackIsoSF;
+
+         double derivativeLeading[2];
+         derivativeLeading[0] = 1;
+         derivativeLeading[1] = TrackLeading4.Pt();
+
+	 double derivativeTrailing[2];
+	 derivativeTrailing[0] = 1;
+	 derivativeTrailing[1] = TrackTrailing4.Pt();	 
+
+         double ParError[2];
+         ParError[0] = InterceptErr;
+         ParError[1] = SlopeErr;
+
+         double CorrMatrix[2][2] = {{1.0, Correlation}, {Correlation, 1.0}};
+
+	 double sumdeltaLeading = 0; double sumdeltaTrailing = 0;
+
+         for(int npar=0;npar<2;npar++) {
+             for(int mpar=0;mpar<2;mpar++) {
+                  sumdeltaLeading = sumdeltaLeading + derivativeLeading[npar]*derivativeLeading[mpar]*ParError[npar]*ParError[mpar]*CorrMatrix[npar][mpar];
+                  sumdeltaTrailing = sumdeltaTrailing + derivativeTrailing[npar]*derivativeTrailing[mpar]*ParError[npar]*ParError[mpar]*CorrMatrix[npar][mpar];
+             }
+         }
+
+         double DeltaSFIsoLeading = TMath::Sqrt(sumdeltaLeading);
+         double DeltaSFIsoTrailing = TMath::Sqrt(sumdeltaTrailing);
+
+         weight_trk_leading_iso_Up = SFIsoLeading + DeltaSFIsoLeading;
+         weight_trk_leading_iso_Down = SFIsoLeading - DeltaSFIsoLeading;
+         weight_trk_trailing_iso_Up = SFIsoTrailing + DeltaSFIsoTrailing;
+         weight_trk_trailing_iso_Down = SFIsoTrailing - DeltaSFIsoTrailing;
+
+         weight_trk_iso_Up = weight_trk_leading_iso_Up * weight_trk_trailing_iso_Up;
+         weight_trk_iso_Down = weight_trk_leading_iso_Down * weight_trk_trailing_iso_Down;
+
+         weight *= SFIsoLeading*SFIsoTrailing;
+
+       } 
 
        MetSelH->Fill(Met4.Pt(),weight);
        mTtotSelH->Fill(Total4.M(),weight);
@@ -2914,6 +2969,15 @@ int main(int argc, char * argv[]) {
        InvMassH_mistagDown->Fill(massTrkMuLeading,weight*weight_mistag_down);
        InvMassH_mistagDown->Fill(massTrkMuTrailing,weight*weight_mistag_down);
        InvMass2DH_mistagDown->Fill(masslow,masshigh,weight*weight_mistag_down);
+
+       // trk iso sf variations : up ->
+       InvMassH_trkIsoUp->Fill(massTrkMuLeading,weight*weight_trk_leading_iso_Up);
+       InvMassH_trkIsoUp->Fill(massTrkMuTrailing,weight*weight_trk_trailing_iso_Up);
+       InvMass2DH_trkIsoUp->Fill(massTrkMuLeading, massTrkMuTrailing,weight*weight_trk_iso_Up);
+       // trk iso sf variations : down ->
+       InvMassH_trkIsoDown->Fill(massTrkMuLeading,weight*weight_trk_leading_iso_Down);
+       InvMassH_trkIsoDown->Fill(massTrkMuTrailing,weight*weight_trk_trailing_iso_Down);
+       InvMass2DH_trkIsoDown->Fill(masslow, masshigh,weight*weight_trk_iso_Down);
        
      }
 
@@ -3145,6 +3209,3 @@ int main(int argc, char * argv[]) {
   
   //delete file;
   }// int main loop 
-
- 
-

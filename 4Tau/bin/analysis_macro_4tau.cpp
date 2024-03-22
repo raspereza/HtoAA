@@ -208,7 +208,7 @@ int main(int argc, char * argv[]) {
   float isoElectronCut = 0.15;
 
   unsigned int runHEM = 319077;
-  float weightHEM = 0.65;
+  float weightHEM = 0.35;
 
   // ***** Prefiring **********  
   bool applyPrefire = era==2016 || era==2017;

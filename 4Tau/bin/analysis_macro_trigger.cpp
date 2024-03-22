@@ -204,6 +204,7 @@ int main(int argc, char * argv[]) {
   float muon_neutralHadIso[1000];
   float muon_photonIso[1000];
   float muon_puIso[1000];
+  float muon_r03_sumChargedHadronPt[1000];
   bool muon_isPF[1000];
   bool muon_isGlobal[1000];
   bool muon_isTracker[1000];
@@ -325,43 +326,36 @@ int main(int argc, char * argv[]) {
   TH1F * ZMassSameSignFilterFailH =  new TH1F("ZMassSameSignFilterFailH","",60,60,120);
 
   int nEtaBins = 4;
-  float etaBins[5] = {-0.001, 0.9, 1.2, 2.1, 2.4};
-  /*
-  int nPtBins = 18;
-  float ptBins[19] = { 5,  7,  9, 11, 13, 
-		      15, 17, 19, 21, 23, 
-		      25, 27, 30, 40, 50,
-  		      60, 80, 100, 200};
-  */
+  float etaBins[5] = {0.0, 0.9, 1.2, 2.1, 2.4};
 
-  int nPtBins = 11;
-  float ptBins[12] = { 6, 10, 14, 19,  24, 30, 
-		      40, 50, 60, 80, 100, 200};
+  int nPtBins = 9;
+  float ptBins[10] = {6, 10, 14, 19, 24, 30, 40, 60, 80, 100};
 
   int nPtBins45 = 9;
-  float ptBins45[10] = {21,26,31,36,41,46,51,56,70,1000};
+  float ptBins45[10] = {21, 26, 31, 36, 41, 46, 51, 56, 70, 1000};
 
   int nDzBins = 6;
-  float dzBins[7] = {-0.001,0.05,0.1,0.15,0.2,0.3,0.5};
+  float dzBins[7] = {0.0,0.05,0.1,0.15,0.2,0.3,0.5};
 
+  int nIsoBins = 6;
+  float isoBins[7] = {0.0,0.2,0.4,0.6,0.8,1.0,1.2}; 
 
   TH1F * ZMassHighPtLegPassH = new TH1F("ZMassHighPtLegPassH","",60,60,120);
   TH1F * ZMassHighPtLegFailH = new TH1F("ZMassHighPtLegFailH","",60,60,120);
   TH1F * ZMassLowPtLegPassH = new TH1F("ZMassLowPtLegPassH","",60,60,120);
   TH1F * ZMassLowPtLegFailH = new TH1F("ZMassLowPtLegFailH","",60,60,120);
 
+  TString IsoBins[6] = {"IsoLt0p2",
+			"Iso0p2to0p4",
+			"Iso0p4to0p6",
+			"Iso0p6to0p8",
+			"Iso0p8to1p0",
+			"IsoGt1p0",};
 
   TString EtaBins[4] = {"EtaLt0p9","Eta0p9to1p2","Eta1p2to2p1","EtaGt2p1"};
-  /*
-  TString PtBins[18] = {"Pt5to7","Pt7to9","Pt9to11",
-			"Pt11to13","Pt13to15","Pt15to17","Pt17to19",
-			"Pt19to21","Pt21to23","Pt23to25","Pt25to27",
-			"Pt27to30","Pt30to40","Pt40to50","Pt50to60",
-			"Pt60to80","Pt80to100","PtGt100"};
-  */
-  TString PtBins[11] = {"Pt6to10" ,"Pt10to14", "Pt14to19","Pt19to24",
-			"Pt24to30","Pt30to40", "Pt40to50","Pt50to60",
-			"Pt60to80","Pt80to100","PtGt100"};
+
+  TString PtBins[9] = { "Pt6to10","Pt10to14","Pt14to19","Pt19to24", "Pt24to30",
+			"Pt30to40","Pt40to60","Pt60to80","Pt80to100"};
 
   TString DzBins[6] = {"Dz0to0p5","Dz0p5to1p0","Dz1p0to1p5",
 		       "Dz1p5to2p0","Dz2p0to3p0","DzGt3p0"};
@@ -369,10 +363,14 @@ int main(int argc, char * argv[]) {
 			 "Pt36to41","Pt41to46","Pt46to51",
 			 "Pt51to56","Pt56to70","Pt70toInf"};
 
+  TH1F * IsoBinsH = new TH1F("IsoBinsH","",nIsoBins,isoBins);
   TH1F * EtaBinsH = new TH1F("EtaBinsH","",nEtaBins,etaBins);
   TH1F * PtBinsH  = new TH1F("PtBinsH","",nPtBins,ptBins);
   TH1F * DzBinsH  = new TH1F("DzBinsH","",nDzBins,dzBins); 
   TH1F * PtBins45H = new TH1F("PtBins45H","",nPtBins45,ptBins45);
+
+  for (int iB=0; iB<nIsoBins; ++iB) 
+    IsoBinsH->GetXaxis()->SetBinLabel(iB+1,IsoBins[iB]);
 
   for (int iB=0; iB<nEtaBins; ++iB)
     EtaBinsH->GetXaxis()->SetBinLabel(iB+1,EtaBins[iB]);
@@ -386,14 +384,20 @@ int main(int argc, char * argv[]) {
   for (int iB=0; iB<nDzBins; ++iB)
     DzBinsH->GetXaxis()->SetBinLabel(iB+1,DzBins[iB]);
 
-  // (Pt,Eta)
-
+  // (Eta,Pt)
   TH1F * ZMassHighPtLegPtEtaPassH[4][18];
   TH1F * ZMassHighPtLegPtEtaFailH[4][18];
 
   TH1F * ZMassLowPtLegPtEtaPassH[4][18];
   TH1F * ZMassLowPtLegPtEtaFailH[4][18];
 
+  // Iso dependence
+  TH1F * ZMassHighPtLegIsoPassH[6];
+  TH1F * ZMassHighPtLegIsoFailH[6];
+
+  TH1F * ZMassLowPtLegIsoPassH[6];
+  TH1F * ZMassLowPtLegIsoFailH[6];
+  
   // Eta dependence
 
   TH1F * ZMassHighPtLegEtaPassH[4];
@@ -412,6 +416,7 @@ int main(int argc, char * argv[]) {
   TH1F * JPsiMassDzPassH[6];
   TH1F * JPsiMassDzFailH[6];
 
+
   for (int iDz=0; iDz<nDzBins; ++iDz) {
     JPsiMassDzPassH[iDz] = new TH1F("JPsiMass_"+DzBins[iDz]+"_PassH","",200,2,4);
     JPsiMassDzFailH[iDz] = new TH1F("JPsiMass_"+DzBins[iDz]+"_FailH","",200,2,4);
@@ -422,6 +427,14 @@ int main(int argc, char * argv[]) {
     ZMassHighPtLegEtaFailH[iEta] = new TH1F("ZMassHighPtLeg_"+EtaBins[iEta]+"_FailH","",60,60,120);
     ZMassLowPtLegEtaPassH[iEta]  = new TH1F("ZMassLowPtLeg_"+EtaBins[iEta]+"_PassH","",60,60,120);
     ZMassLowPtLegEtaFailH[iEta]  = new TH1F("ZMassLowPtLeg_"+EtaBins[iEta]+"_FailH","",60,60,120);
+  }
+
+  for (int iIso=0; iIso<nIsoBins; ++iIso) {
+    ZMassHighPtLegIsoPassH[iIso] = new TH1F("ZMassHighPtLeg_"+IsoBins[iIso]+"_PassH","",60,60,120);
+    ZMassHighPtLegIsoFailH[iIso] = new TH1F("ZMassHighPtLeg_"+IsoBins[iIso]+"_FailH","",60,60,120);
+    ZMassLowPtLegIsoPassH[iIso]  = new TH1F("ZMassLowPtLeg_"+IsoBins[iIso]+"_PassH","",60,60,120);
+    ZMassLowPtLegIsoFailH[iIso]  = new TH1F("ZMassLowPtLeg_"+IsoBins[iIso]+"_FailH","",60,60,120);
+    
   }
 
   for (int iPt=0; iPt<nPtBins; ++iPt) {
@@ -439,6 +452,7 @@ int main(int argc, char * argv[]) {
       ZMassHighPtLegPtEtaFailH[iEta][iPt] = new TH1F("ZMassHighPtLeg_"+EtaBins[iEta]+"_"+PtBins[iPt]+"_FailH","",60,60,120);
       ZMassLowPtLegPtEtaPassH[iEta][iPt]  = new TH1F("ZMassLowPtLeg_"+EtaBins[iEta]+"_"+PtBins[iPt]+"_PassH","",60,60,120);
       ZMassLowPtLegPtEtaFailH[iEta][iPt]  = new TH1F("ZMassLowPtLeg_"+EtaBins[iEta]+"_"+PtBins[iPt]+"_FailH","",60,60,120);
+
     }
 
   }
@@ -558,6 +572,7 @@ int main(int argc, char * argv[]) {
     tree_->SetBranchAddress("muon_neutralHadIso", muon_neutralHadIso);
     tree_->SetBranchAddress("muon_photonIso", muon_photonIso);
     tree_->SetBranchAddress("muon_puIso", muon_puIso);
+    tree_->SetBranchAddress("muon_r03_sumChargedHadronPt",muon_r03_sumChargedHadronPt);
     tree_->SetBranchAddress("muon_isMedium", muon_isMedium);
 
     // Tracks
@@ -778,8 +793,9 @@ int main(int argc, char * argv[]) {
 	neutralIsoMu = TMath::Max(float(0),neutralIsoMu);
 	float absIsoMu = chargedHadIsoMu + neutralIsoMu;
 	float relIsoMu = absIsoMu/muon_pt[im];
+	
+	muons.push_back(im);
 	if (relIsoMu<isoMuonCut) {
-	  muons.push_back(im);
 	  isoMuons.push_back(im); 
 	}
 	/*
@@ -823,7 +839,7 @@ int main(int argc, char * argv[]) {
       //      std::cout << "number of probe muons = " << isoMuons.size() << std::endl;
 
       // selecting muon pair
-      for (unsigned int im1=0; im1<muons.size(); ++im1) {
+      for (unsigned int im1=0; im1<isoMuons.size(); ++im1) {
 	int  mu1Index = muons[im1];
 	bool mu1MatchHighPt = false;
 	bool mu1MatchLowPt  = false;
@@ -851,9 +867,9 @@ int main(int argc, char * argv[]) {
 	bool mu1IsoSingleMu = mu1MatchIsoSingleMu && muon_pt[mu1Index]>ptMuonTagCut && fabs(muon_eta[mu1Index])<etaMuonTagCut;
 	float q1 = muon_charge[mu1Index];
 	
-	for (unsigned int im2=0; im2<isoMuons.size(); ++im2) {
+	for (unsigned int im2=0; im2<muons.size(); ++im2) {
 
-	  int  mu2Index = isoMuons[im2];
+	  int  mu2Index = muons[im2];
 	  if (mu1Index==mu2Index) continue;
 
 	  float q2 = muon_charge[mu2Index];
@@ -920,7 +936,9 @@ int main(int argc, char * argv[]) {
 	  isPairSelected = true;
 	  selPairs++;
 
-	  float DZ = TMath::Min(float(dZ),float(0.5));
+	  float DZ = dZ;
+	  if (DZ<0.001) DZ=0.001;
+	  if (DZ>0.499) DZ=0.499;
 	  int DZBin  = binNumber(DZ,nDzBins,dzBins);
 
 	  if (mu1MatchIsoSingleMu && triggerMatch) { // pass HLT_HighPt_LowPt and HLT_SingleMuon
@@ -1016,12 +1034,29 @@ int main(int argc, char * argv[]) {
             selPairsHLTDoubleMuSameSignDZ++;
 	  }
 
-	  if (mu1IsoSingleMu && mu1RelIso<isoMuonCut && dZ<dZleptonsCut && dRmumu>dRleptonsCut) { // Single muon selection
-
+	  if (mu1IsoSingleMu && 
+	      mu1RelIso<isoMuonCut && 
+	      dZ<dZleptonsCut && 
+	      dRmumu>dRleptonsCut) { // Single muon selection
+	    float mu2TrkIso = muon_r03_sumChargedHadronPt[mu2Index]/muon_pt[mu2Index]; 
 	    float mu2AbsEta = fabs(muon_eta[mu2Index]);
-	    float mu2Pt = TMath::Max(float(5.01),TMath::Min(float(muon_pt[mu2Index]),float(99.9)));
+	    float mu2Pt = muon_pt[mu2Index];
+
+	    // muon isolation range
+	    if (mu2TrkIso<0.001) mu2TrkIso = 0.001;
+	    if (mu2TrkIso>1.199) mu2TrkIso = 1.199;
+	    
+	    // muon eta range 
+	    if (mu2AbsEta<0.001) mu2AbsEta = 0.001;
+	    if (mu2AbsEta>2.401) mu2AbsEta = 2.401;
+
+	    // muon pt range
+	    if (mu2Pt<6.01) mu2Pt = 6.01;
+	    if (mu2Pt>99.9) mu2Pt = 99.9;
+	    
 	    int etaBin = binNumber(mu2AbsEta,nEtaBins,etaBins);
 	    int ptBin  = binNumber(mu2Pt,nPtBins,ptBins);
+	    int isoBin = binNumber(mu2TrkIso,nIsoBins,isoBins);
 
 	    bool chargeTagPassed = true;
 	    if (chargeTagMuon<0 && muon_charge[mu1Index]>0) chargeTagPassed = false;
@@ -1029,17 +1064,34 @@ int main(int argc, char * argv[]) {
 
 	    if (chargeTagPassed) {
 
+	      // isolation condition for low pT leg
+	      if (mu2MatchLowPt&&muon_pt[mu2Index]>ptMuonLowCut&&mu2AbsEta<etaMuonLowCut) {
+		if (mu2MatchDz)
+		  ZMassLowPtLegIsoPassH[isoBin]->Fill(mass,weight);
+		else
+		  ZMassLowPtLegIsoFailH[isoBin]->Fill(mass,weight);
+	      }
+	      // isolation condition for high pT leg
+	      if (mu2MatchHighPt&&muon_pt[mu2Index]>ptMuonHighCut&&mu2AbsEta<etaMuonHighCut) {
+		if (mu2MatchDz)
+		  ZMassHighPtLegIsoPassH[isoBin]->Fill(mass,weight);
+		else
+		  ZMassHighPtLegIsoFailH[isoBin]->Fill(mass,weight);
+	      }
+
 	      if (mu2MatchLowPt) { // LowPt Leg
-		if (muon_pt[mu2Index]>ptMuonLowCut&&mu2AbsEta<etaMuonLowCut) 
+		if (muon_pt[mu2Index]>ptMuonLowCut&&mu2AbsEta<etaMuonLowCut) {
 		  ZMassLowPtLegPassH->Fill(mass,weight);
+		}
 		if (muon_pt[mu2Index]>ptMuonLowCut)
 		  ZMassLowPtLegEtaPassH[etaBin]->Fill(mass,weight);
 		if (mu2AbsEta<etaMuonLowCut)
 		  ZMassLowPtLegPtPassH[ptBin]->Fill(mass,weight);
 	      }
 	      else {
-		if (muon_pt[mu2Index]>ptMuonLowCut&&mu2AbsEta<etaMuonLowCut)
+		if (muon_pt[mu2Index]>ptMuonLowCut&&mu2AbsEta<etaMuonLowCut) {
 		  ZMassLowPtLegFailH->Fill(mass,weight);
+		}
 		if (muon_pt[mu2Index]>ptMuonLowCut)
 		  ZMassLowPtLegEtaFailH[etaBin]->Fill(mass,weight);
 		if (mu2AbsEta<etaMuonLowCut)
@@ -1047,16 +1099,18 @@ int main(int argc, char * argv[]) {
 	      }
 	     
 	      if (mu2MatchHighPt) { // HighPt Leg
-		if (muon_pt[mu2Index]>ptMuonHighCut&&mu2AbsEta<etaMuonHighCut)  
+		if (muon_pt[mu2Index]>ptMuonHighCut&&mu2AbsEta<etaMuonHighCut) { 
 		  ZMassHighPtLegPassH->Fill(mass,weight);
+		}
 		if (muon_pt[mu2Index]>ptMuonHighCut) 
 		  ZMassHighPtLegEtaPassH[etaBin]->Fill(mass,weight);
 		if (mu2AbsEta<etaMuonHighCut)
 		  ZMassHighPtLegPtPassH[ptBin]->Fill(mass,weight);
 	      }
 	      else {
-		if (muon_pt[mu2Index]>ptMuonHighCut&&mu2AbsEta<etaMuonHighCut)
+		if (muon_pt[mu2Index]>ptMuonHighCut&&mu2AbsEta<etaMuonHighCut) {
 		  ZMassHighPtLegFailH->Fill(mass,weight);
+		}
 		if (muon_pt[mu2Index]>ptMuonHighCut) 
 		  ZMassHighPtLegEtaFailH[etaBin]->Fill(mass,weight);
 		if (mu2AbsEta<etaMuonHighCut)
@@ -1065,16 +1119,19 @@ int main(int argc, char * argv[]) {
 
 	      if (mu2AbsEta<etaMuonHighCut) { // bins in (eta,pt)
 
-		if (mu2MatchLowPt)
+		if (mu2MatchLowPt) {
 		  ZMassLowPtLegPtEtaPassH[etaBin][ptBin]->Fill(mass,weight);
-		else
+		}
+		else {
 		  ZMassLowPtLegPtEtaFailH[etaBin][ptBin]->Fill(mass,weight);
+		}
 
-		if (mu2MatchHighPt)
+		if (mu2MatchHighPt) {
 		  ZMassHighPtLegPtEtaPassH[etaBin][ptBin]->Fill(mass,weight);
-		else
+		}
+		else {
 		  ZMassHighPtLegPtEtaFailH[etaBin][ptBin]->Fill(mass,weight);
-
+		}
 	      }
 
 	    }
@@ -1093,13 +1150,13 @@ int main(int argc, char * argv[]) {
 	selEventsHLTDoubleMuDZ++;
       if (isPairSelectedHLTDoubleMuSameSignDZ)
 	selEventsHLTDoubleMuSameSignDZ++;
-
       
     } // end of file processing (loop over events in one file)
     nFiles++;
     file_->Close();
     delete file_;
   }
+
   std::cout << std::endl;
   int allEvents = int(inputEventsH->GetEntries());
   std::cout << "Total number of input events    = " << allEvents << std::endl;

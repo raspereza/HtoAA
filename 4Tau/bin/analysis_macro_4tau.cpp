@@ -41,6 +41,19 @@
 
 using namespace std;
 
+float getEffectiveArea(float eta) {
+  float effArea =  0.1440;
+  float absEta = fabs(eta);
+  if (absEta<1.0) effArea = 0.1440;
+  else if (absEta < 1.4790) effArea = 0.1562;
+  else if (absEta < 2.0) effArea = 0.1032;
+  else if (absEta < 2.2) effArea = 0.0859;
+  else if (absEta < 2.3) effArea = 0.1116;
+  else if (absEta < 2.4) effArea = 0.1321;
+  else if (absEta < 5.0) effArea = 0.1654;
+  return effArea;
+} 
+
 bool passedFilters(std::map<string,int> * flags, std::vector<TString> met_filters) {
   bool passed = true; 
   for (std::map<string,int>::iterator it = flags->begin(); it != flags->end(); ++it) {
@@ -169,6 +182,37 @@ int main(int argc, char * argv[]) {
   const float btagCut = cfg.get<float>("BTagCut");
   const float bjetEta = cfg.get<float>("BJetEta");
   const float bjetPt = cfg.get<float>("BJetPt");
+  //  const bool applyHEM = cfg.get<bool>("ApplyHEM");
+
+  // ***********************************
+  // ************* HEM issue ***********
+  // ***********************************
+
+  bool applyHEM = era==2018; 
+  // bool applyHEM = false;
+  float etaMinJetHEM = -3.2;
+  float etaMaxJetHEM = -1.2;
+  float phiMinJetHEM = -1.77;
+  float phiMaxJetHEM = -0.67;
+  float ptJetHEM = 30.0;
+  float dphiHEM = 0.3;
+
+  float etaMinEleHEM = -3.0;
+  float etaMaxEleHEM = -1.4;
+  float phiMinEleHEM = -1.57;
+  float phiMaxEleHEM = -0.87;
+  float ptEleHEM = 30.0;
+
+  float dxyElectronCut = 0.05;
+  float dzElectronCut = 0.1;
+  float isoElectronCut = 0.15;
+
+  unsigned int runHEM = 319077;
+  float weightHEM = 0.65;
+
+  // ***** Prefiring **********  
+  bool applyPrefire = era==2016 || era==2017;
+  // bool applyPrefire = false;
 
   TString BTagAlgorithm(bTagAlgorithm);
   TString BTagDiscriminator1(bTagDiscriminator1);
@@ -210,6 +254,27 @@ int main(int argc, char * argv[]) {
   ULong64_t event_nr;
   unsigned int event_run;
   unsigned int event_luminosityblock;
+
+  // prefiring weight
+  float prefiringweight;
+  float prefiringweightup;
+  float prefiringweightdown;
+  float rho;
+
+  // electrons
+  unsigned int electron_count;
+  float electron_pt[100];
+  float electron_eta[100];
+  float electron_phi[100];
+  float electron_dxy[100];
+  float electron_dz[100];
+  float electron_mva_wp80_noIso_Fall17_v2[100];
+  bool electron_pass_conversion[100];
+  UChar_t electron_nmissinginnerhits[100]; 
+  float electron_superclusterEta[100];
+  float electron_r03_sumChargedHadronPt[100];
+  float electron_r03_sumNeutralHadronEt[100];
+  float electron_r03_sumPhotonEt[100];
 
   // tracks 
   UInt_t track_count;
@@ -277,8 +342,10 @@ int main(int argc, char * argv[]) {
   UInt_t genparticles_info[1000];
 
   UInt_t   pfjet_count;
-  Float_t  pfjet_e[200];   //[pfjet_count]
+  Float_t  pfjet_e[200];     //[pfjet_count]
   Float_t  pfjet_pt[200];    //[pfjet_count]
+  Float_t  pfjet_px[200];    //[pfjet_count]
+  Float_t  pfjet_py[200];    //[pfjet_count]
   Float_t  pfjet_eta[200];   //[pfjet_count]
   Float_t  pfjet_phi[200];   //[pfjet_count]
   Float_t  pfjet_neutralhadronicenergy[200];   //[pfjet_count]
@@ -445,6 +512,14 @@ int main(int argc, char * argv[]) {
   TH1D * InvMassH_trkIsoDown = new TH1D("InvMassH_trkIsoDown","",100,0.,20.);
   TH2D * InvMass2DH_trkIsoDown = new TH2D("InvMass2DH_trkIsoDown","",100,0.,20.,100,0.,20.);
 
+  // prefiring variations
+  TH1D * InvMassH_prefireUp = new TH1D("InvMassH_prefireUp","",100,0.,20.);
+  TH2D * InvMass2DH_prefireUp = new TH2D("InvMass2DH_prefireUp","",100,0.,20.,100,0.,20.);
+  
+  TH1D * InvMassH_prefireDown = new TH1D("InvMassH_prefireDown","",100,0.,20.);
+  TH2D * InvMass2DH_prefireDown = new TH2D("InvMass2DH_prefireDown","",100,0.,20.,100,0.,20.);
+  
+
   //
   
   TH1D * MetSelH = new TH1D("MetH","",400,0.,400.);
@@ -493,6 +568,11 @@ int main(int argc, char * argv[]) {
 
   TH1D * counter_mistagUncorrUp = new TH1D("counter_mistagUncorrUp","",1,0.,2.);
   TH1D * counter_mistagUncorrDown = new TH1D("counter_mistagUncorrDown","",1,0.,2.);
+
+  TH1D * counter_prefireUp = new TH1D("counter_prefireUp","",1,0.,2.);
+  TH1D * counter_prefireDown = new TH1D("counter_prefireDown","",1,0.,2.);
+
+
 
   TH1D * counter_btagH = new TH1D("counter_btagH","",1,0.,2.);
   TH1D * counter_btag_jesUpH = new TH1D("counter_btag_jesUpH","",1,0.,2.);
@@ -1061,6 +1141,11 @@ int main(int argc, char * argv[]) {
    tree_->SetBranchAddress("event_run", &event_run);
    tree_->SetBranchAddress("event_luminosityblock", &event_luminosityblock);
 
+   // Prefiring weight and rho (density of diffuse noise)
+   tree_->SetBranchAddress("rho",&rho);
+   tree_->SetBranchAddress("prefiringweight",&prefiringweight);
+   tree_->SetBranchAddress("prefiringweightup",&prefiringweightup);
+   tree_->SetBranchAddress("prefiringweightdown",&prefiringweightdown);
 
    // Primary vertex
    tree_->SetBranchAddress("primvertex_x",&primvertex_x);
@@ -1097,6 +1182,21 @@ int main(int argc, char * argv[]) {
    tree_->SetBranchAddress("muon_puIso", muon_puIso);
    tree_->SetBranchAddress("muon_isMedium", muon_isMedium);
    //   tree_->SetBranchAddress("muon_isICHEP", muon_isICHEP);
+
+   // Electrons 
+   tree_->SetBranchAddress("electron_count",&electron_count);
+   tree_->SetBranchAddress("electron_pt",electron_pt);
+   tree_->SetBranchAddress("electron_eta",electron_eta);
+   tree_->SetBranchAddress("electron_phi",electron_phi);
+   tree_->SetBranchAddress("electron_dxy",electron_dxy);
+   tree_->SetBranchAddress("electron_dz",electron_dz);
+   tree_->SetBranchAddress("electron_mva_wp80_noIso_Fall17_v2",electron_mva_wp80_noIso_Fall17_v2);
+   tree_->SetBranchAddress("electron_pass_conversion",electron_pass_conversion);
+   tree_->SetBranchAddress("electron_nmissinginnerhits",electron_nmissinginnerhits);
+   tree_->SetBranchAddress("electron_superclusterEta",electron_superclusterEta);
+   tree_->SetBranchAddress("electron_r03_sumChargedHadronPt",electron_r03_sumChargedHadronPt);
+   tree_->SetBranchAddress("electron_r03_sumNeutralHadronEt",electron_r03_sumNeutralHadronEt);
+   tree_->SetBranchAddress("electron_r03_sumPhotonEt",electron_r03_sumPhotonEt);
 
    // MET
    tree_->SetBranchAddress("pfmetcorr_ex", &metx);
@@ -1144,6 +1244,8 @@ int main(int argc, char * argv[]) {
    tree_->SetBranchAddress("pfjet_count",&pfjet_count);
    tree_->SetBranchAddress("pfjet_e",pfjet_e);
    tree_->SetBranchAddress("pfjet_pt",pfjet_pt);
+   tree_->SetBranchAddress("pfjet_px",pfjet_px);
+   tree_->SetBranchAddress("pfjet_py",pfjet_py);
    tree_->SetBranchAddress("pfjet_eta",pfjet_eta);
    tree_->SetBranchAddress("pfjet_phi",pfjet_phi);
    tree_->SetBranchAddress("pfjet_neutralhadronicenergy",pfjet_neutralhadronicenergy);
@@ -1589,8 +1691,93 @@ int main(int argc, char * argv[]) {
      // MET filters
      bool passedMETFilters = passedFilters(flags,metfilters);
      if (!passedMETFilters) {
-       std::cout << "MET filters not passed : run = " << event_run << "    event = " << event_nr << std::endl;
+       //       std::cout << "MET filters not passed : run = " << event_run << "    event = " << event_nr << std::endl;
        continue;
+     }
+
+     bool vetoEvent = false;
+     if (applyHEM) {
+       bool vetoElectron = false;
+       for (unsigned int ie=0; ie<electron_count; ++ie) {
+	 bool electronMvaId = electron_mva_wp80_noIso_Fall17_v2[ie];        
+	 if (!electronMvaId) continue;
+	 if (fabs(electron_dxy[ie]) >= dxyElectronCut) continue;
+	 if (fabs(electron_dz[ie]) >= dzElectronCut) continue;
+	 if (!electron_pass_conversion[ie]) continue;
+	 if (electron_nmissinginnerhits[ie] > 1) continue;
+	 float eA = getEffectiveArea(electron_superclusterEta[ie]);
+	 float chargedIso = electron_r03_sumChargedHadronPt[ie]; 
+	 float neutralIso = electron_r03_sumNeutralHadronEt[ie] + electron_r03_sumPhotonEt[ie]
+	   - eA*rho;
+	 if (neutralIso<0.0) neutralIso = 0;
+	 float relIso = (chargedIso+neutralIso)/electron_pt[ie];
+	 if (relIso>isoElectronCut) continue;
+	 bool vetoObj = electron_pt[ie]>ptEleHEM;
+	 vetoObj = vetoObj && electron_eta[ie]>etaMinEleHEM;
+	 vetoObj = vetoObj && electron_eta[ie]<etaMaxEleHEM;
+	 vetoObj = vetoObj && electron_phi[ie]>phiMinEleHEM;
+	 vetoObj = vetoObj && electron_phi[ie]<phiMaxEleHEM;
+	 if (vetoObj) {
+	   //	   std::cout << "HEM : Electron Pt = " << electron_pt[ie]
+	   //		     << "   Eta = " << electron_eta[ie]
+	   //		     << "   Phi = " << electron_phi[ie] << std::endl;
+	   vetoElectron = true;
+	   break;
+	 }
+       }
+
+       bool vetoJet = false; 
+       for (unsigned int jet=0; jet<pfjet_count; ++jet) {
+
+	 bool jetId = tightJetID(pfjet_e[jet],
+				 pfjet_eta[jet],
+				 pfjet_neutralhadronicenergy[jet],
+				 pfjet_neutralemenergy[jet],
+				 pfjet_muonenergy[jet],
+				 pfjet_chargedhadronicenergy[jet],
+				 pfjet_chargedemenergy[jet],
+				 pfjet_neutralmulti[jet],
+				 pfjet_chargedmulti[jet],
+				 era);
+	   
+	 if (!jetId) continue;
+	 bool vetoObj = pfjet_pt[jet]>ptJetHEM;
+	 vetoObj = vetoObj && pfjet_eta[jet]>etaMinJetHEM;
+	 vetoObj = vetoObj && pfjet_eta[jet]<etaMaxJetHEM;
+	 vetoObj = vetoObj && pfjet_phi[jet]>phiMinJetHEM;
+	 vetoObj = vetoObj && pfjet_phi[jet]<phiMaxJetHEM;
+	 float dphi = dPhiFrom2P(pfjet_px[jet],pfjet_py[jet],metx,mety);
+	 vetoObj = vetoObj && dphi<dphiHEM;
+	 if (vetoObj) {
+	   //	   std::cout << "HEM : Jet Pt = " << pfjet_pt[jet]
+	   //		     << "   Eta = " << pfjet_eta[jet]
+	   //		     << "   Phi = " << pfjet_phi[jet] << std::endl;
+	   vetoJet = true;
+	   break;
+	 }
+       }
+
+       vetoEvent = vetoJet || vetoElectron;
+       if (vetoEvent) {
+	 if (isData) {
+	   //	   std::cout << "HEM : event is rejected -> run = " << event_run << std::endl;
+	   //	   std::cout << std::endl;
+	   if (event_run>=runHEM) continue;
+	 }  
+	 else {
+	   weight *= weightHEM;
+	 }
+       }
+       
+     }
+
+     if (applyPrefire) {
+       if (!isData) {
+	 weight *= prefiringweight;
+	 //	 std::cout << "prefiring : " << prefiringweight
+	 //		   << "  + " << prefiringweightup
+	 //		   << "  - " << prefiringweightdown << std::endl;
+       }
      }
 
      puWeightH->Fill(puweight,1.0);
@@ -2817,6 +3004,14 @@ int main(int argc, char * argv[]) {
      // signal region
      // *************
      if (signalRegion) {
+
+       if (vetoEvent) {
+	 std::cout << "Event is rejected by HEM " << std::endl; 
+       }
+       else {
+	 std::cout << "Event is selected... " << std::endl;
+       }
+
        counter_FinalEventsH->Fill(1.,weight);
 
        counter_btagCorrUp->Fill(1.,weight*weight_btag_corr_up);
@@ -2828,6 +3023,16 @@ int main(int argc, char * argv[]) {
        counter_btagUncorrDown->Fill(1.,weight*weight_btag_uncorr_down);
        counter_mistagUncorrUp->Fill(1.,weight*weight_mistag_uncorr_up);
        counter_mistagUncorrDown->Fill(1.,weight*weight_mistag_uncorr_down);
+
+       float prefireUp = 1.0;
+       float prefireDown = 1.0;
+       if (prefiringweight>0.01) {
+	 prefireUp = prefiringweightup/prefiringweight;
+	 prefireDown = prefiringweightdown/prefiringweight;
+       }
+
+       counter_prefireUp->Fill(1.,weight*prefireUp);
+       counter_prefireDown->Fill(1.,weight*prefireDown);
 
        int iTrkLeading = trkSigLeadingMu[0];
        TLorentzVector TrackLeading4; TrackLeading4.SetXYZM(track_px[iTrkLeading],

@@ -3005,12 +3005,12 @@ int main(int argc, char * argv[]) {
      // *************
      if (signalRegion) {
 
-       if (vetoEvent) {
-	 std::cout << "Event is rejected by HEM " << std::endl; 
-       }
-       else {
-	 std::cout << "Event is selected... " << std::endl;
-       }
+       //       if (vetoEvent) {
+       //	 std::cout << "Event is rejected by HEM " << std::endl; 
+       //       }
+       //       else {
+       //	 std::cout << "Event is selected... " << std::endl;
+       //       }
 
        counter_FinalEventsH->Fill(1.,weight);
 

@@ -2,21 +2,30 @@ imax 1   number of channels
 jmax *   number of backgrounds
 kmax *   number of nuisance parameters
 -----------------
-observation 4685
+observation 3475
 -----------------
 shapes * * haa_2018-13TeV_ma15.root  $PROCESS    $PROCESS_$SYSTEMATIC 
 -----------------
 bin        haa_2018    haa_2018    haa_2018    haa_2018    haa_2018    haa_2018
 process                mmtt      tth       vh      vbf      ggh    bkgd
 process                  -4       -3       -2       -1        0       1
-rate     17.4106  3.40348  4.60384  10.2627  43.5934  4685
+rate     15.3242  1.30457  10.4189  14.7764  70.8519  3475
 -----------------------------
-CMS_lumi                    lnN   1.015  1.015   1.015   1.015   1.015      -
-CMS_lumi_2018               lnN   1.015  1.015   1.015   1.015   1.015      -
-CMS_eff_m_2018              lnN   1.03    1.03    1.03    1.03    1.03      -
-CMS_trkiso_2018             lnN   1.12    1.12    1.12    1.12    1.12      -
-CMS_unc1d_2018            shape      -      -       -       -       -    1.00
-CMS_uncCorr_2018          shape      -      -       -       -       -    1.00
+CMS_lumi_2018               lnN   1.025  1.025   1.025   1.025   1.025      -
+CMS_lumi_corr                  lnN   1.02  1.02  1.02  1.02  1.02     -
+CMS_lumi_1718_corr             lnN   1.002  1.002  1.002  1.002  1.002     -
+CMS_eff_m                      lnN   1.03   1.03    1.03    1.03    1.03      -
+CMS_trkiso_2018           shape   1.00   1.00    1.00    1.00    1.00      -
+CMS_unc1d_2018              shape      -      -       -       -       -    1.00
+CMS_uncCorr                    shape      -      -       -       -       -    1.00
+CMS_btag_2018               shape   1.00    1.00    1.00     1.00   1.00       -
+CMS_mistag_2018             shape   1.00    1.00    1.00     1.00   1.00       -
+CMS_jes_2018                lnN  0.999/1.001 0.991/1.011 0.999/1.002 0.999/1.001 0.999/1.001     -
+CMS_btag_corr                  lnN    1 0.982 1 1 1   -
+CMS_btag_uncorr_2018        lnN    1 0.985 1 1 1   -
+CMS_mistag_corr                lnN    0.999 0.998 0.999 0.999 0.999   -
+CMS_mistag_uncorr_2018      lnN    1 0.999 0.999 0.999 0.999   -
+CMS_prefire_2018            lnN     0.998 0.999 0.998 0.999 0.999   -
 QCDScale_ggH                lnN   1.046/0.933   -       -       -  1.046/0.933  -
 QCDScale_vbf                lnN      -          -       -  1.004/0.997  -       -
 QCDScale_vh                 lnN      -          - 1.018/0.983   -       -       -
@@ -30,6 +39,6 @@ acc_ggh_mmtt                lnN   1.030      -       -       -    1.025       -
 acc_vbf                     lnN      -       -       -    1.02       -        -
 acc_vh                      lnN      -       -    1.021      -       -        -
 acc_tth                     lnN      -     1.02       -      -       -        -
-bkgNorm_2018 rateParam  haa_2018  bkgd  1  [0.5,1.5]
-* autoMCStats 0
+bkgNorm_2018   rateParam  haa_2018  bkgd  1  [0.5,1.5]
+* autoMCStats 25 1
 

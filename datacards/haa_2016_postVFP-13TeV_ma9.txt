@@ -1,0 +1,44 @@
+imax 1   number of channels
+jmax *   number of backgrounds
+kmax *   number of nuisance parameters
+-----------------
+observation 996
+-----------------
+shapes * * haa_2016_postVFP-13TeV_ma9.root  $PROCESS    $PROCESS_$SYSTEMATIC 
+-----------------
+bin        haa_2016_postVFP    haa_2016_postVFP    haa_2016_postVFP    haa_2016_postVFP    haa_2016_postVFP    haa_2016_postVFP
+process                mmtt      tth       vh      vbf      ggh    bkgd
+process                  -4       -3       -2       -1        0       1
+rate     48.5919  0.313918  7.42738  14.0438  182.965  996
+-----------------------------
+CMS_lumi_2016_postVFP               lnN   1.01  1.01   1.01   1.01   1.01      -
+CMS_lumi_corr                  lnN   1.006  1.006  1.006  1.006  1.006     -
+CMS_lumi_1718_corr             lnN   -  -  -  -  -     -
+CMS_eff_m                      lnN   1.03   1.03    1.03    1.03    1.03      -
+CMS_trkiso_2016_postVFP           shape   1.00   1.00    1.00    1.00    1.00      -
+CMS_unc1d_2016_postVFP              shape      -      -       -       -       -    1.00
+CMS_uncCorr                    shape      -      -       -       -       -    1.00
+CMS_btag_2016_postVFP               shape   1.00    1.00    1.00     1.00   1.00       -
+CMS_mistag_2016_postVFP             shape   1.00    1.00    1.00     1.00   1.00       -
+CMS_jes_2016_postVFP                lnN  0.999/1.001 0.995/1.005 0.999/1.001 0.999/1.001 0.999/1.001     -
+CMS_btag_corr                  lnN    1 0.985 0.999 1 1   -
+CMS_btag_uncorr_2016_postVFP        lnN    1 0.978 0.999 1 1   -
+CMS_mistag_corr                lnN    0.999 0.999 0.999 0.999 0.999   -
+CMS_mistag_uncorr_2016_postVFP      lnN    1 0.999 1 1 1   -
+CMS_prefire_2016_postVFP            lnN     0.993 0.997 0.988 0.99 0.995   -
+QCDScale_ggH                lnN   1.046/0.933   -       -       -  1.046/0.933  -
+QCDScale_vbf                lnN      -          -       -  1.004/0.997  -       -
+QCDScale_vh                 lnN      -          - 1.018/0.983   -       -       -
+QCDScale_ttH                lnN      -    1.058/0.908   -    -       -       -
+PDF_ggh                     lnN   1.032      -       -       -    1.032      -
+PDF_vbf                     lnN      -       -       -    1.021      -       -
+PDF_vh                      lnN      -       -    1.018      -       -       -
+PDF_tth                     lnN      -    1.036      -       -       -       -
+acc_ggh                     lnN      -       -       -       -    1.025       -
+acc_ggh_mmtt                lnN   1.030      -       -       -    1.025       -
+acc_vbf                     lnN      -       -       -    1.02       -        -
+acc_vh                      lnN      -       -    1.021      -       -        -
+acc_tth                     lnN      -     1.02       -      -       -        -
+bkgNorm_2016_postVFP   rateParam  haa_2016_postVFP  bkgd  1  [0.5,1.5]
+* autoMCStats 25 1
+

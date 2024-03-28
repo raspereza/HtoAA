@@ -1,0 +1,44 @@
+imax 1   number of channels
+jmax *   number of backgrounds
+kmax *   number of nuisance parameters
+-----------------
+observation 2206
+-----------------
+shapes * * haa_2017-13TeV_ma6.root  $PROCESS    $PROCESS_$SYSTEMATIC 
+-----------------
+bin        haa_2017    haa_2017    haa_2017    haa_2017    haa_2017    haa_2017
+process                mmtt      tth       vh      vbf      ggh    bkgd
+process                  -4       -3       -2       -1        0       1
+rate     178.241  1.10152  22.7737  46.769  557.676  2206
+-----------------------------
+CMS_lumi_2017               lnN   1.02  1.02   1.02   1.02   1.02      -
+CMS_lumi_corr                  lnN   1.009  1.009  1.009  1.009  1.009     -
+CMS_lumi_1718_corr             lnN   1.006  1.006  1.006  1.006  1.006     -
+CMS_eff_m                      lnN   1.03   1.03    1.03    1.03    1.03      -
+CMS_trkiso_2017           shape   1.00   1.00    1.00    1.00    1.00      -
+CMS_unc1d_2017              shape      -      -       -       -       -    1.00
+CMS_uncCorr                    shape      -      -       -       -       -    1.00
+CMS_btag_2017               shape   1.00    1.00    1.00     1.00   1.00       -
+CMS_mistag_2017             shape   1.00    1.00    1.00     1.00   1.00       -
+CMS_jes_2017                lnN  0.999/1.001 0.992/1.005 0.999/1.001 0.999/1.001 0.999/1.001     -
+CMS_btag_corr                  lnN    1 0.975 1 1 0.999   -
+CMS_btag_uncorr_2017        lnN    1 0.969 1 1 1   -
+CMS_mistag_corr                lnN    0.999 0.999 0.999 0.999 0.999   -
+CMS_mistag_uncorr_2017      lnN    1 0.999 0.999 1 1   -
+CMS_prefire_2017            lnN     0.997 0.999 0.998 0.992 0.998   -
+QCDScale_ggH                lnN   1.046/0.933   -       -       -  1.046/0.933  -
+QCDScale_vbf                lnN      -          -       -  1.004/0.997  -       -
+QCDScale_vh                 lnN      -          - 1.018/0.983   -       -       -
+QCDScale_ttH                lnN      -    1.058/0.908   -    -       -       -
+PDF_ggh                     lnN   1.032      -       -       -    1.032      -
+PDF_vbf                     lnN      -       -       -    1.021      -       -
+PDF_vh                      lnN      -       -    1.018      -       -       -
+PDF_tth                     lnN      -    1.036      -       -       -       -
+acc_ggh                     lnN      -       -       -       -    1.025       -
+acc_ggh_mmtt                lnN   1.030      -       -       -    1.025       -
+acc_vbf                     lnN      -       -       -    1.02       -        -
+acc_vh                      lnN      -       -    1.021      -       -        -
+acc_tth                     lnN      -     1.02       -      -       -        -
+bkgNorm_2017   rateParam  haa_2017  bkgd  1  [0.5,1.5]
+* autoMCStats 25 1
+

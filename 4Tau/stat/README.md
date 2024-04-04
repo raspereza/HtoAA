@@ -8,13 +8,12 @@ cd /nfs/dust/cms/user/username/HtoAA
 cp $CMSSW_BASE/src/HtoAA/4Tau/stat/* ./
 ```
 
-Make sure that the outputs of [analysis_macro_4tau.cpp](https://github.com/raspereza/HtoAA/blob/main/4Tau/bin/analysis_macro_4tau.cpp) macro are located in separate subfolders
-under the same base directory
+Make sure that the outputs of [analysis_macro_4tau.cpp](https://github.com/raspereza/HtoAA/blob/main/4Tau/bin/analysis_macro_4tau.cpp) macro are located in separate subfolders under the same base directory
 ```
 $base_directory/$year
 ```
 
-where `$year = {2016_postVFP, 2016_postVFP, 2017, 2018}`.
+where `$year = {2016_preVFP, 2016_postVFP, 2017, 2018}`.
 
 The script [CreateCards.C](https://github.com/raspereza/HtoAA/blob/main/4Tau/stat/CreateAllCards.C) will look for inputs in these folders. Specify correct name of the [base directory](https://github.com/raspereza/HtoAA/blob/main/4Tau/stat/CreateCards.C#L314) in the the script [CreateCards.C](https://github.com/raspereza/HtoAA/blob/main/4Tau/stat/CreateCards.C).
 
@@ -38,7 +37,7 @@ Input parameters are
 * `(bool) MassUncertPerEra` : if true, uncertainies in C(i,j) and f1D(i,j) are decorrelated across data taking periods, otherwise uncertainties are correlated across data taking periods. Recommended option is `true`.
 * `(bool) MassUncertPerBins` : if true, uncertainties in f1D(i,j) are decorrelated across bins, e.i. variation of f1D in a given bin is control by separate nuisance parameter. If false, variations in different bins are floated in fits in a correlated via a common nuisance parameter. Recommended option is `true`. 
 
-## Combination of datacards and creation of workspaces.
+## Combination of datacards and creation of workspaces
 
 Datacards of different data taking periods are combined by executing script [CombineCards.bash](https://github.com/raspereza/HtoAA/blob/main/4Tau/stat/CombineCards.bash). Additionally this script creates workspaces which are used as inputs to combine utility. It may take a while. Be patient. At the end you will have one workspace per data taking period and mass point. They are named `haa_${year}-13TeV_ma${mass}.root` for individual data taking periods and `haa_Run2_ma${mass}.txt` for Run 2 combination.
 
@@ -78,9 +77,9 @@ First, observed value of test-statistics (saturated likelihood), is computed and
 ################################################################
 #    definition of parameters to steer running of GoF tests    #
 ################################################################
-sample=$1        # options : 2016_postVFP-13TeV 2016_preVFP-13TeV 2017-13TeV 2018-13TeV Run2
+sample=$1        # options : 2016 2017 2018 Run2
 ma=$2            # mass hypothesis
-algo=saturated   # test-statistics, options saturated, KS, AD 
+algo=saturated   # test-statistics, options : saturated, KS, AD 
 njobs=25         # number of jobs 
 ntoys=40         # number of toys per job
 
@@ -96,7 +95,7 @@ int bins = 50 // number of bins in the histogram of toys
 ) {
 ```
 
-where the first parameter is the folder where results of GoF test are stored.
+where the first argument is the folder where results of GoF test are stored.
 
 ## Running fit and plotting prefit and postfit distributions
 
@@ -117,9 +116,9 @@ bool logY = true // use log scale for Y axis
 ) 
 ```
 
-## Running impacts and pull
+## Running impacts and pulls
 
-Pulls and impacts of nuisance parameters on the signal are computed with the script 
+Pulls and impacts of nuisance parameters are computed with the script 
 [RunImpacts.bash](https://github.com/raspereza/HtoAA/blob/main/4Tau/stat/RunImpacts.bash), which requires two input parameters: data taking period (or `Run2`) and mass point, for exampl
 ```
 ./RunImpacts.bash Run2 10

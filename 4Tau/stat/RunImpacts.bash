@@ -1,7 +1,7 @@
 #!/bin/bash
 # $1 - channel
 ulimit -s unlimited
-folder=/nfs/dust/cms/user/rasp/Run/HtoAA/stat
+folder=$PWD
 
 OUTDIR=impacts_${1}_${2}
 if [ ! -d "$OUTDIR" ]; then

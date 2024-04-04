@@ -22,7 +22,7 @@ if [ $npar -ne 2 ]; then
 fi
 
 
-folder=/nfs/dust/cms/user/rasp/Run/HtoAA/stat/
+folder=$PWD
 outdir=${folder}/GoF_${sample}_${ma} # output folder
 
 if [ ! -d "$outdir" ]; then

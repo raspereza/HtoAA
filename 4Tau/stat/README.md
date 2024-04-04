@@ -5,7 +5,7 @@ It is suggested to run statistical code in the separate folder.
 ```
 mkdir /nfs/dust/cms/user/username/HtoAA
 cd /nfs/dust/cms/user/username/HtoAA
-cp /nfs/dust/cms/user/rasp/CMSSW/CMSSW_10_2_25/src/HtoAA/4Tau/stat/* ./
+cp $CMSSW_BASE/src/HtoAA/4Tau/stat/* ./
 ```
 
 Make sure that the outputs of [analysis_macro_4tau.cpp](https://github.com/raspereza/HtoAA/blob/main/4Tau/bin/analysis_macro_4tau.cpp) macro are located in separate subfolders

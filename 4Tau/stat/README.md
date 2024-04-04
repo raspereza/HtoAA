@@ -10,10 +10,10 @@ cp $CMSSW_BASE/src/HtoAA/4Tau/stat/* ./
 
 Make sure that the outputs of [analysis_macro_4tau.cpp](https://github.com/raspereza/HtoAA/blob/main/4Tau/bin/analysis_macro_4tau.cpp) macro are located in separate subfolders under the same base directory
 ```
-$base_directory/$year
+${base_directory}/${year}
 ```
 
-where `$year = {2016_preVFP, 2016_postVFP, 2017, 2018}`.
+where `${year} = {2016_preVFP, 2016_postVFP, 2017, 2018}`.
 
 The script [CreateCards.C](https://github.com/raspereza/HtoAA/blob/main/4Tau/stat/CreateAllCards.C) will look for inputs in these folders. Specify correct name of the [base directory](https://github.com/raspereza/HtoAA/blob/main/4Tau/stat/CreateCards.C#L314) in the the script [CreateCards.C](https://github.com/raspereza/HtoAA/blob/main/4Tau/stat/CreateCards.C).
 
@@ -32,18 +32,18 @@ bool MassUncertPerBins = true // decorrelate unc. in 1D mass pdfs across bins
 
 Input parameters are 
 
-* `Azimov (bool)` : if true is specified background-only Asimov dataset is created, otherwise real data are used. 
-* `correlation (bool)` : if true is specified, background model is built with mass correlation coefficients according to formula `b(i,j)=C(i,j)f1D(i)f1D(j)`, otherwise possible correlations are ignored `b(i,j)=f1D(i)f1D(j)`. 
-* `(bool) MassUncertPerEra` : if true, uncertainies in C(i,j) and f1D(i,j) are decorrelated across data taking periods, otherwise uncertainties are correlated across data taking periods. Recommended option is `true`.
-* `(bool) MassUncertPerBins` : if true, uncertainties in f1D(i,j) are decorrelated across bins, e.i. variation of f1D in a given bin is control by separate nuisance parameter. If false, variations in different bins are floated in fits in a correlated via a common nuisance parameter. Recommended option is `true`. 
+* `Azimov (bool)` : if true, background-only Asimov dataset is created, otherwise real data are used. 
+* `correlation (bool)` : if true, background model is built with mass correlation coefficients according to the formula `b(i,j)=C(i,j)f1D(i)f1D(j)`, otherwise possible correlations are ignored `b(i,j)=f1D(i)f1D(j)`. 
+* `(bool) MassUncertPerEra` : if true, uncertainies in C(i,j) and f1D(i) are decorrelated across data taking periods, otherwise uncertainties are correlated across data taking periods. Recommended option is `true`.
+* `(bool) MassUncertPerBins` : if true, uncertainties in f1D(i) are decorrelated across bins, e.i. variation of f1D in a given bin is controlled by a separate nuisance parameter. If false, variations in different bins are floated in fits in a correlated way and controlled by common nuisance parameter. Recommended option is `true`. 
 
 ## Combination of datacards and creation of workspaces
 
-Datacards of different data taking periods are combined by executing script [CombineCards.bash](https://github.com/raspereza/HtoAA/blob/main/4Tau/stat/CombineCards.bash). Additionally this script creates workspaces which are used as inputs to combine utility. It may take a while. Be patient. At the end you will have one workspace per data taking period and mass point. They are named `haa_${year}-13TeV_ma${mass}.root` for individual data taking periods and `haa_Run2_ma${mass}.txt` for Run 2 combination.
+Datacards of different data taking periods are combined by executing script [CombineCards.bash](https://github.com/raspereza/HtoAA/blob/main/4Tau/stat/CombineCards.bash). Additionally, this script creates workspaces which are used as inputs to the `combine` utility of the [Higgs combination package](http://cms-analysis.github.io/HiggsAnalysis-CombinedLimit). Creation of workspaces may take a while. Be patient. At the end you will have one workspace per data taking period and mass point. They are named `haa_${year}_ma${mass}.root` for individual data taking periods and `haa_Run2_ma${mass}.root` for Run 2 combination.
 
 ## Running and plotting limits
 
-Limits are run with script [RunLimits.bash](https://github.com/raspereza/HtoAA/blob/main/4Tau/stat/RunLimits.bash). It takes as an argument data taking period or `Run2` for combination, e.g.
+Limits are run with the script [RunLimits.bash](https://github.com/raspereza/HtoAA/blob/main/4Tau/stat/RunLimits.bash). It takes as an argument data taking period (or `Run2` for combination), e.g.
 ```
 ./RunLimits.bash 2018
 ```
@@ -53,11 +53,8 @@ or
 ./RunLimits.bash Run2
 ```
 
-The script produces per mass point RooT files with observed and expected 95% CL upper limits, as well as 68% and 95% CL intervals around expected limits. The filelist of root files is created and named limits_Run2.txt or limits_Run2.txt. Depending on the argument you passed to the [RunLimits.bash](https://github.com/raspereza/HtoAA/blob/main/4Tau/stat/RunLimits.bash) script. This list is then used by macro [PlotLimits.C](https://github.com/raspereza/HtoAA/blob/main/4Tau/stat/PlotLimits.C) 
+The script produces RooT files (one RooT file per mass point) with observed and expected 95% CL upper limits, as well as 68% and 95% CL intervals around expected limits. The filelist of RooT files is created and named `limits_Run2.txt` or `limits_${year}.txt`, depending on the argument you passed to the [RunLimits.bash](https://github.com/raspereza/HtoAA/blob/main/4Tau/stat/RunLimits.bash) script. This filelist is then used by macro [PlotLimits.C](https://github.com/raspereza/HtoAA/blob/main/4Tau/stat/PlotLimits.C) 
 ```
-#include "HttStylesNew.cc"
-#include "CMS_lumi.C"
-
 void PlotLimits(
 char* fileList = "limits_Run2.txt",
 bool blindData = false) {
@@ -70,8 +67,7 @@ Goodness-of-fit test is performed by executing macro [RunGoF.bash](https://githu
 ./RunGoF.bash Run2 10
 ```
 
-The script will create folder `GoF_Run2_10` and put all output there.
-First, observed value of test-statistics (saturated likelihood), is computed and stored in the RooT file. Second, jobs generating toys of test-statistics, are submitted to condor. One can configure the number of jobs and number of toys per job by editing the [RunGoF.bash](https://github.com/raspereza/HtoAA/blob/main/4Tau/stat/RunGoF.bash) script:
+The script will create folder `GoF_Run2_10` and put all output files there. First, observed value of the test-statistics (saturated likelihood), is computed and stored in the RooT file. Second, jobs to generate toys of test-statistics are submitted to condor. One can configure the number of jobs and number of toys per job by editing the script [RunGoF.bash](https://github.com/raspereza/HtoAA/blob/main/4Tau/stat/RunGoF.bash):
 ```
 #!/bin/bash
 ################################################################
@@ -85,7 +81,12 @@ ntoys=40         # number of toys per job
 
 ``` 
 
-Wait until jobs are finished and collect results with script [Hadd_GoF.bash](https://github.com/raspereza/HtoAA/blob/main/4Tau/stat/Hadd_GoF.bash). Afterwards you can plot results of GoF test and compute p-value, quantifying consistency of your data with the model. Usually, in the search for low yield signal, p-value of GoF test is driven by the quality of background modeling, and one expect comparable values of GoF test for different mass hypothesis. The plotting of GoF test is done with RooT macro [Compatibility.C](https://github.com/raspereza/HtoAA/blob/main/4Tau/stat/Compatibility.C)
+Wait until jobs are finished and collect the results with script [Hadd_GoF.bash](https://github.com/raspereza/HtoAA/blob/main/4Tau/stat/Hadd_GoF.bash). You have to pass as arguments year (or `Run2`) and mass point, for instance
+```
+./Hadd_GoF.bash Run2 10   
+```
+
+Afterwards you can plot results of GoF test and compute p-value, quantifying consistency of your data with the model. Usually, in the search for low yield signal, p-value of GoF test is driven by the quality of background modeling, and one expect comparable values of GoF test for different mass hypothesis. The plotting of GoF test is done with RooT macro [Compatibility.C](https://github.com/raspereza/HtoAA/blob/main/4Tau/stat/Compatibility.C)
 ```
 void Compatibility(
 TString folder = "GoF_2018_8", // folder with RooT files (output of GoF test)
@@ -99,12 +100,12 @@ where the first argument is the folder where results of GoF test are stored.
 
 ## Running fit and plotting prefit and postfit distributions
 
-The maximum-likelihood fit is done by executing the script [RunFit_Data.bash](https://github.com/raspereza/HtoAA/blob/main/4Tau/stat/RunFit_Data.bash) with two input arguments: data taking period (or `Run2`) and mass point, for example
+The maximum-likelihood fit is done by executing the script [RunFit_Data.bash](https://github.com/raspereza/HtoAA/blob/main/4Tau/stat/RunFit_Data.bash) with two input arguments: data taking period (or `Run2`) and mass point:
 ```
 ./RunFit_Data.bash Run2 10
 ```
 
-The script will produce RooT file fitDiagnosticsTest.root containing results of the fit as well as prefit shapes of the background and signal model, postfit shape of the background model after background-only fit ignoring signal, and postfit shapes of background and given signal model after background+signal fit. This RooT file is used as an input to the RooT macro [PlotMass2D.C](https://github.com/raspereza/HtoAA/blob/main/4Tau/stat/PlotMass2D.C) which plots prefit and postfit unrolled (m1,m2) distribution:
+The script will produce RooT file fitDiagnosticsTest.root containing results of the fit as well as prefit shapes of the background and signal model, postfit shape of the background model after background-only fit ignoring signal, and postfit shapes of background and given signal model after background+signal fit. This RooT file is used as an input to the macro [PlotMass2D.C](https://github.com/raspereza/HtoAA/blob/main/4Tau/stat/PlotMass2D.C) which plots prefit and postfit unrolled (m1,m2) distribution:
 
 ```
 void PlotMass2D(

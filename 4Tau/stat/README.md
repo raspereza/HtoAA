@@ -1,7 +1,7 @@
 # Statistical inference in the HtoAA analysis
 
 ## Before running the code
-It is suggested to run statistical code in the separate folder.
+It is suggested to run statistical code in a separate folder.
 ```
 mkdir /nfs/dust/cms/user/username/HtoAA
 cd /nfs/dust/cms/user/username/HtoAA
@@ -15,11 +15,11 @@ ${base_directory}/${year}
 
 where `${year} = {2016_preVFP, 2016_postVFP, 2017, 2018}`.
 
-The script [CreateCards.C](https://github.com/raspereza/HtoAA/blob/main/4Tau/stat/CreateAllCards.C) will look for inputs in these folders. Specify correct name of the [base directory](https://github.com/raspereza/HtoAA/blob/main/4Tau/stat/CreateCards.C#L314) in the the script [CreateCards.C](https://github.com/raspereza/HtoAA/blob/main/4Tau/stat/CreateCards.C).
+The script [CreateCards.C](https://github.com/raspereza/HtoAA/blob/main/4Tau/stat/CreateAllCards.C) will look for inputs in these folders. In this script specify correct name of the [base directory](https://github.com/raspereza/HtoAA/blob/main/4Tau/stat/CreateCards.C#L314).
 
-## Creating datacards 
+## Creating datacards and workspaces
 
-Datacards are created with RooT macro [CreateAllCards.C](https://github.com/raspereza/HtoAA/blob/main/4Tau/stat/CreateAllCards.C) which takes four input arguments
+Datacards are created with RooT macro [CreateAllCards.C](https://github.com/raspereza/HtoAA/blob/main/4Tau/stat/CreateAllCards.C) which takes four input arguments.
 ```
 #include "CreateCards.C"
 void CreateAllCards(
@@ -30,14 +30,11 @@ bool MassUncertPerBins = true // decorrelate unc. in 1D mass pdfs across bins
 ) {
 ```
 
-Input parameters are 
-
+Input parameters are: 
 * `Azimov (bool)` : if true, background-only Asimov dataset is created, otherwise real data are used. 
 * `correlation (bool)` : if true, background model is built with mass correlation coefficients according to the formula `b(i,j)=C(i,j)f1D(i)f1D(j)`, otherwise possible correlations are ignored `b(i,j)=f1D(i)f1D(j)`. 
 * `(bool) MassUncertPerEra` : if true, uncertainies in C(i,j) and f1D(i) are decorrelated across data taking periods, otherwise uncertainties are correlated across data taking periods. Recommended option is `true`.
 * `(bool) MassUncertPerBins` : if true, uncertainties in f1D(i) are decorrelated across bins, e.i. variation of f1D in a given bin is controlled by a separate nuisance parameter. If false, variations in different bins are floated in fits in a correlated way and controlled by common nuisance parameter. Recommended option is `true`. 
-
-## Combination of datacards and creation of workspaces
 
 Datacards of different data taking periods are combined by executing script [CombineCards.bash](https://github.com/raspereza/HtoAA/blob/main/4Tau/stat/CombineCards.bash). Additionally, this script creates workspaces which are used as inputs to the `combine` utility of the [Higgs combination package](http://cms-analysis.github.io/HiggsAnalysis-CombinedLimit). Creation of workspaces may take a while. Be patient. At the end you will have one workspace per data taking period and mass point. They are named `haa_${year}_ma${mass}.root` for individual data taking periods and `haa_Run2_ma${mass}.root` for Run 2 combination.
 

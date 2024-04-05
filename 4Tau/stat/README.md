@@ -102,7 +102,7 @@ The maximum-likelihood fit is done by executing the script [RunFit_Data.bash](ht
 ./RunFit_Data.bash Run2 10
 ```
 
-The script will produce RooT file fitDiagnosticsTest.root containing results of the fit as well as prefit shapes of the background and signal model, postfit shape of the background model after background-only fit ignoring signal, and postfit shapes of background and given signal model after background+signal fit. This RooT file is used as an input to the macro [PlotMass2D.C](https://github.com/raspereza/HtoAA/blob/main/4Tau/stat/PlotMass2D.C) which plots prefit and postfit unrolled (m1,m2) distribution:
+The script will produce RooT file fitDiagnosticsTest.root containing results of the fit, as well as prefit shapes of the background and signal models, postfit shape of the background model after background-only fit, and postfit shapes of background and signal models after background+signal fit. This RooT file is used as an input to the macro [PlotMass2D.C](https://github.com/raspereza/HtoAA/blob/main/4Tau/stat/PlotMass2D.C) which plots prefit and postfit unrolled (m1,m2) distribution:
 
 ```
 void PlotMass2D(
@@ -117,27 +117,16 @@ bool logY = true // use log scale for Y axis
 ## Running impacts and pulls
 
 Pulls and impacts of nuisance parameters are computed with the script 
-[RunImpacts.bash](https://github.com/raspereza/HtoAA/blob/main/4Tau/stat/RunImpacts.bash), which requires two input parameters: data taking period (or `Run2`) and mass point, for exampl
+[RunImpacts.bash](https://github.com/raspereza/HtoAA/blob/main/4Tau/stat/RunImpacts.bash), which requires two input parameters: data taking period (or `Run2`) and mass point, for example:
 ```
 ./RunImpacts.bash Run2 10
 ```
 
-or
-```
-./RunImpacts.bash 2017 4
-```
-
-The routine performs initial fit of data and computes signal strength and its uncertainty and then for each nuisance parameter likelihood scan is performed. The task is parallelized by submitting jobs to condor, with each job processing two nuisances. The output is stored in the folder `impacts_${era}_${mass}`. Once jobs are finished, you can create pdf file with plot showing pulls and impacts of nuisance parameters with the script [PlotImpacts.bash](https://github.com/raspereza/HtoAA/blob/main/4Tau/stat/PlotImpacts.bash). And you have to specify data taking period (or `Run2`) and mass point for which you ran impacts. With examples above one should execute
+The routine performs initial fit of data and computes signal strength and its uncertainty, and then for each nuisance parameter likelihood scan is performed. The task is parallelized by submitting jobs to condor, with each job processing two nuisances. The output is stored in the folder `impacts_${era}_${mass}`. Once jobs are finished, you can create pdf file with the script [PlotImpacts.bash](https://github.com/raspereza/HtoAA/blob/main/4Tau/stat/PlotImpacts.bash). You have to specify data taking period (or `Run2`) and mass point for which you ran impacts:
 ```
 ./PlotImpacts.bash Run2 10
 ```
-
-or
-```
-./RunImpacts.bash 2017 4
-```
-
-The pdf file with impact plot `impacts_${era}_${mass}.pdf` will appear in folder the `impacts_${era}_${mass}`.    
+The pdf file `impacts_Run2_10.pdf` will appear in the folder `impacts_Run2_10`.
 
 ## Useful links
 

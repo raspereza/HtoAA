@@ -23,6 +23,7 @@
 #include "TString.h"
 #include "HtoAA/Utilities/interface/Config.h"
 #include "HtoAA/Utilities/src/Config.cc"
+#include "HtoAA/Utilities/interface/RoccoR.h"
 #include "TRandom.h"
 #include "TRandom3.h"
 #include "HtoAA/Utilities/interface/json.h"
@@ -245,7 +246,10 @@ int main(int argc, char * argv[]) {
   const string correctionsWorkspaceFileName = cfg.get<string>("CorrectionWorkspaceFileName");
   TString CorrectionsWorkspaceFileName(correctionsWorkspaceFileName);
 
+  const string roccorFileName = cfg.get<string>("RochesterCorrections");
+
   // ********** end of configuration *******************
+  string cmsswBase = (getenv ("CMSSW_BASE"));
 
   std::ifstream fileList(argv[2]);
   std::ifstream fileListX(argv[2]);
@@ -843,7 +847,6 @@ int main(int argc, char * argv[]) {
   tuple->Branch("metfilters",&t_metfilters,"metfilters/O");
   tuple->Branch("badmufilter",&t_badmufilter,"badmufilter/O");
 
-  string cmsswBase = (getenv ("CMSSW_BASE"));
 
   // Run-lumi selector
   string fullPathToJsonFile = cmsswBase + "/src/HtoAA/data/json/" + jsonFile;
@@ -1035,6 +1038,21 @@ int main(int argc, char * argv[]) {
   SF_muon17->init_ScaleFactor(TString(cmsswBase)+"/src/HtoAA/data/"+TString(Muon17TriggerFile));
   ScaleFactor * SF_muon8 = new ScaleFactor();
   SF_muon8->init_ScaleFactor(TString(cmsswBase)+"/src/HtoAA/data/"+TString(Muon8TriggerFile));
+
+  // Rochester corrections
+  std::string RochesterFileName = cmsswBase+"/src/HtoAA/data/Roccor/"+roccorFileName;
+  RoccoR rc; 
+  TString RoccorFileName = TString(roccorFileName);
+  std::cout << std::endl;
+  bool applyRoccoR = false;
+  if (RoccorFileName=="None"||RoccorFileName=="none") {
+    std::cout << "No Rochester corrections are applied" << std::endl;
+  }
+  else {
+    applyRoccoR = true;
+    std::cout << "Rochester corrections : " << RoccorFileName << std::endl;
+    rc = RoccoR(RochesterFileName);
+  }
 
   // isolation efficiency for era 2017
   TH1D * Mu17Iso_data = NULL;
@@ -1314,6 +1332,7 @@ int main(int argc, char * argv[]) {
      //     std::vector<unsigned int> allPions; allPions.clear();
      std::vector<unsigned int> genMuons; genMuons.clear();
      std::vector<unsigned int> genPions; genPions.clear();
+     std::vector<unsigned int> gen_muons; gen_muons.clear(); // for Rochester corrections 
 
      vgen_x = 0;
      vgen_y = 0;
@@ -1357,7 +1376,10 @@ int main(int argc, char * argv[]) {
        // std::cout << std::endl;
 
        for (unsigned int iP=0; iP<genparticles_count; ++iP) {
-	 //	 if (genparticles_status[iP]==1&&genparticles_info[iP]==12) {
+	 if (genparticles_status[iP]==1&&
+	     (genparticles_pdgid[iP]==13||genparticles_pdgid[iP]==-13)) {
+	   gen_muons.push_back(iP);
+	 }
 	 if (genparticles_status[iP]==1&&(genparticles_info[iP]==12||genparticles_info[iP]==1)) {
 	   if (genparticles_pdgid[iP]==13||genparticles_pdgid[iP]==-13) genMuons.push_back(iP);
 	   if (genparticles_pdgid[iP]==211||genparticles_pdgid[iP]==-211) { 
@@ -2184,6 +2206,19 @@ int main(int argc, char * argv[]) {
        cout << "Filter " << DiMuonSameSignFilterName << " not found " << endl;
        exit(-1);
      }
+
+
+     // *************************
+     // selecting generator muons
+     // *************************
+     for (unsigned int iP=0; iP<genparticles_count; ++iP) {
+       if (genparticles_status[iP]==1) {
+	 int pdgid = TMath::Abs(genparticles_pdgid[iP]);
+	 if (pdgid==13) {
+	   gen_muons.push_back(iP);
+	 }
+       }
+     }
      
      // **********************
      // selecting good muons
@@ -2191,6 +2226,48 @@ int main(int argc, char * argv[]) {
      vector<unsigned int> muons; muons.clear();
      for(UInt_t i=0;i<muon_count;i++){
        bool muonID = muon_isMedium[i]; // MC 
+       
+       if (applyRoccoR) {
+	 double pt = muon_pt[i];
+	 double eta = muon_eta[i];
+	 double phi = muon_phi[i];
+	 int Q = 1;
+	 if (muon_charge[i]<-0.5) Q = -1;
+	 double momSF = 1.0;
+	 if (isData) 
+	   momSF = rc.kScaleDT(Q,pt,eta,phi);
+	 else {
+	   double genPt = pt;
+	   double dRmin = 0.2;
+	   for (unsigned int igen=0; igen<gen_muons.size(); ++igen) {
+	     unsigned int ipart = gen_muons[igen];
+	     TLorentzVector partLV; partLV.SetXYZM(genparticles_px[ipart],
+						   genparticles_py[ipart],
+						   genparticles_pz[ipart],
+						   genparticles_e[ipart]
+						   );
+	     double dR = deltaR(muon_eta[i],muon_phi[i],
+				partLV.Eta(),partLV.Phi());
+	     if (dR<dRmin) {
+	       genPt = partLV.Pt();
+	       dRmin = dR;
+	     }
+	     
+	   }
+	   // protection
+	   if (momSF<=0.5) momSF = 0.5;
+	   if (momSF>=1.5) momSF = 1.5;
+	   momSF = rc.kSpreadMC(Q,pt,eta,phi,genPt);
+       
+	 }
+
+	 //	 std::cout << "muon " << i << " scale -> " << momSF << " : " << RoccorFileName << std::endl;
+	 
+	 muon_px[i] *= momSF;
+	 muon_py[i] *= momSF;
+	 muon_pz[i] *= momSF;
+	 muon_pt[i] *= momSF;
+       }
        // if (isData) {
        //   if (event_run >= 278820 && muon_isMedium[i]) muonID = true; // Run2016G-H
        //   if (event_run < 278820  && muon_isICHEP[i]) muonID = true; // Run2016B-F
@@ -3006,10 +3083,10 @@ int main(int argc, char * argv[]) {
      if (signalRegion) {
 
        //       if (vetoEvent) {
-       //	 std::cout << "Event is rejected by HEM " << std::endl; 
+       //       	 std::cout << "Event is rejected by HEM " << std::endl; 
        //       }
        //       else {
-       //	 std::cout << "Event is selected... " << std::endl;
+       //       	 std::cout << "Event is selected... " << std::endl;
        //       }
 
        counter_FinalEventsH->Fill(1.,weight);

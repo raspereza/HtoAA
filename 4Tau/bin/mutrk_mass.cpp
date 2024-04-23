@@ -81,6 +81,8 @@ int main(int argc, char * argv[]) {
   const string muonLowPtFilterName2 = cfg.get<string>("MuonLowPtFilterName2");
   const string dimuonDzFilterName = cfg.get<string>("DimuonDzFilterName");
   const string dimuonSameSignFilterName = cfg.get<string>("DimuonSameSignFilterName");
+  const float DRTrigMatch    = cfg.get<float>("DRTrigMatch"); 
+  const bool applyTriggerMatch  = cfg.get<bool>("ApplyTriggerMatch");
 
   // trigger info
   TString DiMuonTriggerName(dimuonTriggerName);
@@ -90,6 +92,7 @@ int main(int argc, char * argv[]) {
   TString DiMuonDzFilterName(dimuonDzFilterName);
   TString DiMuonSameSignFilterName(dimuonSameSignFilterName);
 
+  
   const string pileUpDataFile = cfg.get<string>("PileUpDataFileName");
   const string pileUpMCFile = cfg.get<string>("PileUpMCFileName");
 
@@ -253,9 +256,9 @@ int main(int argc, char * argv[]) {
   float trigobject_py[1000];
   float trigobject_pz[1000];
   float trigobject_pt[1000];
-  float  trigobject_eta[1000];
+  float trigobject_eta[1000];
   float trigobject_phi[1000];
-  bool trigobject_filters[1000][200];
+  bool  trigobject_filters[1000][200];
 
   float numtruepileupinteractions;
 
@@ -555,11 +558,10 @@ int main(int argc, char * argv[]) {
   PUofficial->set_h_MC(PU_mc);
 
   // Trigger efficiencies
-
-  ScaleFactor * SF_muonHighPt = new ScaleFactor();
-  SF_muonHighPt->init_ScaleFactor(TString(cmsswBase)+"/src/"+TString(MuonHighPtTriggerFile));
-  ScaleFactor * SF_muonLowPt = new ScaleFactor();
-  SF_muonLowPt->init_ScaleFactor(TString(cmsswBase)+"/src/"+TString(MuonLowPtTriggerFile));
+  ScaleFactor * SF_muon17 = new ScaleFactor();
+  SF_muon17->init_ScaleFactor(TString(cmsswBase)+"/src/"+TString(MuonHighPtTriggerFile));
+  ScaleFactor * SF_muon8 = new ScaleFactor();
+  SF_muon8->init_ScaleFactor(TString(cmsswBase)+"/src/"+TString(MuonLowPtTriggerFile));
 
   TString filen;
   int iFiles = 0;
@@ -570,19 +572,28 @@ int main(int argc, char * argv[]) {
    
    TString FileName = TString(filen);
    TFile * file_ = TFile::Open(FileName);
-   if (file_==NULL) continue;
-
-   if (file_->GetListOfKeys()->GetSize() == 0)
-     continue; 
-
-   if (file_->GetEND() > file_->GetSize())
-     continue; 
-
-   if (file_->GetSeekKeys()<=file_->GetEND()-file_->GetSize())
+   if (file_==NULL) { 
+     cout << "Dropping file " << FileName << endl;
      continue;
+   }
+
+   if (file_->GetListOfKeys()->GetSize() == 0) {
+     cout << "Dropping file " << FileName << endl;
+     continue; 
+   }
+
+   if (file_->GetEND() > file_->GetSize()) {
+     cout << "Dropping file " << FileName << endl;
+     continue; 
+   }
+
+   if (file_->GetSeekKeys()<=file_->GetEND()-file_->GetSize()) {
+     cout << "Dropping file " << FileName << endl;
+     continue;
+   }
 
    if (file_->IsZombie()) {
-     cout << "cannot open file " << FileName << std::endl;
+     cout << "Dropping file " << FileName << std::endl;
      continue;
    }
    // sum of weights (needed for normalization)
@@ -873,6 +884,55 @@ int main(int argc, char * argv[]) {
      // 
      // end of btag veto
      //
+     unsigned int nMu8Leg   = 0;
+     unsigned int nMu17Leg  = 0;
+     unsigned int nDZFilter = 0;
+     unsigned int nSSFilter = 0;
+     bool isMu8Leg = false;
+     bool isMu17Leg = false;
+     bool isDZFilter = false;
+     bool isSSFilter = false;
+
+     unsigned int nfilters = hltfilters->size();
+     for (unsigned int i=0; i<nfilters; ++i) {
+       //       std::cout << hltfilters->at(i) << std::endl;
+       TString HLTFilter(hltfilters->at(i));
+       if (HLTFilter==MuonHighPtFilterName) {
+	 nMu17Leg = i;
+	 isMu17Leg = true;
+       }
+       if (HLTFilter==MuonLowPtFilterName1||HLTFilter==MuonLowPtFilterName2) {
+	 nMu8Leg = i;
+	 isMu8Leg = true;
+       }
+       if (HLTFilter==DiMuonDzFilterName) {
+	 nDZFilter = i;
+	 isDZFilter = true;
+       }
+       if (HLTFilter==DiMuonSameSignFilterName) {
+	 nSSFilter = i;
+	 isSSFilter = true;
+       }
+     }
+     
+     if (!isMu17Leg) {
+       cout << "Filter " << MuonHighPtFilterName << " not found " << endl;
+       exit(-1);
+     }
+     if (!isMu8Leg) {
+       cout << "Filters " << MuonLowPtFilterName1 
+	    << " or " << MuonLowPtFilterName2
+	    << " not found " << endl;
+       exit(-1);
+     }
+     if (!isDZFilter) {
+       cout << "Filter " << DiMuonDzFilterName << " not found " << endl;
+       exit(-1);
+     }
+     if (!isSSFilter) {
+       cout << "Filter " << DiMuonSameSignFilterName << " not found " << endl;
+       exit(-1);
+     }
 
      std::vector<int> partonPdgId; partonPdgId.clear();
      std::vector<TLorentzVector> partonLV; partonLV.clear();
@@ -1117,6 +1177,7 @@ int main(int argc, char * argv[]) {
        partonMu->Fill(0.5,weight);
        partonMuProbe[flavour][net][partonMomBin][muonMomBin]->Fill(0.5,weight);
 
+
        if (sigMu) {
 
 	 partonMuSelectedIso->Fill(0.5,weight);
@@ -1189,6 +1250,7 @@ int main(int argc, char * argv[]) {
      nGoodIsoMuonsH->Fill(float(nIsoMuons),weight);
      nGoodLooseIsoMuonsH->Fill(float(nLooseIsoMuons),weight);
 
+
      // *****************************************
      // **** finding pair of same sign muons ****
      // *****************************************
@@ -1202,13 +1264,64 @@ int main(int argc, char * argv[]) {
 	 unsigned int index1 = muons[i1];
 	 unsigned int index2 = muons[i2];
 
+	 // same sign muons ->
 	 bool os = muon_charge[index1]*muon_charge[index2]<0;
 	 if (os) continue;
 
-	 bool high1 = muon_pt[index1]>ptMuonHighCut && fabs(muon_eta[index1])<etaMuonHighCut;
-	 bool high2 = muon_pt[index2]>ptMuonHighCut && fabs(muon_eta[index2])<etaMuonHighCut;
-	 bool passed = high1 || high2;
-	 if (!passed) continue;
+	 bool mu1MatchMu17 = false;
+	 bool mu1MatchMu8  = false;
+	 bool mu1MatchDz   = false;
+	 bool mu1MatchSS   = false;
+	 for (unsigned int iT=0; iT<trigobject_count; ++iT) {
+	   float dRtrig = deltaR(muon_eta[index1],muon_phi[index1],
+				 trigobject_eta[iT],trigobject_phi[iT]);
+	   if (dRtrig>DRTrigMatch) continue;
+	   if (trigobject_filters[iT][nMu17Leg])
+	     mu1MatchMu17 = true;
+	   if (trigobject_filters[iT][nMu8Leg])
+	     mu1MatchMu8 = true;
+	   if (trigobject_filters[iT][nDZFilter])
+	     mu1MatchDz = true;
+	   if (trigobject_filters[iT][nSSFilter])
+	     mu1MatchSS = true;
+	 }
+
+	 bool mu2MatchMu17 = false;
+	 bool mu2MatchMu8  = false;
+	 bool mu2MatchDz   = false;
+	 bool mu2MatchSS   = false;
+	 for (unsigned int iT=0; iT<trigobject_count; ++iT) {
+	   float dRtrig = deltaR(muon_eta[index2],muon_phi[index2],
+				 trigobject_eta[iT],trigobject_phi[iT]);
+	   if (dRtrig>DRTrigMatch) continue;
+	   if (trigobject_filters[iT][nMu17Leg])
+	     mu2MatchMu17 = true;
+	   if (trigobject_filters[iT][nMu8Leg])
+	     mu2MatchMu8 = true;
+	   if (trigobject_filters[iT][nDZFilter])
+	     mu2MatchDz = true;
+	   if (trigobject_filters[iT][nSSFilter])
+	     mu2MatchSS = true;
+	 }
+
+	 bool mu1PtHigh = muon_pt[index1]>ptMuonHighCut && fabs(muon_eta[index1])<etaMuonHighCut;
+	 bool mu1PtLow  = muon_pt[index1]>ptMuonLowCut && fabs(muon_eta[index1])<etaMuonLowCut;
+	 bool mu2PtHigh = muon_pt[index2]>ptMuonHighCut && fabs(muon_eta[index2])<etaMuonHighCut;
+	 bool mu2PtLow  = muon_pt[index2]>ptMuonLowCut && fabs(muon_eta[index2])<etaMuonLowCut;
+	 
+	 // trigger condition
+	 bool isTriggerMatched = true;
+	 if (applyTriggerMatch) {
+	   isTriggerMatched = (mu1MatchMu17&&mu2MatchMu8&&mu1PtHigh&&mu2PtLow)||(mu1MatchMu8&&mu2MatchMu17&&mu1PtLow&&mu2PtHigh);
+	   isTriggerMatched = isTriggerMatched && mu1MatchSS && mu2MatchSS;
+	   if (era==2017) 
+	     isTriggerMatched = isTriggerMatched && mu1MatchDz && mu2MatchDz;
+	 }
+	 else {
+	   isTriggerMatched = (mu1PtHigh&&mu2PtLow) || (mu1PtLow&&mu2PtHigh);
+	 }
+	 if (!isTriggerMatched) continue;
+
 	 double dR = deltaR(muon_eta[index1],muon_phi[index1],
 			    muon_eta[index2],muon_phi[index2]);
 	 if (dR<dRMuonsCut) continue;
@@ -1271,6 +1384,41 @@ int main(int argc, char * argv[]) {
 	 cout << endl;
 	 cout << endl;
        }
+
+       // ************************
+       // trigger scale factors
+       // ************************       
+       /*
+       double ptLeading = muon_pt[mu1];
+       double etaLeading = min(abs(double(muon_eta[mu1])),double(2.3));
+       double ptTrailing = muon_pt[mu2];
+       double etaTrailing = min(abs(double(muon_eta[mu2])),double(2.3));
+
+       double effMu17dataTrailing = SF_muon17->get_EfficiencyData(ptTrailing,etaTrailing); 
+       double effMu8dataTrailing = SF_muon8->get_EfficiencyData(ptTrailing,etaTrailing); 
+
+       double effMu17dataLeading = SF_muon17->get_EfficiencyData(ptLeading,etaLeading); 
+       double effMu8dataLeading = SF_muon8->get_EfficiencyData(ptLeading,etaLeading); 
+
+       double effMu17MCTrailing = SF_muon17->get_EfficiencyMC(ptTrailing,etaTrailing); 
+       double effMu8MCTrailing = SF_muon8->get_EfficiencyMC(ptTrailing,etaTrailing); 
+
+       double effMu17MCLeading = SF_muon17->get_EfficiencyMC(ptLeading,etaLeading); 
+       double effMu8MCLeading = SF_muon8->get_EfficiencyMC(ptLeading,etaLeading); 
+
+       double trigWeightData = effMu17dataLeading*effMu8dataTrailing + effMu17dataTrailing*effMu8dataLeading - effMu17dataLeading*effMu17dataTrailing;
+       double trigWeightMC = effMu17MCLeading*effMu8MCTrailing + effMu17MCTrailing*effMu8MCLeading - effMu17MCLeading*effMu17MCTrailing;
+
+       double triggerWeight = 1.0;
+       if (applyTriggerMatch) {
+	 if (trigWeightMC>0)
+	   triggerWeight = trigWeightData/trigWeightMC;
+       }
+       else
+	 triggerWeight = trigWeightData;
+
+       weight *= triggerWeight;
+       */
 
        partonMu_SS->Fill(0.5,2.0*weight);
        partonMuProbe_SS[flavour1][net1][partmom1][muonmom1]->Fill(0.5,weight);

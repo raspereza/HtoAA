@@ -76,6 +76,7 @@ int main(int argc, char * argv[]) {
   const float etaTauCut = cfg.get<float>("EtaTauCut");
 
   const float dRJetLep = cfg.get<float>("dRJetLep");
+  const float uncJER = cfg.get<float>("UncJER");
 
   TString BTagAlgorithm(bTagAlgorithm);
   TString BTagDiscriminator1(bTagDiscriminator1);
@@ -93,12 +94,11 @@ int main(int argc, char * argv[]) {
   BTagCalibrationReader reader_B = BTagCalibrationReader(BTagEntry::OP_MEDIUM, "central",{"up","down"});
   BTagCalibrationReader reader_C = BTagCalibrationReader(BTagEntry::OP_MEDIUM, "central",{"up","down"});
   BTagCalibrationReader reader_Light = BTagCalibrationReader(BTagEntry::OP_MEDIUM, "central",{"up","down"}); 
-
   reader_B.load(calib, BTagEntry::FLAV_B, "comb");
   reader_C.load(calib, BTagEntry::FLAV_C, "comb");
   reader_Light.load(calib, BTagEntry::FLAV_UDSG, "incl");
   
-  // BTAG efficiency for various flavours ->
+  // BTAG efficiency for b- c- and udsg-flavours ->
   TString fileBtagEff = (TString)cfg.get<string>("BtagMCeffFile");
   TFile *fileTagging  = new TFile(fileBtagEff);
   TH2F  *tagEff_B     = (TH2F*)fileTagging->Get("btag_eff_b");
@@ -139,26 +139,27 @@ int main(int argc, char * argv[]) {
   Int_t   gentau_fromHardProcess[100];
 
   UInt_t   pfjet_count;
-  Float_t  pfjet_e[200];   //[pfjet_count]
-  Float_t  pfjet_pt[200];    //[pfjet_count]
-  Float_t  pfjet_eta[200];   //[pfjet_count]
-  Float_t  pfjet_phi[200];   //[pfjet_count]
-  Float_t  pfjet_neutralhadronicenergy[200];   //[pfjet_count]
-  Float_t  pfjet_chargedhadronicenergy[200];   //[pfjet_count]
-  Float_t  pfjet_neutralemenergy[200];   //[pfjet_count]
-  Float_t  pfjet_chargedemenergy[200];   //[pfjet_count]
-  Float_t  pfjet_muonenergy[200];   //[pfjet_count]
-  Float_t  pfjet_chargedmuonenergy[200];   //[pfjet_count]
-  UInt_t   pfjet_chargedmulti[200];   //[pfjet_count]
-  UInt_t   pfjet_neutralmulti[200];   //[pfjet_count]
-  UInt_t   pfjet_chargedhadronmulti[200];   //[pfjet_count]
-  Int_t    pfjet_flavour[200];   //[pfjet_count]
-  Float_t  pfjet_btag[200][10];   //[pfjet_count]
+  Float_t  pfjet_e[200]; 
+  Float_t  pfjet_pt[200]; 
+  Float_t  pfjet_eta[200]; 
+  Float_t  pfjet_phi[200]; 
+  Float_t  pfjet_neutralhadronicenergy[200];
+  Float_t  pfjet_chargedhadronicenergy[200];
+  Float_t  pfjet_neutralemenergy[200];
+  Float_t  pfjet_chargedemenergy[200];
+  Float_t  pfjet_muonenergy[200];
+  Float_t  pfjet_chargedmuonenergy[200];
+  UInt_t   pfjet_chargedmulti[200];
+  UInt_t   pfjet_neutralmulti[200];
+  UInt_t   pfjet_chargedhadronmulti[200];
+  Int_t    pfjet_flavour[200];
+  Float_t  pfjet_btag[200][10];
+  Float_t  pfjet_jecUncertainty[200];
 
   UInt_t   genjets_count;
-  Float_t  genjets_pt[200];   //[genjets_count]
-  Float_t  genjets_eta[200];   //[genjets_count]
-  Float_t  genjets_phi[200];   //[genjets_count]
+  Float_t  genjets_pt[200];
+  Float_t  genjets_eta[200];
+  Float_t  genjets_phi[200];
 
 
   std::map<std::string, int> * hltriggerresults = new std::map<std::string, int>() ;
@@ -338,6 +339,7 @@ int main(int argc, char * argv[]) {
    tree_->SetBranchAddress("pfjet_neutralmulti",pfjet_neutralmulti);
    tree_->SetBranchAddress("pfjet_flavour",pfjet_flavour);
    tree_->SetBranchAddress("pfjet_btag",pfjet_btag);
+   tree_->SetBranchAddress("pfjet_jecUncertainty",pfjet_jecUncertainty);
 
    tree_->SetBranchAddress("genjets_count", &genjets_count);
    tree_->SetBranchAddress("genjets_pt", genjets_pt);
@@ -520,6 +522,11 @@ int main(int argc, char * argv[]) {
        isCorrectBTag = false;
      }
 
+     if (!isCorrectBTag) {
+       std::cout << "Quitting" << std::endl;
+       exit(-1);
+     }
+
      njets = 0;
      nbtag = 0;
      nbtag_jes_up = 0;
@@ -533,6 +540,15 @@ int main(int argc, char * argv[]) {
      btagweight_lf_down = 1;
      btagweight_hf_up = 1;
      btagweight_hf_down = 1;
+
+     float Pdata = 1.0;
+     float Pmc = 1.0;
+     float Pdata_hf_up = 1.0;
+     float Pdata_hf_down = 1.0;
+     float Pdata_hf = 1.0;
+     float Pdata_lf_up = 1.0;
+     float Pdata_lf_down = 1.0;
+     float Pdata_lf = 1.0;
      
      for (unsigned int jet=0; jet<pfjet_count; ++jet) {
 	 
@@ -579,11 +595,17 @@ int main(int argc, char * argv[]) {
 	 }
        }
 
-       bool tagged = false;
+       float jetPt_jesUp = (1.0+pfjet_jecUncertainty[jet])*jetPt;
+       float jetPt_jesDown = (1.0-pfjet_jecUncertainty[jet])*jetPt;
+
+       float jetPt_jerUp = genJetPt + (1+uncJER)*(jetPt-genJetPt);
+       float jetPt_jerDown = genJetPt + (1-uncJER)*(jetPt-genJetPt);
+
+       bool jet_tagged = false;
 
        if (absJetEta<bjetEtaCut) {
 
-	 njetspt20++;
+	 if (jetPt>bjetPtCut) njetspt20++;
 	 
 	 float btagDiscr = pfjet_btag[jet][nBTagDiscriminant1];
 	 if (BTagAlgorithm=="pfDeepFlavourJetTags"||BTagAlgorithm=="pfDeepCSVJetTags")
@@ -591,10 +613,91 @@ int main(int argc, char * argv[]) {
 	 if (BTagAlgorithm=="pfDeepFlavourJetTags")
 	   btagDiscr += pfjet_btag[jet][nBTagDiscriminant3];
 	 
-	 tagged = btagDiscr>btagCut;
+	 bool tagged = btagDiscr>btagCut;
 	 if (tagged) {
-	   if (jetPt>jetPtCut) nbtag++;
+	   if (jetPt>bjetPtCut) {nbtag++; jet_tagged = true;}
+	   if (jetPt_jesUp>bjetPtCut) nbtag_jes_up++;
+	   if (jetPt_jesDown>bjetPtCut) nbtag_jes_down++;
+	   if (jetPt_jerUp>bjetPtCut) nbtag_jer_up++;
+	   if (jetPt_jerDown>bjetPtCut) nbtag_jer_down++;
 	 }
+
+	 if (jetPt>bjetPtCut) {
+
+	   float JetPtForBTag = jetPt;
+	   float JetEtaForBTag = absJetEta;
+	   
+	   if (JetPtForBTag > MaxBJetPt) JetPtForBTag = MaxBJetPt - 0.1;
+	   if (JetPtForBTag < MinBJetPt) JetPtForBTag = MinBJetPt + 0.1;
+	   if (JetEtaForBTag > MaxBJetEta) JetEtaForBTag = MaxBJetEta - 0.01;
+	   if (JetEtaForBTag < MinBJetEta) JetEtaForBTag = MinBJetEta + 0.01;
+
+	   int flavor = TMath::Abs(pfjet_flavour[jet]);
+	   
+	   float tageff = tagEff_Light->GetBinContent(tagEff_Light->FindBin(JetPtForBTag, JetEtaForBTag));
+	   float jet_scalefactor = reader_Light.eval_auto_bounds("central",BTagEntry::FLAV_UDSG,JetEtaForBTag,JetPtForBTag);
+	   float jet_scalefactor_up = reader_Light.eval_auto_bounds("up",BTagEntry::FLAV_UDSG,JetEtaForBTag,JetPtForBTag);
+	   float jet_scalefactor_down = reader_Light.eval_auto_bounds("down",BTagEntry::FLAV_UDSG,JetEtaForBTag,JetPtForBTag);
+
+	   if (flavor==4) { 
+	     tageff = tagEff_C->GetBinContent(tagEff_C->FindBin(JetPtForBTag,JetEtaForBTag));
+	     jet_scalefactor = reader_C.eval_auto_bounds("central",BTagEntry::FLAV_C,JetEtaForBTag,JetPtForBTag);
+	     jet_scalefactor_up = reader_C.eval_auto_bounds("up",BTagEntry::FLAV_C,JetEtaForBTag,JetPtForBTag);
+	     jet_scalefactor_down = reader_C.eval_auto_bounds("down",BTagEntry::FLAV_C,JetEtaForBTag,JetPtForBTag);
+	   }
+	   
+	   if (flavor==5) { 
+	     tageff = tagEff_B->GetBinContent(tagEff_B->FindBin(JetPtForBTag,JetEtaForBTag));
+	     jet_scalefactor = reader_B.eval_auto_bounds("central",BTagEntry::FLAV_B,JetEtaForBTag,JetPtForBTag);
+	     jet_scalefactor_up = reader_B.eval_auto_bounds("up",BTagEntry::FLAV_B,JetEtaForBTag,JetPtForBTag);
+	     jet_scalefactor_down = reader_B.eval_auto_bounds("down",BTagEntry::FLAV_B,JetEtaForBTag,JetPtForBTag);
+	   }
+
+	   /*
+	   std::cout << "flavour : " << flavor 
+		     << "   SF = " << jet_scalefactor 
+		     << " +" << jet_scalefactor_up/jet_scalefactor
+		     << " -" << jet_scalefactor_down/jet_scalefactor 
+		     << "   tageff = " << tageff << std::endl;
+	   */	   
+
+	   if (tagged) {
+
+	     Pmc = Pmc*tageff;
+	     Pdata = Pdata*jet_scalefactor*tageff;
+		 
+	     if (flavor==4||flavor==5) {
+	       Pdata_hf      = Pdata_hf*jet_scalefactor*tageff;
+	       Pdata_hf_up   = Pdata_hf_up*jet_scalefactor_up*tageff;
+	       Pdata_hf_down = Pdata_hf_down*jet_scalefactor_down*tageff;
+	     }
+	     else {
+	       Pdata_lf = Pdata_lf*jet_scalefactor*tageff;
+	       Pdata_lf_up = Pdata_lf_up*jet_scalefactor_up*tageff;
+	       Pdata_lf_down = Pdata_lf_down*jet_scalefactor_down*tageff;
+	     }
+
+	   }
+	   else {
+
+	     Pmc = Pmc*(1-tageff);
+	     Pdata = Pdata*(1.0-jet_scalefactor*tageff);
+		 
+	     if (flavor==4 || flavor==5) {
+	       Pdata_hf = Pdata_hf*(1-jet_scalefactor*tageff);
+	       Pdata_hf_up = Pdata_hf_up*(1.0-jet_scalefactor_up*tageff);
+	       Pdata_hf_down = Pdata_hf_down*(1.0-jet_scalefactor_down*tageff);
+	     }
+	     else {
+	       Pdata_lf = Pdata_lf*(1-jet_scalefactor*tageff);
+	       Pdata_lf_up = Pdata_lf_up*(1.0-jet_scalefactor_up*tageff);
+	       Pdata_lf_down = Pdata_lf_down*(1.0-jet_scalefactor_down*tageff);
+	     }
+
+	   }
+
+	 }
+	 
 
        }
        if (jetPt>jetPtCut) {
@@ -603,11 +706,29 @@ int main(int argc, char * argv[]) {
 	 phijet[njets] = pfjet_phi[jet];
 	 ejet[njets] = pfjet_e[jet];
 	 flavorjet[njets] = pfjet_flavour[jet];
-	 tagjet[njets] = tagged;
+	 tagjet[njets] = jet_tagged;
 	 njets++;
        }
      }
-     
+
+     if (Pmc>0.01) {
+       btagweight = Pdata/Pmc;
+       weight *= btagweight;
+       if (Pdata_hf>0.01) {
+	 btagweight_hf_up   = Pdata_hf_up/Pdata_hf;
+	 btagweight_hf_down = Pdata_hf_down/Pdata_hf;
+       }
+       if (Pdata_lf>0.01) {
+	 btagweight_lf_up   = Pdata_lf_up/Pdata_lf;
+	 btagweight_lf_down = Pdata_lf_down/Pdata_lf;
+       }
+     }
+     /*
+     std::cout << "btag weight = " << btagweight
+	       << "  hf : +" << btagweight_hf_up << " -" << btagweight_hf_down
+	       << "  lf : +" << btagweight_lf_up << " -" << btagweight_lf_down << std::endl;
+     std::cout << std::endl;
+     */
      tuple->Fill();
      
    } // icand loop

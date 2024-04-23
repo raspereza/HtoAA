@@ -231,6 +231,12 @@ std::map<TString, TFile*> accessFiles(TString dir,
 
   std::map<TString, TFile*> files;
   TString filename = dir+"/"+era+"/Data.root";
+
+  //if (era.Contains("2016")) {
+  //      baseDir += "/" + era;
+  //}
+
+  //TString filename = baseDir+"/Data.root";
   files["Data"] = new TFile(filename);
   if (files["Data"]==NULL || files["Data"]->IsZombie()) {
     std::cout << "file " << filename << "does not exist " << std::endl;
@@ -556,6 +562,34 @@ TH1D * GetTemplateQCD(
 
   return QCD;
 
+}
+
+
+// =====================================================
+// ============= Save same-sign histograms =============
+// =====================================================
+
+void SaveSSHistograms(const std::map<TString, TH1D*>& histograms,
+		      TString filename) {
+
+  TFile saveFile(filename.Data(), "RECREATE");
+  if (!saveFile.IsOpen()) {
+        std::cerr << "Error opening file: " << filename << std::endl;
+        return;
+  }
+    
+  for (const auto& histEntry : histograms) {
+       TString histName = histEntry.first;
+       if (histEntry.first.Contains("_SS")) {
+	    auto baseNameEnd = histName.Index("_SS");
+	    TString baseName = histName(0, baseNameEnd);
+	    TString newName = baseName + "_SS";
+	    histEntry.second->SetName(newName);
+            histEntry.second->Write();
+       }
+  }
+
+  saveFile.Close();
 }
 
 // =====================================================
@@ -1242,6 +1276,7 @@ int main (int argc, char * argv[])
     std::cout << std::endl;
 
   }
+  return 0;
   if (controlPlots)
     return 0;
 
@@ -1338,6 +1373,15 @@ int main (int argc, char * argv[])
 	plotLegend = false;
       Plot(histos,xtitle,region,legend,era,plotLegend,PlotDir);
 
+      // same-sign region
+      // saving the histograms in a root file
+
+      std::cout << "-- Saving histograms with same-sign events --"<<std::endl;
+      std::cout << std::endl;
+
+      TString filename = Form("%s/SS_%s_%s.root", plotdir.c_str(), region.Data(), era.Data());
+      SaveSSHistograms(histos, filename);
+	
     }
   }
 

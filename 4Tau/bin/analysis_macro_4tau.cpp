@@ -306,6 +306,10 @@ int main(int argc, char * argv[]) {
   float muon_py[1000];
   float muon_pz[1000];
   float muon_pt[1000];
+  float muon_px_uncorr[1000];
+  float muon_py_uncorr[1000];
+  float muon_pz_uncorr[1000];
+  float muon_pt_uncorr[1000];
   float muon_eta[1000];
   float muon_phi[1000];
   float muon_pterror[1000];
@@ -2219,21 +2223,38 @@ int main(int argc, char * argv[]) {
 	 }
        }
      }
-     
+     //     std::cout << "+++++++++++++++++++++++++++++++++++" << std::endl;
+     //     for(UInt_t i=0;i<muon_count;i++){
+     //       std::cout << " " << i << " " << muon_px[i] << " " << muon_py[i] << " " << muon_pz[i] << std::endl;       
+     //     }     
+     //     std::cout << std::endl;
      // **********************
      // selecting good muons
      // **********************
+     double momSF = 1.0;
      vector<unsigned int> muons; muons.clear();
      for(UInt_t i=0;i<muon_count;i++){
        bool muonID = muon_isMedium[i]; // MC 
+       // obsolete
+       // if (isData) {
+       //   if (event_run >= 278820 && muon_isMedium[i]) muonID = true; // Run2016G-H
+       //   if (event_run < 278820  && muon_isICHEP[i]) muonID = true; // Run2016B-F
+       // }
+       if (!muonID) continue;
+       if(fabs(muon_dxy[i])>dxyMuonCut) continue;
+       if(fabs(muon_dz[i])>dzMuonCut) continue;
        
+       muon_pt_uncorr[i] = muon_pt[i];
+       muon_px_uncorr[i] = muon_px[i];
+       muon_py_uncorr[i] = muon_py[i];
+       muon_pz_uncorr[i] = muon_pz[i];
+
        if (applyRoccoR) {
 	 double pt = muon_pt[i];
 	 double eta = muon_eta[i];
 	 double phi = muon_phi[i];
 	 int Q = 1;
 	 if (muon_charge[i]<-0.5) Q = -1;
-	 double momSF = 1.0;
 	 if (isData) 
 	   momSF = rc.kScaleDT(Q,pt,eta,phi);
 	 else {
@@ -2254,27 +2275,23 @@ int main(int argc, char * argv[]) {
 	     }
 	     
 	   }
-	   // protection
-	   if (momSF<=0.5) momSF = 0.5;
-	   if (momSF>=1.5) momSF = 1.5;
 	   momSF = rc.kSpreadMC(Q,pt,eta,phi,genPt);
        
 	 }
+	 // don't allow for large corretions
+	 if (momSF<=0.8) momSF = 0.8;
+	 if (momSF>=1.2) momSF = 1.2;
+	 
+	 //	 float muon_pT = muon_pt[i];
 
-	 //	 std::cout << "muon " << i << " scale -> " << momSF << " : " << RoccorFileName << std::endl;
 	 
 	 muon_px[i] *= momSF;
 	 muon_py[i] *= momSF;
 	 muon_pz[i] *= momSF;
 	 muon_pt[i] *= momSF;
+	 
        }
-       // if (isData) {
-       //   if (event_run >= 278820 && muon_isMedium[i]) muonID = true; // Run2016G-H
-       //   if (event_run < 278820  && muon_isICHEP[i]) muonID = true; // Run2016B-F
-       // }
-       if (!muonID) continue;
-       if(fabs(muon_dxy[i])>dxyMuonCut) continue;
-       if(fabs(muon_dz[i])>dzMuonCut) continue;
+       
        if(muon_pt[i]<ptMuonLowCut) continue;
        if(fabs(muon_eta[i])>etaMuonLowCut) continue;
        //       cout << "SumPt(0p3) = " << muon_r03_sumChargedHadronPt[i] 
@@ -2513,6 +2530,7 @@ int main(int argc, char * argv[]) {
      weight *= idTrailingWeight;
 
      //     std::cout << "Ok 6" << std::endl;
+       
 
      // dimuon selection passed 
      TLorentzVector LeadingMuon4; LeadingMuon4.SetXYZM(muon_px[iLeading],
@@ -2524,6 +2542,18 @@ int main(int argc, char * argv[]) {
 							 muon_py[iTrailing],
 							 muon_pz[iTrailing],
 							 MuMass);
+
+     // uncorrected 4-vectors (needed for track selection)
+     TLorentzVector LeadingMuon4_uncorr; LeadingMuon4_uncorr.SetXYZM(muon_px_uncorr[iLeading],
+								     muon_py_uncorr[iLeading],
+								     muon_pz_uncorr[iLeading],
+								     MuMass);
+     
+     TLorentzVector TrailingMuon4_uncorr; TrailingMuon4_uncorr.SetXYZM(muon_px_uncorr[iTrailing],
+								       muon_py_uncorr[iTrailing],
+								       muon_pz_uncorr[iTrailing],
+								       MuMass);
+     
      
      TLorentzVector diMuon4 = LeadingMuon4 + TrailingMuon4;
      
@@ -2599,7 +2629,7 @@ int main(int argc, char * argv[]) {
 					 track_pz[iTrk],
 					 track_mass[iTrk]);
        
-       TLorentzVector leadingMuDiff = LeadingMuon4 - trk4;
+       TLorentzVector leadingMuDiff = LeadingMuon4_uncorr - trk4;
        if (leadingMuDiff.P()>0.1) { // track is not leading muon
 	 float drTrkMu = deltaR(muon_eta[iLeading],muon_phi[iLeading],
 				track_eta[iTrk],   track_phi[iTrk]);
@@ -2623,7 +2653,7 @@ int main(int argc, char * argv[]) {
 	 }
        }
        
-       TLorentzVector trailingMuDiff = TrailingMuon4 - trk4;
+       TLorentzVector trailingMuDiff = TrailingMuon4_uncorr - trk4;
        if (trailingMuDiff.P()>0.1) { // track is not trailing muon
 	 float drTrkMu = deltaR(muon_eta[iTrailing],muon_phi[iTrailing],
 				track_eta[iTrk],track_phi[iTrk]);
@@ -3386,7 +3416,7 @@ int main(int argc, char * argv[]) {
 							     track_mass[iTrkTrailing]);
        TLorentzVector TrackPlusTrailingMuon4 = TrailingMuon4 + TrackTrailing4;
        float massTrailingMuonTrk = TrackPlusTrailingMuon4.M();
-       
+
        float masshigh = massLeadingMuonTrk;
        float masslow = massTrailingMuonTrk;
        

@@ -106,11 +106,13 @@ The script will produce RooT file fitDiagnosticsTest.root containing results of 
 
 ```
 void PlotMass2D(
+TString dir = "/nfs/dust/cms/user/rasp/Run/HtoAA/stat", // working directory (must be changed)
 TString era = "2016", // 2016, 2017, 2018 or Run2
 bool prefit = false, // prefit (or postfit) distributions
 bool blindData = false, // blind data
 bool drawLeg = true, // draw legend
-bool logY = true // use log scale for Y axis
+bool logY = true, // use log scale for Y axis
+bool MergeLastBins = false // merge last three bins (should be False, emergency option if fit fails)
 ) 
 ```
 

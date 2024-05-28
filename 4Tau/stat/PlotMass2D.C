@@ -10,13 +10,25 @@
 #include "Plotting_Style.h"
 
 void PlotMass2D(
-		TString era = "2016",
+		TString dir = "/nfs/dust/cms/user/rasp/Run/HtoAA/stat", // working directory
+		TString era = "2016", // era = 2016, 2017, 2018 or Run2
 		bool prefit = false, // prefit (or postfit) distributions
 		bool blindData = false, // blind data
 		bool drawLeg = true, // draw legend
-		bool logY = true // use log scale for
+		bool logY = true, // use log scale for y-axis
+		bool MergeLastBins = false // merge last 3 bins (should be False)
 		) {
   
+
+  double yminRatio = 0.0;
+  double ymaxRatio = 2.6;
+
+  int nBins = 6;
+  int nBins1D = (nBins+1)*nBins/2;
+  int nBins1Dorig = nBins1D;
+
+  if (MergeLastBins)
+    nBins1D -= 2;
 
   TH1::SetDefaultSumw2(true);
 
@@ -49,11 +61,10 @@ void PlotMass2D(
 
   lumi_13TeV = lumi_label[era];
 
-  TString dir("/nfs/dust/cms/user/rasp/Run/HtoAA/stat");
 
-  TH1D * hist5  = new TH1D("sig5","",21,0.,21.);
-  TH1D * hist10 = new TH1D("sig10","",21,0.,21.);
-  TH1D * hist15 = new TH1D("sig15","",21,0.,21.);
+  TH1D * hist5  = new TH1D("sig5","",nBins1D,0.,nBins1D);
+  TH1D * hist10 = new TH1D("sig10","",nBins1D,0.,nBins1D);
+  TH1D * hist15 = new TH1D("sig15","",nBins1D,0.,nBins1D);
 
   vector<TString> signals = {"ggh","vbf","vh","tth","mmtt"};
   bool isFirst = true;
@@ -77,9 +88,6 @@ void PlotMass2D(
 
   gStyle->SetOptStat(0000);
 
-  int nBins = 6;
-  int nBinsNew = (nBins+1)*nBins/2;
-
   hist5->Scale(0.05);
   hist10->Scale(0.05);
   hist15->Scale(0.05);
@@ -88,18 +96,33 @@ void PlotMass2D(
   if (prefit)
     shapesDir = "shapes_prefit";
 
-  TH1D * histData = new TH1D("data","",21,0.,21.);
-  TH1D * histBkgdX = new TH1D("bkgd","",21,0.,21.);
+  TH1D * histData = new TH1D("data","",nBins1D,0.,nBins1D);
+  TH1D * histBkgdX = new TH1D("bkgd","",nBins1D,0.,nBins1D);
   isFirst = true;
   for (auto grp : group) {
     TFile * file  = new TFile(dir+"/haa_"+grp+"-13TeV_ma10.root");
-    TH1D * hd = (TH1D*)file->Get("data_obs");
+    TH1D * hd = (TH1D*)file->Get("data_obs");    
     TH1D * hb = (TH1D*)fileFit->Get(shapesDir+"/"+channel_map[grp]+"/total_background");
+    if (prefit) {
+      TH1D * bkg = (TH1D*)file->Get("bkgd");
+      for (int iB=1; iB<=nBins1D; ++iB) {
+	double err1 = bkg->GetBinError(iB);
+	double err2 = hb->GetBinError(iB);
+	double err_tot = TMath::Sqrt(err1*err1+err2*err2);
+	hb->SetBinError(iB,err_tot);
+      }
+    }
+    else {
+      for (int iB=1; iB<=nBins1D; ++iB) {
+	double x = hb->GetBinContent(iB);
+	if (x<0.2) hb->SetBinContent(iB,0.2); // protection against fit failures
+      }
+    }
     histData->Add(histData,hd,1.,1.);
     histBkgdX->Add(histBkgdX,hb,1.,1.);
   }
 
-  TH1D * histBkgd = new TH1D("histBkgd","",21,0.,21.0);
+  TH1D * histBkgd = new TH1D("histBkgd","",nBins1D,0.,nBins1D);
 
   TH1D * histBkgdErr = (TH1D*)histBkgdX->Clone("histBkgdErr");
   int new_idx = CreateTransparentColor(kGray,0.5);
@@ -172,6 +195,7 @@ void PlotMass2D(
     double r = 1000;
     double er = 0;
     double erB = eB/xB;
+    printf("Bin %2i -> B = %6.2f +/- %5.2f\n",iB,xB,eB);
     r = xD/xB;
     er = eD/xB;
     if (r<0.001) r = 0.001;
@@ -208,9 +232,11 @@ void PlotMass2D(
       char charLabel[10];
       sprintf(charLabel,"(%1i,%1i)",i,j);
       TString label(charLabel);
-      histBkgd->GetXaxis()->SetBinLabel(binNumber,"");
-      ratioErr->GetXaxis()->SetBinLabel(binNumber,label);
-      ratio->GetXaxis()->SetBinLabel(binNumber,label);
+      if (binNumber<=nBins1D) {
+	histBkgd->GetXaxis()->SetBinLabel(binNumber,"");
+	ratioErr->GetXaxis()->SetBinLabel(binNumber,label);
+	ratio->GetXaxis()->SetBinLabel(binNumber,label);
+      }
       binNumber++;
     }
   }
@@ -266,7 +292,7 @@ void PlotMass2D(
   writeExtraText = true;
   CMS_lumi(upper,4,33); 
   float xLine = float(nBins);
-  for (int i=1; i<=nBins; ++i) {
+  for (int i=1; i<nBins; ++i) {
     TLine * line = new TLine(xLine,0.2,xLine,1000);
     line->SetLineWidth(1);
     line->SetLineStyle(3);
@@ -307,8 +333,8 @@ void PlotMass2D(
   lower->SetFrameBorderMode(0);
   lower->SetFrameBorderSize(10);
 
-  ratioErr->GetYaxis()->SetRangeUser(0.0,3.2);
-  ratioErr->GetXaxis()->SetNdivisions(210);
+  ratioErr->GetYaxis()->SetRangeUser(yminRatio,ymaxRatio);
+  ratioErr->GetXaxis()->SetNdivisions(410);
   ratioErr->GetYaxis()->SetNdivisions(505);
   ratioErr->GetXaxis()->SetLabelFont(42);
   ratioErr->GetXaxis()->SetLabelOffset(0.03);
@@ -331,23 +357,24 @@ void PlotMass2D(
   ratioERR->Draw("pe1");
   ratioErr->GetXaxis()->LabelsOption("v");
 
-  TLine * line = new TLine(0,1,21,1);
+  TLine * line = new TLine(0,1,nBins1D,1);
   line->SetLineColor(4);
   line->SetLineWidth(2);
   line->Draw();
-  xLine = float(nBins);
-  for (int i=1; i<=nBins; ++i) {
-    TLine * line = new TLine(xLine,0.,xLine,3.2);
-    line->SetLineWidth(2);
-    line->SetLineStyle(3);
-    line->Draw();
-    xLine += nBins - i;
-  }
-  //  ratioERR->Draw("pe1");
-  //  ratio->Draw("pe1same");
+  xLine = float(nBins1D);
   
   lower->Modified();
   lower->RedrawAxis();
+  xLine = float(nBins);
+  for (int i=1; i<nBins; ++i) {
+    TLine * line = new TLine(xLine,yminRatio,xLine,ymaxRatio);
+    line->SetLineWidth(1);
+    line->SetLineStyle(3);
+    line->Draw();
+    xLine += nBins - i; 
+  }
+  ratioERR->Draw("pe1");
+  ratio->Draw("pe1same");
   canv->cd();
   canv->SetSelected(canv);
 

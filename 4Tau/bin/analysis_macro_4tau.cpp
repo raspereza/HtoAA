@@ -22,7 +22,6 @@
 #include "TMath.h"
 #include "TString.h"
 #include "HtoAA/Utilities/interface/Config.h"
-#include "HtoAA/Utilities/src/Config.cc"
 #include "HtoAA/Utilities/interface/RoccoR.h"
 #include "TRandom.h"
 #include "TRandom3.h"
@@ -189,8 +188,8 @@ int main(int argc, char * argv[]) {
   // ************* HEM issue ***********
   // ***********************************
 
-  bool applyHEM = era==2018; 
-  // bool applyHEM = false;
+  //bool applyHEM = era==2018; 
+  bool applyHEM = false;
   float etaMinJetHEM = -3.2;
   float etaMaxJetHEM = -1.2;
   float phiMinJetHEM = -1.77;
@@ -562,7 +561,7 @@ int main(int argc, char * argv[]) {
   TH1D * counter_FinalEventsH=new TH1D("counter_FinalEventsH","",1,0.,2.);         
   TH1D * counter_ControlEventsH=new TH1D("counter_ControlEventsH","",1,0.,2.);         
   TH1D * counter_ControlXEventsH=new TH1D("counter_ControlXEventsH","",1,0.,2.);         
-  TH1D * counter_ControlYEventsH=new TH1D("counter_ControlYEventsH","",1,0.,2.);         
+  TH1D * counter_ControlYEventsH=new TH1D("counter_ControlYEventsH","",1,0.,2.);        
 
   // BTag counters
   TH1D * counter_btagCorrUp = new TH1D("counter_btagCorrUp","",1,0.,2.);
@@ -634,7 +633,7 @@ int main(int argc, char * argv[]) {
    
   TH1D * InvMassTrackPlusMuon1D_ControlYH = new TH1D("InvMassTrackPlusMuon1D_ControlYH","",100,0.,20.); 
   TH2D * InvMassTrackPlusMuon2D_ControlYH = new TH2D("InvMassTrackPlusMuon2D_ControlYH","",100,0.,20.,100,0.,20.);
-   
+
   // Monte Carlo information
   TH1D * deltaRMuonPionH = new TH1D("deltaRMuonPionH","",400,0,4);
   TH1D * pionPtH = new TH1D("pionPtH","",200,0,200);
@@ -930,7 +929,7 @@ int main(int argc, char * argv[]) {
   BTagCalibrationReader reader_C;
   BTagCalibrationReader reader_Light;
   if (applyBTagSF && !isData) {
-    calib = BTagCalibration(bTagAlgorithm, BtagSfFile);
+    calib = BTagCalibration(bTagAlgorithm, BtagSfFile, true);
     reader_B = BTagCalibrationReader(BTagEntry::OP_TIGHT, "central",
 				     {"up","down","up_correlated","down_correlated","up_uncorrelated","down_uncorrelated"});
     reader_C = BTagCalibrationReader(BTagEntry::OP_TIGHT, "central",
@@ -941,7 +940,8 @@ int main(int argc, char * argv[]) {
     reader_C.load(calib, BTagEntry::FLAV_C, "comb");
     reader_Light.load(calib, BTagEntry::FLAV_UDSG, "incl");
   }
-  
+
+
   // BTAG efficiency for various flavours ->
   TString fileBtagEff = (TString)cfg.get<string>("BtagMCeffFile");
   TFile *fileTagging  = new TFile(fileBtagEff);
@@ -3290,6 +3290,15 @@ int main(int argc, char * argv[]) {
        InvMassH_trkIsoDown->Fill(massTrkMuLeading,weight*weight_trk_leading_iso_Down);
        InvMassH_trkIsoDown->Fill(massTrkMuTrailing,weight*weight_trk_trailing_iso_Down);
        InvMass2DH_trkIsoDown->Fill(masslow, masshigh,weight*weight_trk_iso_Down);
+
+       // prefiring variations : up ->
+       InvMassH_prefireUp->Fill(massTrkMuLeading,weight*prefireUp);
+       InvMassH_prefireUp->Fill(massTrkMuTrailing,weight*prefireUp);
+       InvMass2DH_prefireUp->Fill(masslow, masshigh,weight*prefireUp);
+       // prefiring variations : down ->
+       InvMassH_prefireDown->Fill(massTrkMuLeading,weight*prefireDown);
+       InvMassH_prefireDown->Fill(massTrkMuTrailing,weight*prefireDown);
+       InvMass2DH_prefireDown->Fill(masslow, masshigh,weight*prefireDown);
        
      }
 
@@ -3314,7 +3323,7 @@ int main(int argc, char * argv[]) {
        (trkSigTrailingMu.size()==1 && Soft_trkTrailingMu.size()==1 && trkTrailingMu.size()==2) ||
        (trkSigTrailingMu.size()==1 && Soft_trkTrailingMu.size()==2 && trkTrailingMu.size()==3) ||
        (trkSigTrailingMu.size()==1 && Soft_trkTrailingMu.size()==3 && trkTrailingMu.size()==4);
-     
+
      bool ControlAll = (signalLeadingMu&&bkgdTrailingMu) || 
        (signalTrailingMu&&bkgdLeadingMu) || (bkgdLeadingMu&&bkgdTrailingMu);
      

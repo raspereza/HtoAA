@@ -124,7 +124,7 @@ int main(int argc, char * argv[]) {
 
   // BTag SF file
   const string BtagSfFile = cfg.get<string>("BtagSfFile");
-  BTagCalibration calib = BTagCalibration(bTagAlgorithm, BtagSfFile);
+  BTagCalibration calib = BTagCalibration(bTagAlgorithm, BtagSfFile, true);
   BTagCalibrationReader reader_B = BTagCalibrationReader(BTagEntry::OP_TIGHT, "central",{"up","down"});
   BTagCalibrationReader reader_C = BTagCalibrationReader(BTagEntry::OP_TIGHT, "central",{"up","down"});
   BTagCalibrationReader reader_Light = BTagCalibrationReader(BTagEntry::OP_TIGHT, "central",{"up","down"});

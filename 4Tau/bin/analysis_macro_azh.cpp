@@ -22,7 +22,6 @@
 #include "TMath.h"
 #include "TString.h"
 #include "HtoAA/Utilities/interface/Config.h"
-#include "HtoAA/Utilities/src/Config.cc"
 #include "TRandom.h"
 #include "TRandom3.h"
 #include "HtoAA/Utilities/interface/json.h"
@@ -90,7 +89,7 @@ int main(int argc, char * argv[]) {
   TString PileUpMCFile(pileUpMCFile);
   // BTag SF file
   const string BtagSfFile = cfg.get<string>("BtagSfFile");
-  BTagCalibration calib = BTagCalibration(bTagAlgorithm, BtagSfFile);
+  BTagCalibration calib = BTagCalibration(bTagAlgorithm, BtagSfFile, true);
   BTagCalibrationReader reader_B = BTagCalibrationReader(BTagEntry::OP_MEDIUM, "central",{"up","down"});
   BTagCalibrationReader reader_C = BTagCalibrationReader(BTagEntry::OP_MEDIUM, "central",{"up","down"});
   BTagCalibrationReader reader_Light = BTagCalibrationReader(BTagEntry::OP_MEDIUM, "central",{"up","down"}); 

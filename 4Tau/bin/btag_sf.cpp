@@ -1,5 +1,4 @@
 #include "HtoAA/Utilities/interface/Config.h"
-#include "HtoAA/Utilities/src/Config.cc"
 
 #include "CondFormats/BTauObjects/interface/BTagCalibration.h"
 #include "CondTools/BTau/interface/BTagCalibrationReader.h"
@@ -17,13 +16,13 @@ int main(int argc, char * argv[]) {
   string bTagAlgorithm("bTagAlgorithm");
   string fileName = string(argv[1]);
   string BtagSfFile = string("/nfs/dust/cms/user/rasp/BTagReshaping/")+fileName;
-  BTagCalibration calib = BTagCalibration(bTagAlgorithm, BtagSfFile);
+  BTagCalibration calib = BTagCalibration(bTagAlgorithm, BtagSfFile, true);
   BTagCalibrationReader reader_B = BTagCalibrationReader(BTagEntry::OP_TIGHT, "central",{"up","down"});
   BTagCalibrationReader reader_C = BTagCalibrationReader(BTagEntry::OP_TIGHT, "central",{"up","down"});
   BTagCalibrationReader reader_Light = BTagCalibrationReader(BTagEntry::OP_TIGHT, "central",{"up","down"});
   reader_B.load(calib, BTagEntry::FLAV_B, "comb");
   reader_C.load(calib, BTagEntry::FLAV_C, "comb");
-  reader_Light.load(calib, BTagEntry::FLAV_UDSG, "comb");
+  reader_Light.load(calib, BTagEntry::FLAV_UDSG, "incl");
   
   std::vector<double> ptVec = {25,50,100};
   std::vector<double> etaVec = {0.4,2.0};

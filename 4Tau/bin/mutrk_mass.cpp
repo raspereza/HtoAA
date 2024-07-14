@@ -438,6 +438,12 @@ int main(int argc, char * argv[]) {
   TH1D * InvMassH = new TH1D("InvMassH","",nbins,xbins);
   TH2D * InvMass2DH = new TH2D("InvMass2DH","",nbins,xbins,nbins,xbins);
 
+  TH1D * InvMassScaleUpH = new TH1D("InvMassScaleUpH","",nbins,xbins);
+  TH2D * InvMassScaleUp2DH = new TH2D("InvMassScaleUp2DH","",nbins,xbins,nbins,xbins);
+
+  TH1D * InvMassScaleDownH = new TH1D("InvMassScaleDownH","",nbins,xbins);
+  TH2D * InvMassScaleDown2DH = new TH2D("InvMassScaleDown2DH","",nbins,xbins,nbins,xbins);
+
   TH1D * ClosureInvMassH = new TH1D("ClosureInvMassH","",nbins,xbins);
   TH2D * ClosureInvMass2DH = new TH2D("ClosureInvMass2DH","",nbins,xbins,nbins,xbins);
 
@@ -1120,11 +1126,21 @@ int main(int argc, char * argv[]) {
 
        bool sigMu = trkSignalMu.size()==1 && trkMu.size()==1;
 
-       bool bkgdMu = 
-	 (trkSignalMu.size()==1 && trkSoftMu.size()==1 && trkMu.size()==2) ||
-	 (trkSignalMu.size()==1 && trkSoftMu.size()==2 && trkMu.size()==3) ||
-	 (trkSignalMu.size()==1 && trkSoftMu.size()==3 && trkMu.size()==4);
-
+       // *********************************
+       // here we redefine sideband region
+       // *********************************
+       //       bool bkgdMu = 
+       //	 (trkSignalMu.size()==1 && trkSoftMu.size()==1 && trkMu.size()==2) ||
+       //	 (trkSignalMu.size()==1 && trkSoftMu.size()==2 && trkMu.size()==3) ||
+       //	 (trkSignalMu.size()==1 && trkSoftMu.size()==3 && trkMu.size()==4);
+       //
+       // require presence of 2 or 3 additional tracks passing signal criteria
+       //
+       
+       bool bkgdMu =
+	 (trkSignalMu.size()==1 && trkMu.size()==3) ||
+	 (trkSignalMu.size()==1 && trkMu.size()==4);
+	 
        bool sbMu = sigMu || bkgdMu;
        
        PartonMultiplicityMuH->Fill(float(partons),weight);

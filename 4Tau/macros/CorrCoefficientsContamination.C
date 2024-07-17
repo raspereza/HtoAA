@@ -140,6 +140,8 @@ void CorrCoefficientsContamination(
     {"MMTT","incl  2mu2tau"}
   };
 
+  vector<TString> signals = {"GGH","VBF","VH","MMTT"};
+  
   map<TString, TString> eraLabel = {
     {"2016_preVFP" ,"2016APV"},
     {"2016_postVFP","2016   "},
@@ -212,9 +214,9 @@ void CorrCoefficientsContamination(
 
   for (auto currentEra : eras) {
     TString dir = folder + "/" + currentEra; 
-    for (auto signal : signalProcess) {
-      TString signalName = signal.first;
-      TString signalSample = signal.second;
+    for (auto signal : signals) {
+      TString signalName = signal;
+      TString signalSample = signalProcess[signal];
       TString filename = dir+"/"+signalSample+Mass+".root";
       TFile * file = new TFile(filename);
       if (file->IsZombie() || file==NULL) {
@@ -252,8 +254,8 @@ void CorrCoefficientsContamination(
   }
 
   std::cout << std::endl;
-  std::cout << "----------------------------" << std::endl;
-  std::cout << "Checksum 1D distribution    " << std::endl;
+  std::cout << "------------------------" << std::endl;
+  std::cout << "Checksum 1D distribution" << std::endl;
   std::cout << std::endl;
   for (int iB=1; iB<=nBinsNew; ++iB) {
     double x_data = hist1D_data->GetBinContent(iB);
@@ -268,8 +270,8 @@ void CorrCoefficientsContamination(
   
   std::cout << std::endl;
   std::cout << std::endl;
-  std::cout << "----------------------------" << std::endl;
-  std::cout << "Checksum 2D distribution    " << std::endl;
+  std::cout << "------------------------" << std::endl;
+  std::cout << "Checksum 2D distribution" << std::endl;
   std::cout << std::endl;
   for (int iB=1; iB<=nBinsNew; ++iB) {
     for (int jB=iB; jB<=nBinsNew; ++jB) {
@@ -285,7 +287,7 @@ void CorrCoefficientsContamination(
       double f_signal = x_signal/x_total;
       double f_total = f_data - f_signal;
       double f = 100.*x_signal/x_data;
-      printf("[%1i,%1i] : %5.3f - %5.3f = %5.3f   Nsig/Ndata = %4.1f%%\n",iB,jB,f_data,f_signal,f_total,f);
+      printf("[%1i,%1i] : %5.3f - %5.3f = %5.3f -> Nsig/Ndata = %4.1f%%\n",iB,jB,f_data,f_signal,f_total,f);
     }
   }
 
@@ -295,7 +297,7 @@ void CorrCoefficientsContamination(
   double norm2D_data = hist2D_data->GetSumOfWeights();
 
   TLatex * latexBin = new TLatex();
-  latexBin->SetTextSize(0.036);
+  latexBin->SetTextSize(0.038);
   latexBin->SetTextFont(32);
   
   //
@@ -307,18 +309,13 @@ void CorrCoefficientsContamination(
     for (int jB=iB; jB<=nBinsNew; ++jB) {
       char label[10];
       int x = int(hist2D_data->GetBinContent(iB,jB));
-      if (x>=10000)
-	sprintf(label,"%5i",x);
-      else if (x>=1000)
-	sprintf(label,"%4i",x);
-      else
-	sprintf(label,"%3i",x);
+      sprintf(label,"%5i",x);
       TString Label(label);
       double binX = corrCoeffH->GetXaxis()->GetBinCenter(iB);
       double binWidthX = corrCoeffH->GetXaxis()->GetBinWidth(iB); 
       double binY = corrCoeffH->GetYaxis()->GetBinCenter(jB);
       double binWidthY = corrCoeffH->GetYaxis()->GetBinWidth(jB);       
-      double textX = binX - 0.45;
+      double textX = binX - 0.43;
       double textY = binY;
       latexBin->SetTextAlign(12);
       latexBin->DrawLatex(textX,textY,Label);
@@ -367,7 +364,7 @@ void CorrCoefficientsContamination(
       double binWidthX = corrCoeffH->GetXaxis()->GetBinWidth(iB); 
       double binY = corrCoeffH->GetYaxis()->GetBinCenter(jB);
       double binWidthY = corrCoeffH->GetYaxis()->GetBinWidth(jB);       
-      double textX = binX - 0.45;
+      double textX = binX - 0.43;
       double textY = binY;
       latexBin->SetTextAlign(12);
       latexBin->DrawLatex(textX,textY,Label);
@@ -401,13 +398,17 @@ void CorrCoefficientsContamination(
   // Computing statistics in 2D distribution
   //  
   std::cout << std::endl;
-  std::cout << "--------------------------------" << std::endl;
-  std::cout << "Statistics in 2D distribution   " << std::endl;
+  std::cout << "-----------------------------" << std::endl;
+  std::cout << "Statistics in 2D distribution" << std::endl;
+  std::cout << std::endl;
+  std::cout << " bin  |  data | data-signal  " << std::endl;
+  std::cout << "------|-------|--------------" << std::endl;
+  //           "[1,1] |  5995 |    5995.0 
   for (int iB=1; iB<=nBinsNew; ++iB) {
     for (int jB=iB; jB<=nBinsNew; ++jB) {
       double x = hist2D->GetBinContent(iB,jB);
       double x_data = hist2D_data->GetBinContent(iB,jB);
-      printf("[%1i,%1i] = %5i : %7.1f\n",iB,jB,int(x_data),x);
+      printf("[%1i,%1i] | %5i |   %7.1f\n",iB,jB,int(x_data),x);
       
       double elow = TMath::Max(double(0.0),double(-0.5 + TMath::Sqrt(x+0.25)));
       double ehigh = TMath::Max(double(0.0),double(0.5 + TMath::Sqrt(x+0.25)));
@@ -439,6 +440,13 @@ void CorrCoefficientsContamination(
   hist1D_data->Scale(1.0/hist1D_data->GetSumOfWeights());
   hist2D_data->Scale(1.0/hist2D_data->GetSumOfWeights());
   
+  std::cout << std::endl;
+  std::cout << "-------------------------------------------" << std::endl;
+  std::cout << "     Correlation coefficients C(i,j)" << std::endl;
+  std::cout << std::endl;
+  std::cout << " bin  |      data       |    data-signal   " << std::endl;
+  std::cout << "------|-----------------|------------------" << std::endl;
+  //           "[1,1] |  0.99 +/-  0.02 |  0.99 +/-  0.02
   for (int iB=1; iB<=nBinsNew; ++iB) {
     for (int jB=iB; jB<=nBinsNew; ++jB) {
 
@@ -479,7 +487,10 @@ void CorrCoefficientsContamination(
 
   //
   // Plotting correlation coefficients in data with signal subtracted
-  // 
+  //
+  std::cout << std::endl;
+  latexBin->SetTextSize(0.03);
+  latexBin->SetTextFont(32);
   TCanvas * canv1 = MakeCanvas("canv1","",1000,700);
   corrCoeff->Draw("texte");
   for (int iB=1; iB<=nBinsNew; ++iB) {
@@ -528,7 +539,8 @@ void CorrCoefficientsContamination(
 
   //
   // Plotting correlation coefficients in data without signal subtraction
-  // 
+  //
+  std::cout << std::endl;
   TCanvas * canv2 = MakeCanvas("canv2","",1000,700);
   corrCoeff->Draw("texte");
   for (int iB=1; iB<=nBinsNew; ++iB) {
@@ -575,6 +587,7 @@ void CorrCoefficientsContamination(
   else
     canv2->Print(workdir+"/figures/CorrCoefficients_data_"+era+".png");
 
+  std::cout << std::endl;
   // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
   
   TFile * fileCorr = new TFile(workdir+"/CorrCoefficients_data_ma"+Mass+"_"+era+".root","recreate");

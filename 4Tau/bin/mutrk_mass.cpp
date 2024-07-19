@@ -39,6 +39,54 @@
 
 using namespace std;
 
+void PS_histos1D(map<TString,TH1D*> histos,
+		 TString name,
+		 double mass,
+		 double weight,
+		 map<TString,double> psweights,
+		 double prob1,
+		 double prob2,
+		 double pdf1,
+		 double pdf2) {
+
+  vector<TString> UpDown = {"Up","Down"};
+  vector<TString> PSweights = {"ISR","FSR"};
+
+  for (auto psweight : PSweights) {
+    for (auto vary : UpDown) {
+      TString label = psweight + vary;
+      TString histName = name + "_" + label;
+      histos[histName]->Fill(mass,weight*psweights[label]*prob1*prob2*pdf1);
+      histos[histName]->Fill(mass,weight*psweights[label]*prob1*prob2*pdf2);
+    }
+  }
+
+}
+
+void PS_histos2D(map<TString,TH2D*> histos,
+		 TString name,
+		 double mass,
+		 double mass2,
+		 double weight,
+		 map<TString,double> psweights,
+		 double prob1,
+		 double prob2,
+		 double pdf1,
+		 double pdf2) {
+
+  vector<TString> UpDown = {"Up","Down"};
+  vector<TString> PSweights = {"ISR","FSR"};
+
+  for (auto psweight : PSweights) {
+    for (auto vary : UpDown) {
+      TString label = psweight + vary;
+      TString histName = name + "_" + label;
+      histos[histName]->Fill(mass,mass2,weight*psweights[label]*prob1*prob2*pdf1*pdf2);
+    }
+  }
+
+}
+
 int main(int argc, char * argv[]) {
 
   if (argc<2) {
@@ -222,6 +270,7 @@ int main(int argc, char * argv[]) {
   Int_t genjets_status[100];
 
   float genweight;
+  float gen_pythiaweights[20];
 
   float metx;
   float mety;
@@ -434,15 +483,13 @@ int main(int argc, char * argv[]) {
   TH1D * GenJetMultiplicityMuLooseIsoH = new TH1D("GenJetMultiplicityMuLooseIsoH","",20,-0.5,19.5);
   TH1D * deltaRPartonMuLooseIsoH = new TH1D("deltaRPartonMuLooseIsoH","",100,0.,1.);
 
-  // Signal region 
+  // 
+  // Signal region
+  // 
+
+  // Central
   TH1D * InvMassH = new TH1D("InvMassH","",nbins,xbins);
   TH2D * InvMass2DH = new TH2D("InvMass2DH","",nbins,xbins,nbins,xbins);
-
-  TH1D * InvMassScaleUpH = new TH1D("InvMassScaleUpH","",nbins,xbins);
-  TH2D * InvMassScaleUp2DH = new TH2D("InvMassScaleUp2DH","",nbins,xbins,nbins,xbins);
-
-  TH1D * InvMassScaleDownH = new TH1D("InvMassScaleDownH","",nbins,xbins);
-  TH2D * InvMassScaleDown2DH = new TH2D("InvMassScaleDown2DH","",nbins,xbins,nbins,xbins);
 
   TH1D * ClosureInvMassH = new TH1D("ClosureInvMassH","",nbins,xbins);
   TH2D * ClosureInvMass2DH = new TH2D("ClosureInvMass2DH","",nbins,xbins,nbins,xbins);
@@ -470,8 +517,30 @@ int main(int argc, char * argv[]) {
   TH1D * HybridModelInvMass_ControlXH = new TH1D("HybridModelInvMass_ControlXH","",nbins,xbins); 
   TH2D * HybridModelInvMass2D_ControlXH = new TH2D("HybridModelInvMass2D_ControlXH","",nbins,xbins,nbins,xbins);
 
-
-
+  
+  vector<TString> PSweights = {"ISR","FSR"};
+  vector<TString> UpDown = {"Up","Down"};
+  vector<TString> RegionNames = {"H","_ControlYH","_ControlXH"};
+  vector<TString> HistoNames = {"InvMass","ClosureInvMass","HybridModelInvMass"};
+  
+  map<TString,TH1D*> InvMass_Scales;
+  map<TString,TH2D*> InvMass2D_Scales;
+  
+  // PS variations
+  for (auto histoName : HistoNames) {
+    for (auto regionName : RegionNames) {
+      for (auto psWeight : PSweights) {
+	for (auto vary : UpDown) {
+	  TString histName1D = histoName+regionName+"_"+psWeight+vary; 
+	  TString histName2D = histoName+"2D"+regionName+"_"+psWeight+vary;
+	  InvMass_Scales[histName1D] = new TH1D(histName1D,"",nbins,xbins);
+	  InvMass2D_Scales[histName2D] = new TH2D(histName2D,"",nbins,xbins,nbins,xbins);
+	}
+      }
+    }
+  }
+  
+  
   // for muons selected with same-sign requirement
   // probability to pass selection as a function of
   // flavour, net charged (mu,parton), parton P, muon pT
@@ -741,6 +810,8 @@ int main(int argc, char * argv[]) {
    tree_->SetBranchAddress("genparticles_status", genparticles_status);
    tree_->SetBranchAddress("genparticles_info", genparticles_info);
 
+   tree_->SetBranchAddress("gen_pythiaweights",gen_pythiaweights);
+   
    int numberOfCandidates = tree_->GetEntries();
 
    std::cout << "number of events = " << numberOfCandidates << std::endl;
@@ -768,6 +839,25 @@ int main(int argc, char * argv[]) {
        std::cout << std::endl;
        std::cout << "B-tagging " << std::endl;
      }
+
+     float psweightCentral = TMath::Max(float(1e-2),gen_pythiaweights[0]);
+     map<TString,double> psweights;
+     psweights["ISRDown"] = TMath::Max(float(0.1),TMath::Min(float(4.9),gen_pythiaweights[8]/psweightCentral));
+     psweights["ISRUp"] = 1.0/psweights["ISRDown"];
+     psweights["FSRDown"] = TMath::Max(float(0.1),TMath::Min(float(4.9),gen_pythiaweights[4]/psweightCentral));
+     psweights["FSRUp"] = 1.0/psweights["FSRDown"];;
+
+     std::cout << "Checking psweights " << std::endl;
+     std::cout << "gen_pythiaweight[0] = " << gen_pythiaweights[0] << std::endl; 
+     std::cout << "gen_pythiaweight[4] = " << gen_pythiaweights[4] << std::endl; 
+     std::cout << "gen_pythiaweight[5] = " << gen_pythiaweights[5] << std::endl; 
+     for (auto psweight : psweights) {
+       TString psname = psweight.first;
+       double psvalue = psweight.second;
+       std::cout << psname << " : " << psvalue << std::endl;
+
+     }
+     std::cout << std::endl;
      
      if (ApplyBTagVeto) {
 
@@ -1559,11 +1649,15 @@ int main(int argc, char * argv[]) {
 	   double pdf1 = qcdModel->getMassPdf(partmom1,muonmom1,ireg,flavour1,net1,imass,false);
 	   double pdf2 = qcdModel->getMassPdf(partmom2,muonmom2,ireg,flavour2,net2,imass,false);
 	   ClosureInvMassH->Fill(mass,weight*prob1*prob2*pdf1);
-	   ClosureInvMassH->Fill(mass,weight*prob1*prob2*pdf2);	 
+	   ClosureInvMassH->Fill(mass,weight*prob1*prob2*pdf2);
+	   PS_histos1D(InvMass_Scales,"ClosureInvMassH",
+		       mass,weight,psweights,prob1,prob2,pdf1,pdf2);
 	   for (unsigned int imass2=1; imass2<=nbins; ++imass2) {
 	     double mass2 = massHist->GetBinCenter(imass2);;
 	     pdf2 = qcdModel->getMassPdf(partmom2,muonmom2,ireg,flavour2,net2,imass2,false);
 	     ClosureInvMass2DH->Fill(mass,mass2,weight*prob1*prob2*pdf1*pdf2);
+	     PS_histos2D(InvMass2D_Scales,"ClosureInvMass2DH",
+			 mass,mass2,weight,psweights,prob1,prob2,pdf1,pdf2);
 	   }
 	 }
 
@@ -1574,11 +1668,15 @@ int main(int argc, char * argv[]) {
 	   double pdf1 = qcdModel->getMassPdf(partmom1,muonmom1,ireg,flavour1,net1,imass,true);
 	   double pdf2 = qcdModel->getMassPdf(partmom2,muonmom2,ireg,flavour2,net2,imass,true);
 	   HybridModelInvMassH->Fill(mass,weight*prob1*prob2*pdf1);
-	   HybridModelInvMassH->Fill(mass,weight*prob1*prob2*pdf2);	 
+	   HybridModelInvMassH->Fill(mass,weight*prob1*prob2*pdf2);
+	   PS_histos1D(InvMass_Scales,"HybridModelInvMassH",
+		       mass,weight,psweights,prob1,prob2,pdf1,pdf2);
 	   for (unsigned int imass2=1; imass2<=nbins; ++imass2) {
 	     double mass2 = massHist->GetBinCenter(imass2);
 	     pdf2 = qcdModel->getMassPdf(partmom2,muonmom2,ireg,flavour2,net2,imass2,true);
 	     HybridModelInvMass2DH->Fill(mass,mass2,weight*prob1*prob2*pdf1*pdf2);
+	     PS_histos2D(InvMass2D_Scales,"HybridModelInvMass2DH",
+			 mass,mass2,weight,psweights,prob1,prob2,pdf1,pdf2);
 	   }
 	 }
 	 
@@ -1592,10 +1690,14 @@ int main(int argc, char * argv[]) {
 	   double pdf2 = qcdModel->getMassPdf(partmom2,muonmom2,ireg,flavour2,net2,imass,true);
 	   InvMassH->Fill(mass,weight*prob1*prob2*pdf1);
 	   InvMassH->Fill(mass,weight*prob1*prob2*pdf2);	 
+	   PS_histos1D(InvMass_Scales,"InvMassH",
+		       mass,weight,psweights,prob1,prob2,pdf1,pdf2);
 	   for (unsigned int imass2=1; imass2<=nbins; ++imass2) {
 	     double mass2 = massHist->GetBinCenter(imass2);
 	     pdf2 = qcdModel->getMassPdf(partmom2,muonmom2,ireg,flavour2,net2,imass2,true);
 	     InvMass2DH->Fill(mass,mass2,weight*prob1*prob2*pdf1*pdf2);
+	     PS_histos2D(InvMass2D_Scales,"InvMass2DH",
+			 mass,mass2,weight,psweights,prob1,prob2,pdf1,pdf2);
 	   }
 	 }
 
@@ -1612,16 +1714,25 @@ int main(int argc, char * argv[]) {
 	       double pdf2 = qcdModel->getMassPdf(partmom2,muonmom2,ireg2,flavour2,net2,imass,false);
 	       ClosureInvMass_ControlYH->Fill(mass,weight*prob1*prob2*pdf1);
 	       ClosureInvMass_ControlYH->Fill(mass,weight*prob1*prob2*pdf2);
+	       PS_histos1D(InvMass_Scales,"ClosureInvMass_ControlYH",
+			   mass,weight,psweights,prob1,prob2,pdf1,pdf2);
 	       if (ireg1==0&&ireg2==0) {
 		 ClosureInvMass_ControlXH->Fill(mass,weight*prob1*prob2*pdf1);
 		 ClosureInvMass_ControlXH->Fill(mass,weight*prob1*prob2*pdf2);
+		 PS_histos1D(InvMass_Scales,"ClosureInvMass_ControlXH",
+			     mass,weight,psweights,prob1,prob2,pdf1,pdf2);
 	       }
 	       for (unsigned int imass2=1; imass2<=nbins; ++imass2) {
 		 double mass2 = massHist->GetBinCenter(imass2);
 		 pdf2 = qcdModel->getMassPdf(partmom2,muonmom2,ireg2,flavour2,net2,imass2,false);
 		 ClosureInvMass2D_ControlYH->Fill(mass,mass2,weight*prob1*prob2*pdf1*pdf2);
-		 if (ireg1==0&&ireg2==0)
+		 PS_histos2D(InvMass2D_Scales,"ClosureInvMass2D_ControlYH",
+			     mass,mass2,weight,psweights,prob1,prob2,pdf1,pdf2);
+		 if (ireg1==0&&ireg2==0) {
 		   ClosureInvMass2D_ControlXH->Fill(mass,mass2,weight*prob1*prob2*pdf1*pdf2);
+		   PS_histos2D(InvMass2D_Scales,"ClosureInvMass2D_ControlXH",
+			       mass,mass2,weight,psweights,prob1,prob2,pdf1,pdf2);
+		 }
 	       }
 	     }
 	   }
@@ -1640,16 +1751,25 @@ int main(int argc, char * argv[]) {
 	       double pdf2 = qcdModel->getMassPdf(partmom2,muonmom2,ireg2,flavour2,net2,imass,true);
 	       HybridModelInvMass_ControlYH->Fill(mass,weight*prob1*prob2*pdf1);
 	       HybridModelInvMass_ControlYH->Fill(mass,weight*prob1*prob2*pdf2);
+	       PS_histos1D(InvMass_Scales,"HybridModelInvMass_ControlYH",
+			   mass,weight,psweights,prob1,prob2,pdf1,pdf2);
 	       if (ireg1==0&&ireg2==0) {
 		 HybridModelInvMass_ControlXH->Fill(mass,weight*prob1*prob2*pdf1);
 		 HybridModelInvMass_ControlXH->Fill(mass,weight*prob1*prob2*pdf2);
+		 PS_histos1D(InvMass_Scales,"HybridModelInvMass_ControlXH",
+			     mass,weight,psweights,prob1,prob2,pdf1,pdf2);
 	       }
 	       for (unsigned int imass2=1; imass2<=nbins; ++imass2) {
 		 double mass2 = massHist->GetBinCenter(imass2);
 		 pdf2 = qcdModel->getMassPdf(partmom2,muonmom2,ireg2,flavour2,net2,imass2,true);
 		 HybridModelInvMass2D_ControlYH->Fill(mass,mass2,weight*prob1*prob2*pdf1*pdf2);
-		 if (ireg1==0&&ireg2==0)
+		 PS_histos2D(InvMass2D_Scales,"HybridModelInvMass2D_ControlYH",
+			     mass,mass2,weight,psweights,prob1,prob2,pdf1,pdf2);
+		 if (ireg1==0&&ireg2==0) {
 		   HybridModelInvMass2D_ControlXH->Fill(mass,mass2,weight*prob1*prob2*pdf1*pdf2);
+		   PS_histos2D(InvMass2D_Scales,"HybridModelInvMass2D_ControlXH",
+			     mass,mass2,weight,psweights,prob1,prob2,pdf1,pdf2);
+		 }
 	       }
 	     }
 	   }
@@ -1668,22 +1788,29 @@ int main(int argc, char * argv[]) {
 	       double pdf2 = qcdModel->getMassPdf(partmom2,muonmom2,ireg2,flavour2,net2,imass,true);
 	       InvMass_ControlYH->Fill(mass,weight*prob1*prob2*pdf1);
 	       InvMass_ControlYH->Fill(mass,weight*prob1*prob2*pdf2);
+	       PS_histos1D(InvMass_Scales,"InvMass_ControlYH",
+			   mass,weight,psweights,prob1,prob2,pdf1,pdf2);
 	       if (ireg1==0&&ireg2==0) {
 		 InvMass_ControlXH->Fill(mass,weight*prob1*prob2*pdf1);
 		 InvMass_ControlXH->Fill(mass,weight*prob1*prob2*pdf2);
+		 PS_histos1D(InvMass_Scales,"InvMass_ControlXH",
+			     mass,weight,psweights,prob1,prob2,pdf1,pdf2);
 	       }
 	       for (unsigned int imass2=1; imass2<=nbins; ++imass2) {
 		 double mass2 = massHist->GetBinCenter(imass2);
 		 pdf2 = qcdModel->getMassPdf(partmom2,muonmom2,ireg2,flavour2,net2,imass2,true);
 		 InvMass2D_ControlYH->Fill(mass,mass2,weight*prob1*prob2*pdf1*pdf2);
+		 PS_histos2D(InvMass2D_Scales,"InvMass2D_ControlYH",
+			     mass,mass2,weight,psweights,prob1,prob2,pdf1,pdf2);
 		 if (ireg1==0&&ireg2==0) {
 		   InvMass2D_ControlXH->Fill(mass,mass2,weight*prob1*prob2*pdf1*pdf2);
+		   PS_histos2D(InvMass2D_Scales,"InvMass2D_ControlXH",
+			       mass,mass2,weight,psweights,prob1,prob2,pdf1,pdf2);
 		 }
 	       }
 	     }
 	   }
 	 }
-
 
 
        }

@@ -5,6 +5,37 @@
 //  TH2D * hist2Dold = (TH2D*)file->Get("InvMassTrackPlusMuon2D_"+Suffix);
 //  TH1D * hist1Dold = (TH1D*)file->Get("ModelInvMassH");
 //  TH2D * hist2Dold = (TH2D*)file->Get("ModelInvMass2DH");
+// Systematic uncertainty (parton shower scale) 
+// parameterized for convenience as a function of (mu,trk) mass
+
+double sysUnc(double mass,
+	      TString era,
+	      bool isISR) {
+  double alpha = 0.031;
+  double beta = 12.2;
+  if (isISR) {
+    alpha = 0.027;
+    beta = 12.4;
+  }
+  if (era=="2017") {
+    alpha = 0.029;
+    beta = 11.5;
+    if (isISR) {
+      alpha = 0.025;
+      beta = 13.0;
+    }
+  }
+  else if (era=="2018") {
+    alpha = 0.027;
+    beta = 12.7;
+    if (isISR) {
+      alpha = 0.024;
+      beta = 13.8;
+    }
+  }
+  return 1.0+alpha*TMath::Exp(mass/beta);    
+
+} 
 
 void CorrCoefficientsMC_Run2(
 			     bool signalRegion = false,
@@ -168,9 +199,6 @@ void CorrCoefficientsMC_Run2(
       hist2D->Add(hist2D,hist2DSample);
     }
   }
-
-
-
 
 
   TH2D * corrCoeff = new TH2D("corrCoeff","",nBinsNew,binsCorr,nBinsNew,binsCorr);

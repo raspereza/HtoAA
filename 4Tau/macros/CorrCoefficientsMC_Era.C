@@ -7,23 +7,63 @@
 //  TH2D * hist2Dold = (TH2D*)file->Get("ModelInvMass2DH");
 
 // Systematic uncertainty (parton shower scale) 
-// parameterized as a function of (mu,trk) mass
+// parameterized for convenience as a function of (mu,trk) mass
 double sysUnc(double mass,
-	      TString era) {
-  double alpha = 0.017;
-  double beta = 10.2;
+	      TString era,
+	      bool isISR) {
+
+  double alpha = 0.015;
+  double beta = 12.2;
+  if (isISR) {
+    alpha = 0.014;
+    beta = 21.6;
+  }
   if (era=="2017") {
-    alpha = 0.018;
-    beta = 11.5;
+    alpha = 0.017;
+    beta = 12.5;
+    if (isISR) {
+      alpha = 0.015;
+      beta = 20.2;
+    }
   }
   else if (era=="2018") {
-    alpha = 0.013;
-    beta = 13.0;
+    alpha = 0.017;
+    beta = 12.7;
+    if (isISR) {
+      alpha = 0.016;
+      beta = 20.8;
+    }
   }
-  return alpha*TMath::Exp(mass/beta);    
+  return 1.0+alpha*TMath::Exp(mass/beta);    
 
-} 
+}
+// routine to create systematic templates related to
+// PS shower scale variations
+void ScalePS(TString era,
+	     TH2D * histUp,
+	     TH2D * histDown,
+	     bool isISR) {
 
+  int nBins = histUp->GetNbinsX();
+  for (int iB=1; iB<=nBins; ++iB) {
+    for (int jB=1; jB<=nBins; ++jB) {
+      double massX = histUp->GetXaxis()->GetBinCenter(iB);
+      double massY = histUp->GetYaxis()->GetBinCenter(jB);
+      double uncX = sysUnc(massX,era,isISR);
+      double uncY = sysUnc(massY,era,isISR);
+      double corrUp = uncX*uncY;
+      double corrDown = 1.0/corrUp;
+      double nUp = corrUp*histUp->GetBinContent(iB,jB);
+      double nDown = corrDown*histDown->GetBinContent(iB,jB);
+      histUp->SetBinContent(iB,jB,nUp);
+      histDown->SetBinContent(iB,jB,nDown);
+    }
+  }
+  
+}
+
+
+// routine to retrieve correlation coefficients
 void GetCorrCoeff(TH1D * hist1D, TH2D * hist2D, int iB, int jB, double * output) {
 
   double x = hist1D->GetBinContent(iB);
@@ -63,16 +103,18 @@ void GetCorrCoeff(TH1D * hist1D, TH2D * hist2D, int iB, int jB, double * output)
 
 void CorrCoefficientsMC_Era(
 			    TString era = "2018",
-			    bool signalRegion = false,
-			    bool extendedSideband = false,
-			    bool applySystematics = false
+			    bool signalRegion = true,
+			    bool extendedSideband = false
 			    ) {
   
   TString folderQCD = "/nfs/dust/cms/user/rasp/Run/QCDModel";
   TString folderNonQCD = "/nfs/dust/cms/user/sreelatl/Analyses/H2aa_4tau/Run2/Jul24";
   // new definition of LooseIso : Nsig==1 AND (Niso==3 OR Niso==4)
   TString subfolder = "bin5p2_v3"; // for binning [0,1,2,3,4,5.2,12] 
-
+  
+  TString pwd = std::getenv("PWD");
+  TString folderFigures = pwd + "/figures"; 
+  
   std::cout << std::endl;
   if (signalRegion) {
     std::cout << "+++++ Signal region +++++" << std::endl;
@@ -185,9 +227,7 @@ void CorrCoefficientsMC_Era(
     32.3486*0.14552
   };
 
-  std::cout << std::endl;
   std::cout << "folder with QCD samples : " << folderQCD << std::endl;
-  std::cout << std::endl;
   
   for (auto sample : samples) {
     std::cout << std::endl;
@@ -268,9 +308,7 @@ void CorrCoefficientsMC_Era(
     12.19
   };
 
-  std::cout << std::endl;
   std::cout << "folder with non-QCD samples : " << folderNonQCD << std::endl;
-  std::cout << std::endl;
   
   TH1D * hist1D_nonQCD;
   TH2D * hist2D_nonQCD;
@@ -324,11 +362,31 @@ void CorrCoefficientsMC_Era(
     }
   }
 
+  // nonQCD fraction variations
+  TH1D * hist1D_nonQCDUp = (TH1D*)hist1D->Clone("hist1D_nonQCDUp");
+  TH1D * hist1D_nonQCDDown = (TH1D*)hist1D->Clone("hist1D_nonQCDDown");
+  TH2D * hist2D_nonQCDUp = (TH2D*)hist2D->Clone("hist1D_nonQCDUp");
+  TH2D * hist2D_nonQCDDown = (TH2D*)hist2D->Clone("hist1D_nonQCDDown");
+
+  // +/- 50% variations in nonQCD fraction
+  hist1D_nonQCDUp->Add(hist1D_nonQCDUp,hist1D_nonQCD,1.,0.5);
+  hist1D_nonQCDDown->Add(hist1D_nonQCDDown,hist1D_nonQCD,1.,-0.5);
+  hist2D_nonQCDUp->Add(hist2D_nonQCDUp,hist2D_nonQCD,1.,0.5);
+  hist2D_nonQCDDown->Add(hist2D_nonQCDDown,hist2D_nonQCD,1.,-0.5);
+  
+  // PS scale variations
+  TH2D * hist2D_FSRUp   = (TH2D*)hist2D->Clone("hist2D_FSRUp");
+  TH2D * hist2D_FSRDown = (TH2D*)hist2D->Clone("hist2D_FSRDown");
+  TH2D * hist2D_ISRUp   = (TH2D*)hist2D->Clone("hist2D_ISRUp");
+  TH2D * hist2D_ISRDown = (TH2D*)hist2D->Clone("hist2D_ISRDown");
+
+  ScalePS(era,hist2D_ISRUp,hist2D_ISRDown,true);
+  ScalePS(era,hist2D_FSRUp,hist2D_FSRDown,false);
+  
   std::cout << std::endl;
-  std::cout << "----------------------------" << std::endl;
-  std::cout << std::endl;
-  std::cout << "Checksum 1D distribution    " << std::endl;
-  std::cout << std::endl;
+  std::cout << "-------------------------" << std::endl;
+  std::cout << "Checksum 1D distribution " << std::endl;
+  std::cout << "-------------------------" << std::endl;
   for (int iB=1; iB<=nBinsNew; ++iB) {
     double x_QCD = hist1D_qcdonly->GetBinContent(iB);
     double x_nonQCD = hist1D_nonQCD->GetBinContent(iB);
@@ -339,12 +397,10 @@ void CorrCoefficientsMC_Era(
     printf("%1i : %5.3f + %5.3f = %5.3f\n",iB,f_QCD,f_nonQCD,f_total);
   }
 
-  
   std::cout << std::endl;
-  std::cout << std::endl;
-  std::cout << "----------------------------" << std::endl;
-  std::cout << "Checksum 2D distribution    " << std::endl;
-  std::cout << std::endl;
+  std::cout << "-----------------------------" << std::endl;
+  std::cout << "Checksum 2D distribution     " << std::endl;
+  std::cout << "-----------------------------" << std::endl;
   TH2D * purity2D  = new TH2D("purity2D","",nBinsNew,binsCorr,nBinsNew,binsCorr);
   for (int iB=1; iB<=nBinsNew; ++iB) {
     for (int jB=iB; jB<=nBinsNew; ++jB) {
@@ -373,41 +429,158 @@ void CorrCoefficientsMC_Era(
   TH2D * corrCoeff = new TH2D("corrCoeffH","",nBinsNew,binsCorr,nBinsNew,binsCorr);
   TH2D * corrCoeffX = new TH2D("corrCoeffX","",nBinsNew,bins,nBinsNew,bins);
   TH2D * corrCoeffX_qcdonly = new TH2D("corrCoeffX_qcdonly","",nBinsNew,bins,nBinsNew,bins);
+  TH2D * corrCoeffX_nonQCDUp = new TH2D("corrCoeffX_nonQCDUp","",nBinsNew,bins,nBinsNew,bins);
+  TH2D * corrCoeffX_nonQCDDown = new TH2D("corrCoeffX_nonQCDDown","",nBinsNew,bins,nBinsNew,bins);
+  TH2D * corrCoeffX_ISRUp = new TH2D("corrCoeffX_ISRUp","",nBinsNew,bins,nBinsNew,bins);
+  TH2D * corrCoeffX_ISRDown = new TH2D("corrCoeffX_ISRDown","",nBinsNew,bins,nBinsNew,bins);
+  TH2D * corrCoeffX_FSRUp = new TH2D("corrCoeffX_FSRUp","",nBinsNew,bins,nBinsNew,bins);
+  TH2D * corrCoeffX_FSRDown = new TH2D("corrCoeffX_FSRDown","",nBinsNew,bins,nBinsNew,bins);
 
+  
   hist1D->Scale(1/hist1D->GetSumOfWeights());
   hist2D->Scale(1/hist2D->GetSumOfWeights());
 
   hist1D_qcdonly->Scale(1/hist1D_qcdonly->GetSumOfWeights());
   hist2D_qcdonly->Scale(1/hist2D_qcdonly->GetSumOfWeights());
+
+  hist2D_FSRUp->Scale(1/hist2D_FSRUp->GetSumOfWeights());
+  hist2D_FSRDown->Scale(1/hist2D_FSRDown->GetSumOfWeights());
+  
+  hist2D_ISRUp->Scale(1/hist2D_ISRUp->GetSumOfWeights());
+  hist2D_ISRDown->Scale(1/hist2D_ISRDown->GetSumOfWeights());
+
+  hist1D_nonQCDUp->Scale(1/hist1D_nonQCDUp->GetSumOfWeights());
+  hist1D_nonQCDDown->Scale(1/hist1D_nonQCDDown->GetSumOfWeights());
+  
+  hist2D_nonQCDUp->Scale(1/hist2D_nonQCDUp->GetSumOfWeights());
+  hist2D_nonQCDDown->Scale(1/hist2D_nonQCDDown->GetSumOfWeights());
   
   std::cout << std::endl;
-  std::cout << "C(i,j)      total bkg    :      QCD only" << std::endl;
-  std::cout << std::endl;
+  std::cout << "-------------------------------------------" << std::endl;
+  std::cout << "C(i,j)      total bkg    :      QCD only   " << std::endl;
+  std::cout << "-------------------------:-----------------" << std::endl;
   for (int iB=1; iB<=nBinsNew; ++iB) {
     for (int jB=iB; jB<=nBinsNew; ++jB) {
       double output[2];
+
       GetCorrCoeff(hist1D,hist2D,iB,jB,output);
       double corr  = output[0];
       double ecorr = output[1];
+
       GetCorrCoeff(hist1D_qcdonly,hist2D_qcdonly,iB,jB,output);
       double corr_qcdonly  = output[0];
       double ecorr_qcdonly = output[1];
+
+      GetCorrCoeff(hist1D,hist2D_FSRUp,iB,jB,output);
+      double corr_fsrUp = output[0];
+      double ecorr_fsrUp = output[1];
+
+      GetCorrCoeff(hist1D,hist2D_FSRDown,iB,jB,output);
+      double corr_fsrDown = output[0];
+      double ecorr_fsrDown = output[1];
+
+      GetCorrCoeff(hist1D,hist2D_ISRUp,iB,jB,output);
+      double corr_isrUp = output[0];
+      double ecorr_isrUp = output[1];
+
+      GetCorrCoeff(hist1D,hist2D_ISRDown,iB,jB,output);
+      double corr_isrDown = output[0];
+      double ecorr_isrDown = output[1];
+
+      GetCorrCoeff(hist1D_nonQCDUp,hist2D_nonQCDUp,iB,jB,output);
+      double corr_nonQCDUp = output[0];
+      double ecorr_nonQCDUp = output[1];
+
+      GetCorrCoeff(hist1D_nonQCDDown,hist2D_nonQCDDown,iB,jB,output);
+      double corr_nonQCDDown = output[0];
+      double ecorr_nonQCDDown = output[1];
+
       printf("[%1i,%1i] = %5.2f +/- %5.2f  :  %5.2f +/- %5.2f\n",
 	     iB,jB,corr,ecorr,corr_qcdonly,ecorr_qcdonly);
+
       corrCoeffX->SetBinContent(iB,jB,corr);
       corrCoeffX->SetBinError(iB,jB,ecorr);
-      corrCoeffX->SetBinContent(iB,jB,corr);
-      corrCoeffX->SetBinError(iB,jB,ecorr);
+
       corrCoeffX_qcdonly->SetBinContent(iB,jB,corr_qcdonly);
       corrCoeffX_qcdonly->SetBinError(iB,jB,ecorr_qcdonly);
+
+      corrCoeffX_FSRUp->SetBinContent(iB,jB,corr_fsrUp);
+      corrCoeffX_FSRUp->SetBinError(iB,jB,ecorr_fsrUp);
+
+      corrCoeffX_FSRDown->SetBinContent(iB,jB,corr_fsrDown);
+      corrCoeffX_FSRDown->SetBinError(iB,jB,ecorr_fsrDown);
+
+      corrCoeffX_ISRUp->SetBinContent(iB,jB,corr_isrUp);
+      corrCoeffX_ISRUp->SetBinError(iB,jB,ecorr_isrUp);
+
+      corrCoeffX_ISRDown->SetBinContent(iB,jB,corr_isrDown);
+      corrCoeffX_FSRDown->SetBinError(iB,jB,ecorr_isrDown);
+
+      corrCoeffX_nonQCDUp->SetBinContent(iB,jB,corr_nonQCDUp);
+      corrCoeffX_nonQCDUp->SetBinError(iB,jB,ecorr_nonQCDUp);
+
+      corrCoeffX_nonQCDDown->SetBinContent(iB,jB,corr_nonQCDDown);
+      corrCoeffX_nonQCDDown->SetBinError(iB,jB,ecorr_nonQCDDown);
+
+      
     }
   }
 
   std::cout << std::endl;
-  std::cout << "-------------------------------------" << std::endl;
+  std::cout << "-------------------------------" << std::endl;
+  std::cout << "C(i,j) PS ISR scale variations " << std::endl;
+  std::cout << "-------------------------------" << std::endl;
+  for (int iB=1; iB<=nBinsNew; ++iB) {
+    for (int jB=iB; jB<=nBinsNew; ++jB) {
+
+      double central = corrCoeffX->GetBinContent(iB,jB);
+      double up = corrCoeffX_ISRUp->GetBinContent(iB,jB) - central;
+      double down = corrCoeffX_ISRDown->GetBinContent(iB,jB) - central;
+      
+      printf("[%1i,%1i] = %5.2f | %6.2f | %6.2f\n",
+	     iB,jB,central,up,down);
+
+    }
+  }
+
   std::cout << std::endl;
-  std::cout << "Fraction of non-QCD bkg " << std::endl;
+  std::cout << "-------------------------------" << std::endl;
+  std::cout << "C(i,j) PS FSR scale variations " << std::endl;
+  std::cout << "-------------------------------" << std::endl;
+  for (int iB=1; iB<=nBinsNew; ++iB) {
+    for (int jB=iB; jB<=nBinsNew; ++jB) {
+
+      double central = corrCoeffX->GetBinContent(iB,jB);
+      double up = corrCoeffX_FSRUp->GetBinContent(iB,jB) - central;
+      double down = corrCoeffX_FSRDown->GetBinContent(iB,jB) - central;
+      
+      printf("[%1i,%1i] = %5.2f | %6.2f | %6.2f\n",
+	     iB,jB,central,up,down);
+
+    }
+  }
+
   std::cout << std::endl;
+  std::cout << "-------------------------------" << std::endl;
+  std::cout << "C(i,j) nonQCD frac. variations " << std::endl;
+  std::cout << "-------------------------------" << std::endl;
+  for (int iB=1; iB<=nBinsNew; ++iB) {
+    for (int jB=iB; jB<=nBinsNew; ++jB) {
+
+      double central = corrCoeffX->GetBinContent(iB,jB);
+      double up = corrCoeffX_nonQCDUp->GetBinContent(iB,jB) - central;
+      double down = corrCoeffX_nonQCDDown->GetBinContent(iB,jB) - central;
+      
+      printf("[%1i,%1i] = %5.2f | %6.2f | %6.2f\n",
+	     iB,jB,central,up,down);
+
+    }
+  }
+
+  std::cout << std::endl;
+  std::cout << "-----------------------" << std::endl;
+  std::cout << "Fraction of non-QCD bkg" << std::endl;
+  std::cout << "-----------------------" << std::endl;
   
   for (int iB=1; iB<=nBinsNew; ++iB) {
     for (int jB=iB; jB<=nBinsNew; ++jB) {
@@ -479,8 +652,8 @@ void CorrCoefficientsMC_Era(
     suffix = "signal";
   suffix += "_mc";
   
-  canv0->Print("CorrCoefficients_"+suffix+"_"+era+".png");
-
+  canv0->Print(folderFigures+"/CorrCoefficients_"+suffix+"_"+era+".png");
+  std::cout << std::endl;
   
   //
   // total background
@@ -521,8 +694,8 @@ void CorrCoefficientsMC_Era(
   extraText = "Simulation";  
   CMS_lumi(canv1,4,33);  
   canv1->Update();
-  canv1->Print("CorrCoefficients_"+suffix+"_qcdonly_"+era+".png");
-
+  canv1->Print(folderFigures+"/CorrCoefficients_"+suffix+"_qcdonly_"+era+".png");
+  std::cout << std::endl;
   
   //
   // purity
@@ -576,14 +749,29 @@ void CorrCoefficientsMC_Era(
   extraText = "Simulation";  
   CMS_lumi(canv2,4,33);  
   canv2->Update();
-  canv2->Print("purityQCD_"+suffix+"_"+era+".png");
+  canv2->Print(folderFigures+"/purityQCD_"+suffix+"_"+era+".png");
+  std::cout << std::endl;
 
+  // -------------------------------------------------------------
+  // Saving C(i,j) to RooT file
   TString outputName = "CorrCoefficients_"+suffix+"_"+era+".root";
   TFile * fileCorr = new TFile(outputName,"recreate");
   fileCorr->cd("");
-  corrCoeffX->Write("corrCoeff");
-  corrCoeffX_qcdonly->Write("corrCoeff_qcdonly");
-  fileCorr->Close();
 
+  corrCoeffX->Write("corrCoeff");
+
+  corrCoeffX_nonQCDUp->Write("corrCoeff_nonQCDUp");
+  corrCoeffX_nonQCDDown->Write("corrCoeff_nonQCDDown");
+
+  corrCoeffX_FSRUp->Write("corrCoeff_FSRUp");
+  corrCoeffX_FSRDown->Write("corrCoeff_FSRDown");
+  
+  corrCoeffX_ISRUp->Write("corrCoeff_ISRUp");
+  corrCoeffX_ISRDown->Write("corrCoeff_ISRDown");
+  
+  corrCoeffX_qcdonly->Write("corrCoeff_qcdonly");
+
+  fileCorr->Close();
+  // ---------------------------------------------------------------
 
 }

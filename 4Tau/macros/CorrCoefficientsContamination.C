@@ -34,7 +34,7 @@ void GetCorrCoeff(TH1D * hist1D, TH2D * hist2D, int iB, int jB, double * output)
 }
 
 void CorrCoefficientsContamination(
-				   TString era = "2016", // 2016, 2016_preVFP, 2016_postVFP, 2017, 2018
+				   TString era = "2017", // 2016, 2016_preVFP, 2016_postVFP, 2017, 2018
 				   int mass = 10, // ma = 4-15 (GeV)
 				   bool extendedSideBand = false // extended sideband
 				   ) {

@@ -7,7 +7,48 @@ std::map<TString, double> eraLumi = {
   {"2018", 59830}
 };
 
-std::map<TString, double> CalculateNormFactors(const TString& dir, const std::map<TString, TString>& signalProcess, const TString& mass, const TString& era) {
+std::map<TString, double> CalculateAcceptances(const TString& dir, const std::map<TString, TString>& signalProcess, const TString& mass, const std::vector<TString>& group) {
+    std::map<TString, double> acceptances;
+
+    for (const auto& process : signalProcess) {
+        double sumOfWeights = 0;
+        double ngen = 0;
+        
+        for (const auto& era : group) {
+            TString filePath = dir + "/" + era + "/" + process.second + mass + ".root";
+            TFile* file = TFile::Open(filePath, "READ");
+            if (!file || file->IsZombie()) {
+                std::cerr << "Failed to open file: " << filePath << std::endl;
+                continue;
+            }
+
+            TH1D* histWeights = dynamic_cast<TH1D*>(file->Get("histWeightsH"));
+            TH2D* histSignal = dynamic_cast<TH2D*>(file->Get("InvMass2DH"));
+            if (!histWeights || !histSignal) {
+                std::cerr << "Failed to extract histogram from file: " << filePath << std::endl;
+                file->Close();
+                delete file;
+                continue;
+            }
+
+            ngen += histWeights->GetSumOfWeights();
+            sumOfWeights += histSignal->GetSumOfWeights();
+
+            file->Close();
+            delete file;
+        }
+
+        if (ngen > 0) {
+            acceptances[process.first] = sumOfWeights / ngen;
+        } else {
+            acceptances[process.first] = 0;
+        }
+    }
+
+    return acceptances;
+}
+
+std::map<TString, double> CalculateNormFactors(const TString& dir, const std::map<TString, TString>& signalProcess, const TString& mass, const TString& era, const std::map<TString, double>& acceptance4tau) {
 
         double xsecGGH = 48.61;
 	double xsecVBF = 3.766;
@@ -20,7 +61,13 @@ std::map<TString, double> CalculateNormFactors(const TString& dir, const std::ma
 	double massRatio = (massMu * massMu) / (massTau * massTau);
 	double aF = 2 * massTau / massD;
 	double SF = 2 * massRatio / TMath::Sqrt(1 - aF * aF);
-	double xsecMMTT = (xsecGGH + xsecVBF + xsecVH + xsecTTH) * SF;
+
+	double combinedMMTTXsec = xsecGGH +
+	                          xsecVBF * (acceptance4tau.at("VBF") / acceptance4tau.at("GGH")) +
+        	                  xsecVH * (acceptance4tau.at("VH") / acceptance4tau.at("GGH")) +
+                	          xsecTTH * (acceptance4tau.at("TTH") / acceptance4tau.at("GGH"));
+
+	double xsecMMTT = combinedMMTTXsec * SF;
 
 	std::map<TString, double> normFactors;
 
@@ -58,7 +105,7 @@ std::map<TString, double> CalculateNormFactors(const TString& dir, const std::ma
     	return normFactors;
 }
 
-double signalXSec(const TString& process, const TString& mass) {
+double signalXSec(const TString& process, const TString& mass, const std::map<TString, double>& acceptance4tau) {
    
   double xsecGGH = 48.61;
   double xsecVBF = 3.766;
@@ -71,7 +118,13 @@ double signalXSec(const TString& process, const TString& mass) {
   double massRatio = (massMu * massMu) / (massTau * massTau);
   double aF = 2 * massTau / massD;
   double SF = 2 * massRatio / TMath::Sqrt(1 - aF * aF);
-  double xsecMMTT = (xsecGGH + xsecVBF + xsecVH + xsecTTH) * SF;
+
+  double combinedMMTTXsec = xsecGGH +
+                            xsecVBF * (acceptance4tau.at("VBF") / acceptance4tau.at("GGH")) +
+                            xsecVH * (acceptance4tau.at("VH") / acceptance4tau.at("GGH")) +
+                            xsecTTH * (acceptance4tau.at("TTH") / acceptance4tau.at("GGH"));
+
+  double xsecMMTT = combinedMMTTXsec * SF;
 
   double xsec = 0.;
   if (process=="GGH")
@@ -89,13 +142,13 @@ double signalXSec(const TString& process, const TString& mass) {
 
 }
 
-std::map<TString, TH2D*> GetHistograms(const TString& dir, const std::map<TString, TString>& signalProcess, std::vector<TString> variations, const TString& mass, const std::vector<TString>& group ) {
+std::map<TString, TH2D*> GetHistograms(const TString& dir, const std::map<TString, TString>& signalProcess, std::vector<TString> variations, const TString& mass, const std::vector<TString>& group, const std::map<TString, double>& acceptance4tau) {
 
   std::map<TString, TH2D*> histogramsOld;
   
   for (const auto & process : signalProcess) {
     bool isFirst = true;
-    double xsec = signalXSec(process.first,mass);
+    double xsec = signalXSec(process.first,mass,acceptance4tau);
     for (const auto & era : group) {	    
       TString filePath = dir + "/" + era + "/" + process.second + mass + ".root";
       TFile* file = TFile::Open(filePath, "READ");
@@ -129,7 +182,7 @@ std::map<TString, TH2D*> GetHistograms(const TString& dir, const std::map<TStrin
       file->Close();
       delete file;	
     }
-  } 
+  }
   return histogramsOld;
 }
 
@@ -311,7 +364,7 @@ void CreateCards(TString mass="5", // mass of pseudoscalar
    
     vector<TString> group = groups[era];
  
-    TString dir = "/nfs/dust/cms/user/rasp/Run/HtoAA/stat";
+    TString dir = "../";
 
     std::map<TString, TString> signalProcess = {
         {"GGH", "SUSYGluGluToHToAA_AToTauTau_M-125_M-"},
@@ -320,6 +373,15 @@ void CreateCards(TString mass="5", // mass of pseudoscalar
         {"TTH", "SUSYttH_HToAA_AToTauTau_M-125_M-"},
         {"MMTT", "SUSYGluGluToHToAA_AToMuMu_AToTauTau_M-125_M-"}
     };
+
+    std::map<TString, TString> signalProcess4tau = {
+        {"GGH", signalProcess["GGH"]},
+        {"VBF", signalProcess["VBF"]},
+        {"VH", signalProcess["VH"]},
+        {"TTH", signalProcess["TTH"]}
+    };
+
+    auto acceptance4tau = CalculateAcceptances(dir, signalProcess4tau, mass, group);
 
     std::vector<TString> variations = {"", "_btagUp", "_btagDown", "_mistagUp", "_mistagDown", "_trkIsoUp", "_trkIsoDown"};
 
@@ -365,7 +427,7 @@ void CreateCards(TString mass="5", // mass of pseudoscalar
     }
 
     // Fetch signal root files and open histograms
-    auto histSignalOld = GetHistograms(dir, signalProcess, variations, mass, group);
+    auto histSignalOld = GetHistograms(dir, signalProcess, variations, mass, group, acceptance4tau);
     //    auto normFactors = CalculateNormFactors(dir, signalProcess, mass, era);
 
     TFile * fileCorr;
@@ -375,6 +437,7 @@ void CreateCards(TString mass="5", // mass of pseudoscalar
 	fileCorr = new TFile("CorrCoefficients_data_"+era+".root");
     } 
     TH2D * corrCoeff = (TH2D*)fileCorr->Get("corrCoeff");
+
     TFile * fileCorrCR;
     if (era == "2016_preVFP" || era == "2016_postVFP"){
         fileCorrCR = new TFile("CorrCoefficients_control_mc_2016.root");
@@ -382,6 +445,12 @@ void CreateCards(TString mass="5", // mass of pseudoscalar
 	fileCorrCR = new TFile("CorrCoefficients_control_mc_"+era+".root");
     }
     TH2D * corrCoeffCR = (TH2D*)fileCorrCR->Get("corrCoeff");
+    TH2D * corrCoeffCR_nonQCDUp = (TH2D*)fileCorrCR->Get("corrCoeff_nonQCDUp");
+    TH2D * corrCoeffCR_nonQCDDown = (TH2D*)fileCorrCR->Get("corrCoeff_nonQCDDown");
+    TH2D * corrCoeffCR_ISRUp = (TH2D*)fileCorrCR->Get("corrCoeff_ISRUp");
+    TH2D * corrCoeffCR_ISRDown = (TH2D*)fileCorrCR->Get("corrCoeff_ISRDown");
+    TH2D * corrCoeffCR_FSRUp = (TH2D*)fileCorrCR->Get("corrCoeff_FSRUp");
+    TH2D * corrCoeffCR_FSRDown = (TH2D*)fileCorrCR->Get("corrCoeff_FSRDown");
 
     TFile * fileCorrSR;
     if (era == "2016_preVFP" || era == "2016_postVFP"){
@@ -390,7 +459,12 @@ void CreateCards(TString mass="5", // mass of pseudoscalar
 	fileCorrSR = new TFile("CorrCoefficients_signal_mc_"+era+".root");
     }
     TH2D * corrCoeffSR = (TH2D*)fileCorrSR->Get("corrCoeff");
-
+    TH2D * corrCoeffSR_nonQCDUp = (TH2D*)fileCorrSR->Get("corrCoeff_nonQCDUp");
+    TH2D * corrCoeffSR_nonQCDDown = (TH2D*)fileCorrSR->Get("corrCoeff_nonQCDDown");
+    TH2D * corrCoeffSR_ISRUp = (TH2D*)fileCorrSR->Get("corrCoeff_ISRUp");
+    TH2D * corrCoeffSR_ISRDown = (TH2D*)fileCorrSR->Get("corrCoeff_ISRDown");
+    TH2D * corrCoeffSR_FSRUp = (TH2D*)fileCorrSR->Get("corrCoeff_FSRUp");
+    TH2D * corrCoeffSR_FSRDown = (TH2D*)fileCorrSR->Get("corrCoeff_FSRDown");
 
     int nBinsNew = 6;
     double bins[7] = {0,1,2,3,4,5.2,20};
@@ -503,8 +577,12 @@ void CreateCards(TString mass="5", // mass of pseudoscalar
         bkgd[i] = new TH1D("bkgd"+bkg_name[i],"",nBins1D,0.,float(nBins1D));
     }
 
-    TH1D * bkgdCorrUp = new TH1D("bkgdCorrUp","",nBins1D,0.,float(nBins1D));
-    TH1D * bkgdCorrDown = new TH1D("bkgdCorrDown","",nBins1D,0.,float(nBins1D));
+    TH1D *bkgd_FSRUp = new TH1D("bkgd_FSRUp", "", nBins1D, 0., float(nBins1D));
+    TH1D *bkgd_FSRDown = new TH1D("bkgd_FSRDown", "", nBins1D, 0., float(nBins1D));
+    TH1D *bkgd_ISRUp = new TH1D("bkgd_ISRUp", "", nBins1D, 0., float(nBins1D));
+    TH1D *bkgd_ISRDown = new TH1D("bkgd_ISRDown", "", nBins1D, 0., float(nBins1D));
+    TH1D *bkgd_nonQCDUp = new TH1D("bkgd_nonQCDUp", "", nBins1D, 0., float(nBins1D));
+    TH1D *bkgd_nonQCDDown = new TH1D("bkgd_nonQCDDown", "", nBins1D, 0., float(nBins1D));
 
     TH1D * data   = new TH1D("data","",nBins1D,0.,float(nBins1D));
 
@@ -575,34 +653,66 @@ void CreateCards(TString mass="5", // mass of pseudoscalar
         double corrData   = corrCoeff->GetBinContent(corrBin);
         double corrDataE  = corrCoeff->GetBinError(corrBin);
         double corrDataR  = corrDataE/corrData; 
+
         double corrCR   = corrCoeffCR->GetBinContent(corrBin);
         double corrCRE  = corrCoeffCR->GetBinError(corrBin);
         double corrCRR  = corrCRE/corrCR;
+
         double corrSR   = corrCoeffSR->GetBinContent(corrBin);
         double corrSRE  = corrCoeffSR->GetBinError(corrBin);
         double corrSRR  = corrSRE/corrSR;
 
 	double corrX = corrSR * corrData / corrCR;
-	//	double corrX = corrData;
-	double corrUp = corrData;
-	double corrDown = corrData * (corrSR * corrSR) / (corrCR * corrCR);
 	double corrR = TMath::Sqrt(corrDataR*corrDataR+corrCRR*corrCRR+corrSRR*corrSRR);
 	double corrE = corrX * corrR;
 
-	double productUp = product;
-	double productDown = product;
+	double corrCR_FSRUp = corrCoeffCR_FSRUp->GetBinContent(corrBin);
+        double corrCR_FSRDown = corrCoeffCR_FSRDown->GetBinContent(corrBin);
+        double corrCR_ISRUp = corrCoeffCR_ISRUp->GetBinContent(corrBin);
+        double corrCR_ISRDown = corrCoeffCR_ISRDown->GetBinContent(corrBin);
+        double corrCR_nonQCDUp = corrCoeffCR_nonQCDUp->GetBinContent(corrBin);
+        double corrCR_nonQCDDown = corrCoeffCR_nonQCDDown->GetBinContent(corrBin);
+
+	double corrSR_FSRUp = corrCoeffSR_FSRUp->GetBinContent(corrBin);
+        double corrSR_FSRDown = corrCoeffSR_FSRDown->GetBinContent(corrBin);
+        double corrSR_ISRUp = corrCoeffSR_ISRUp->GetBinContent(corrBin);
+        double corrSR_ISRDown = corrCoeffSR_ISRDown->GetBinContent(corrBin);
+        double corrSR_nonQCDUp = corrCoeffSR_nonQCDUp->GetBinContent(corrBin);
+        double corrSR_nonQCDDown = corrCoeffSR_nonQCDDown->GetBinContent(corrBin);
+
+	double corr_FSRUp = corrSR_FSRUp * corrData / corrCR_FSRUp;
+	double corr_FSRDown = corrSR_FSRDown * corrData / corrCR_FSRDown;;
+	double corr_ISRUp = corrSR_ISRUp * corrData / corrCR_ISRUp;
+	double corr_ISRDown = corrSR_ISRDown * corrData / corrCR_ISRDown;
+	double corr_nonQCDUp = corrSR_nonQCDUp * corrData / corrCR_nonQCDUp;
+	double corr_nonQCDDown = corrSR_nonQCDDown * corrData / corrCR_nonQCDDown;
+
+	double product_FSRUp = product;
+        double product_FSRDown = product;
+        double product_ISRUp = product;
+        double product_ISRDown = product;
+        double product_nonQCDUp = product;
+        double product_nonQCDDown = product;
 
         if (i!=j) {
 	  product *= 2.0;
 	  err *= 2.0;
-	  productUp *= 2.0;
-	  productDown *= 2.0;
+	  product_FSRUp *= 2.0;
+          product_FSRDown *= 2.0;
+          product_ISRUp *= 2.0;
+          product_ISRDown *= 2.0;
+          product_nonQCDUp *= 2.0;
+          product_nonQCDDown *= 2.0;
 	}
 	if (correlation) {
 	  product *= corrX;
-	  productUp *= corrUp;
-	  productDown *= corrDown;
 	  err *= corrX;
+	  product_FSRUp *= corr_FSRUp;
+	  product_FSRDown *= corrSR_FSRDown;
+	  product_ISRUp *= corr_ISRUp;
+	  product_ISRDown *= corr_ISRDown;
+	  product_nonQCDUp *= corr_nonQCDUp;
+	  product_nonQCDDown *= corr_nonQCDDown;
 	}
 	double errCor = product * corrE / corrX;
 
@@ -610,10 +720,21 @@ void CreateCards(TString mass="5", // mass of pseudoscalar
 	bkgd[itempl]->SetBinContent(iBin,product);
 	bkgd[itempl]->SetBinError(iBin,err);
 	if (itempl==0) {
-	  bkgdCorrUp->SetBinContent(iBin,productUp);
-	  bkgdCorrDown->SetBinContent(iBin,productDown);
-	  bkgdCorrUp->SetBinError(iBin,err);
-	  bkgdCorrDown->SetBinError(iBin,err);
+	  bkgd_FSRUp->SetBinContent(iBin,product_FSRUp);
+	  bkgd_FSRDown->SetBinContent(iBin,product_FSRDown);
+	  bkgd_FSRUp->SetBinError(iBin,err);
+	  bkgd_FSRDown->SetBinError(iBin,err);
+
+	  bkgd_ISRUp->SetBinContent(iBin,product_ISRUp);
+          bkgd_ISRDown->SetBinContent(iBin,product_ISRDown);
+          bkgd_ISRUp->SetBinError(iBin,err);
+          bkgd_ISRDown->SetBinError(iBin,err);
+
+	  bkgd_nonQCDUp->SetBinContent(iBin,product_nonQCDUp);
+          bkgd_nonQCDDown->SetBinContent(iBin,product_nonQCDDown);
+          bkgd_nonQCDUp->SetBinError(iBin,err);
+          bkgd_nonQCDDown->SetBinError(iBin,err);
+
 	  productAll += product;
 	} 
       }
@@ -635,27 +756,36 @@ void CreateCards(TString mass="5", // mass of pseudoscalar
     // Unrolled signal templates
     UnrollHistograms(signalProcess, variations, rebinnedSigHistograms, unrolledSigHistograms, nBinsNew);
 
+    TH1D* bkgdSystematicHistogramsUp[] = {bkgd_FSRUp, bkgd_ISRUp, bkgd_nonQCDUp};
+    TH1D* bkgdSystematicHistogramsDown[] = {bkgd_FSRDown, bkgd_ISRDown, bkgd_nonQCDDown};
 
-    float scaleUp = bkgNorm/bkgdCorrUp->GetSumOfWeights();
-    float scaleDown = bkgNorm/bkgdCorrDown->GetSumOfWeights();
-    for (int iB=1; iB<=nBins1D; ++iB) {
-        double xBkg = bkgdCorrUp->GetBinContent(iB);
-        double eBkg = bkgdCorrUp->GetBinError(iB);
-        bkgdCorrUp->SetBinContent(iB,scaleUp*xBkg);
-        bkgdCorrUp->SetBinError(iB,scaleUp*eBkg);
-        xBkg = bkgdCorrDown->GetBinContent(iB);
-        eBkg = bkgdCorrDown->GetBinError(iB);
-        bkgdCorrDown->SetBinContent(iB,scaleDown*xBkg);
-        bkgdCorrDown->SetBinError(iB,scaleDown*eBkg);
+    for (auto& histUp : bkgdSystematicHistogramsUp) {
+        float scaleUp = bkgNorm / histUp->GetSumOfWeights();
+        for (int iB = 1; iB <= nBins1D; ++iB) {
+            double xBkg = histUp->GetBinContent(iB);
+            double eBkg = histUp->GetBinError(iB);
+            histUp->SetBinContent(iB, scaleUp * xBkg);
+            histUp->SetBinError(iB, scaleUp * eBkg);
+   	}
+    }
+
+    for (auto& histDown : bkgdSystematicHistogramsDown) {
+        float scaleDown = bkgNorm / histDown->GetSumOfWeights();
+        for (int iB = 1; iB <= nBins1D; ++iB) {
+            double xBkg = histDown->GetBinContent(iB);
+            double eBkg = histDown->GetBinError(iB);
+            histDown->SetBinContent(iB, scaleDown * xBkg);
+            histDown->SetBinError(iB, scaleDown * eBkg);
+        }
     }
 
     for (int i=0; i<15; ++i) {
-        double scale = bkgNorm/bkgd[i]->GetSumOfWeights();
+        double scale = bkgNorm / bkgd[i]->GetSumOfWeights();
         for (int iB=1; iB<=nBins1D; ++iB) {
             double xBkg =  bkgd[i]->GetBinContent(iB);
             double eBkg =  bkgd[i]->GetBinError(iB);
-            bkgd[i]->SetBinContent(iB,scale*xBkg);
-            bkgd[i]->SetBinError(iB,scale*eBkg);
+            bkgd[i]->SetBinContent(iB,scale * xBkg);
+            bkgd[i]->SetBinError(iB,scale * eBkg);
         }
     }
 
@@ -668,18 +798,18 @@ void CreateCards(TString mass="5", // mass of pseudoscalar
         data->Write("data_obs");
   
     TString sysBkgd[7];
-    sysBkgd[0] = TString("CMS_unc1d");
+    sysBkgd[0] = TString("CMS_haa4t_unc1d");
     for (unsigned int ibin=1; ibin<7; ++ibin) {
-      char uncerName[20];
-      sprintf(uncerName,"CMS_unc1d_bin%1i",ibin);
+      char uncerName[30];
+      sprintf(uncerName,"CMS_haa4t_unc1d_bin%1i",ibin);
       sysBkgd[ibin] = TString(uncerName);
     }
 
-    TString massCorrUncName("CMS_uncCorr");
+    TString massCorrUncName("CMS_haa4t_uncCorr");
 
     // decorrelation between eras
     if (MassUncertPerEras) {
-      massCorrUncName += "_"+era;
+      //massCorrUncName += "_"+era;
       for (unsigned int ibin=0; ibin<7; ++ibin)
 	sysBkgd[ibin] += "_"+era;
     }
@@ -688,9 +818,14 @@ void CreateCards(TString mass="5", // mass of pseudoscalar
     for (unsigned int i=0; i<7; ++i) {
       bkgd[1+2*i]->Write("bkgd_"+sysBkgd[i]+"Up");
       bkgd[2+2*i]->Write("bkgd_"+sysBkgd[i]+"Down");
-    } 
-    bkgdCorrUp->Write("bkgd_"+massCorrUncName+"Up");
-    bkgdCorrDown->Write("bkgd_"+massCorrUncName+"Down");
+    }
+
+    bkgd_FSRUp->Write("bkgd_" + massCorrUncName + "_FSRUp");
+    bkgd_FSRDown->Write("bkgd_" + massCorrUncName + "_FSRDown");
+    bkgd_ISRUp->Write("bkgd_" + massCorrUncName + "_ISRUp");
+    bkgd_ISRDown->Write("bkgd_" + massCorrUncName + "_ISRDown");
+    bkgd_nonQCDUp->Write("bkgd_" + massCorrUncName + "_nonQCDUp");
+    bkgd_nonQCDDown->Write("bkgd_" + massCorrUncName + "_nonQCDDown");
 
     // Write unrolled signal templates to the root file
     for (const auto& pair : unrolledSigHistograms) {
@@ -708,7 +843,7 @@ void CreateCards(TString mass="5", // mass of pseudoscalar
                 TString newVar = var;
                 newVar.ReplaceAll("_btag", "_CMS_btag_");
                 newVar.ReplaceAll("_mistag", "_CMS_mistag_");
-                newVar.ReplaceAll("_trkIso", "_CMS_trkiso_");
+                newVar.ReplaceAll("_trkIso", "_CMS_haa4t_eff_trkiso_");
                 newVar.ReplaceAll("Up", era + "Up");
                 newVar.ReplaceAll("Down", era + "Down");
                 sysVariationSuffix = newVar;
@@ -782,49 +917,49 @@ void CreateCards(TString mass="5", // mass of pseudoscalar
 	    << unrolledSigHistograms["ggh"]->GetSumOfWeights() << "  " 
 	    << bkgd[0]->GetSumOfWeights() << std::endl;
     textFile << "-----------------------------" << std::endl;
-    textFile << "CMS_lumi_"+era+"               lnN   " << lumiUnc_era << "  " << lumiUnc_era << "   " << lumiUnc_era << "   " << lumiUnc_era << "   " << lumiUnc_era << "      -" << std::endl;
-    textFile << "CMS_lumi_corr               lnN   " << lumiUnc_corr << "  " << lumiUnc_corr << "  " << lumiUnc_corr << "  " << lumiUnc_corr << "  " << lumiUnc_corr << "     -" << std::endl;
-    textFile << "CMS_lumi_1718_corr          lnN   " << lumiUnc_1718_corr << "  " << lumiUnc_1718_corr << "  " << lumiUnc_1718_corr << "  " << lumiUnc_1718_corr << "  " << lumiUnc_1718_corr << "     -" << std::endl;
-    textFile << "CMS_eff_m                   lnN   1.03   1.03    1.03    1.03    1.03      -" << std::endl;
-    textFile << "CMS_trkiso_"+era+"           shape   1.00   1.00    1.00    1.00    1.00      -" << std::endl;
+    textFile << "lumi_"+era+"                    lnN   " << lumiUnc_era << "  " << lumiUnc_era << "   " << lumiUnc_era << "   " << lumiUnc_era << "   " << lumiUnc_era << "      -" << std::endl;
+    textFile << "lumi_13TeV_correlated        lnN   " << lumiUnc_corr << "  " << lumiUnc_corr << "  " << lumiUnc_corr << "  " << lumiUnc_corr << "  " << lumiUnc_corr << "     -" << std::endl;
+    textFile << "lumi_13TeV_1718              lnN   " << lumiUnc_1718_corr << "  " << lumiUnc_1718_corr << "  " << lumiUnc_1718_corr << "  " << lumiUnc_1718_corr << "  " << lumiUnc_1718_corr << "     -" << std::endl;
+    textFile << "CMS_eff_m                    lnN   1.03   1.03    1.03    1.03    1.03      -" << std::endl;
+    textFile << "CMS_haa4t_eff_trkiso_"+era+"  shape   1.00   1.00    1.00    1.00    1.00      -" << std::endl;
     
     if (MassUncertPerBins) {
       for (unsigned int ibin=1; ibin<=6; ++ibin)
-	textFile << sysBkgd[ibin] << "       shape    -      -       -       -       -    1.0" << std::endl;
+	textFile << sysBkgd[ibin] << "  shape    -      -       -       -       -    1.0" << std::endl;
     }
     else {
       textFile << sysBkgd[0] << "               shape      -      -       -       -       -    1.0" << std::endl;
     }
-    textFile << massCorrUncName << "          shape    -      -       -       -       -    1.0" << std::endl;
 
-    //    textFile << "CMS_btag_"+era+"               shape   1.00    1.00    1.00     1.00   1.00       -" << std::endl;
-    //    textFile << "CMS_mistag_"+era+"             shape   1.00    1.00    1.00     1.00   1.00       -" << std::endl;
+    textFile << massCorrUncName + "_FSR" << "    shape    -      -       -       -       -    1.0" << std::endl;
+    textFile << massCorrUncName + "_ISR" << "    shape    -      -       -       -       -    1.0" << std::endl;
+    textFile << massCorrUncName + "_nonQCD" << " shape    -      -       -       -       -    1.0" << std::endl;
 
-    textFile << "CMS_jes_"+era+"                lnN  "  << jesUnc["MMTT"] << " " << jesUnc["TTH"] << " " << jesUnc["VH"] << " " << jesUnc["VBF"] << " " << jesUnc["GGH"] << "     -" << std::endl;      
-    textFile << "CMS_btag_corr               lnN    "  << Unc["MMTT"]["btagCorrUp"] << " " << Unc["TTH"]["btagCorrUp"] << " " <<  Unc["VH"]["btagCorrUp"] << " " <<  Unc["VBF"]["btagCorrUp"] << " " <<  Unc["GGH"]["btagCorrUp"] <<  "   -" << std::endl;
-    textFile << "CMS_btag_uncorr_"+era+"        lnN    "  << Unc["MMTT"]["btagUncorrUp"] << " " << Unc["TTH"]["btagUncorrUp"] << " " << Unc["VH"]["btagUncorrUp"] << " " << Unc["VBF"]["btagUncorrUp"] << " " << Unc["GGH"]["btagUncorrUp"] <<  "   -" << std::endl;
-    textFile << "CMS_mistag_corr             lnN    "  << Unc["MMTT"]["mistagCorrUp"] << " " << Unc["TTH"]["mistagCorrUp"] << " " << Unc["VH"]["mistagCorrUp"] << " " <<  Unc["VBF"]["mistagCorrUp"] << " " << Unc["GGH"]["mistagCorrUp"] <<  "   -" << std::endl;
-    textFile << "CMS_mistag_uncorr_"+era+"      lnN    "  << Unc["MMTT"]["mistagUncorrUp"] << " " << Unc["TTH"]["mistagUncorrUp"] << " " << Unc["VH"]["mistagUncorrUp"] << " " << Unc["VBF"]["mistagUncorrUp"] << " " << Unc["GGH"]["mistagUncorrUp"] << "   -" << std::endl; 
-    textFile << "CMS_prefire_"+era+"            lnN     "  << Unc["MMTT"]["prefireUp"] << " " << Unc["TTH"]["prefireUp"] << " " << Unc["VH"]["prefireUp"] << " " << Unc["VBF"]["prefireUp"] << " " << Unc["GGH"]["prefireUp"] << "   -" << std::endl;
+    textFile << "CMS_scale_j_"+era+"             lnN  "  << jesUnc["MMTT"] << " " << jesUnc["TTH"] << " " << jesUnc["VH"] << " " << jesUnc["VBF"] << " " << jesUnc["GGH"] << "     -" << std::endl;      
+    textFile << "CMS_btag_heavy_corr          lnN    "  << Unc["MMTT"]["btagCorrUp"] << " " << Unc["TTH"]["btagCorrUp"] << " " <<  Unc["VH"]["btagCorrUp"] << " " <<  Unc["VBF"]["btagCorrUp"] << " " <<  Unc["GGH"]["btagCorrUp"] <<  "   -" << std::endl;
+    textFile << "CMS_btag_heavy_"+era+"          lnN    "  << Unc["MMTT"]["btagUncorrUp"] << " " << Unc["TTH"]["btagUncorrUp"] << " " << Unc["VH"]["btagUncorrUp"] << " " << Unc["VBF"]["btagUncorrUp"] << " " << Unc["GGH"]["btagUncorrUp"] <<  "   -" << std::endl;
+    textFile << "CMS_btag_light_corr          lnN    "  << Unc["MMTT"]["mistagCorrUp"] << " " << Unc["TTH"]["mistagCorrUp"] << " " << Unc["VH"]["mistagCorrUp"] << " " <<  Unc["VBF"]["mistagCorrUp"] << " " << Unc["GGH"]["mistagCorrUp"] <<  "   -" << std::endl;
+    textFile << "CMS_btag_light_"+era+"          lnN    "  << Unc["MMTT"]["mistagUncorrUp"] << " " << Unc["TTH"]["mistagUncorrUp"] << " " << Unc["VH"]["mistagUncorrUp"] << " " << Unc["VBF"]["mistagUncorrUp"] << " " << Unc["GGH"]["mistagUncorrUp"] << "   -" << std::endl; 
+    textFile << "CMS_l1_ecal_prefiring_"+era+"   lnN     "  << Unc["MMTT"]["prefireUp"] << " " << Unc["TTH"]["prefireUp"] << " " << Unc["VH"]["prefireUp"] << " " << Unc["VBF"]["prefireUp"] << " " << Unc["GGH"]["prefireUp"] << "   -" << std::endl;
 
-    textFile << "QCDScale_ggH                lnN   1.046/0.933   -       -       -  1.046/0.933  -" << std::endl;
-    textFile << "QCDScale_vbf                lnN      -          -       -  1.004/0.997  -       -" << std::endl;
-    textFile << "QCDScale_vh                 lnN      -          - 1.018/0.983   -       -       -" << std::endl;
-    textFile << "QCDScale_ttH                lnN      -    1.058/0.908   -    -       -       -" << std::endl;
+    textFile << "QCDscale_ggH                 lnN   1.046/0.933   -       -       -  1.046/0.933  -" << std::endl;
+    textFile << "QCDscale_qqH                 lnN      -          -       -  1.004/0.997  -       -" << std::endl;
+    textFile << "QCDscale_VH                  lnN      -          - 1.018/0.983   -       -       -" << std::endl;
+    textFile << "QCDscale_ttH                 lnN      -    1.058/0.908   -    -       -       -" << std::endl;
 
-    textFile << "PDF_ggh                     lnN   1.032      -       -       -    1.032      -" << std::endl;
-    textFile << "PDF_vbf                     lnN      -       -       -    1.021      -       -" << std::endl;
-    textFile << "PDF_vh                      lnN      -       -    1.018      -       -       -" << std::endl;
-    textFile << "PDF_tth                     lnN      -    1.036      -       -       -       -" << std::endl;
+    textFile << "pdf_Higgs_gg                 lnN   1.032      -       -       -    1.032      -" << std::endl;
+    textFile << "pdf_Higgs_qqbar              lnN      -       -       -    1.021      -       -" << std::endl;
+    textFile << "pdf_Higgs_gq                 lnN      -       -    1.018      -       -       -" << std::endl;
+    textFile << "pdf_Higgs_ttH                lnN      -    1.036      -       -       -       -" << std::endl;
 
-    textFile << "acc_ggh                     lnN      -       -       -       -    1.025       -" << std::endl;
-    textFile << "acc_ggh_mmtt                lnN   1.030      -       -       -    1.025       -" << std::endl;
-    textFile << "acc_vbf                     lnN      -       -       -    1.02       -        -" << std::endl;
-    textFile << "acc_vh                      lnN      -       -    1.021      -       -        -" << std::endl;
-    textFile << "acc_tth                     lnN      -     1.02       -      -       -        -" << std::endl;
+    textFile << "CMS_haa4t_acc_ggH            lnN      -       -       -       -    1.025       -" << std::endl;
+    textFile << "CMS_haa4t_acc_ggH_mmtt       lnN   1.030      -       -       -    1.025       -" << std::endl;
+    textFile << "CMS_haa4t_acc_VBF            lnN      -       -       -    1.02       -        -" << std::endl;
+    textFile << "CMS_haa4t_acc_VH             lnN      -       -    1.021      -       -        -" << std::endl;
+    textFile << "CMS_haa4t_acc_ttH            lnN      -     1.02       -      -       -        -" << std::endl;
 
-    textFile << "bkgNorm_"+era+"   rateParam  haa_"+era+"  bkgd  1  [0.5,1.5]" << std::endl;
-    textFile << "* autoMCStats 0 0" << std::endl;
+    textFile << "CMS_haa4t_bkgNorm_"+era+" rateParam  haa_"+era+"  bkgd  1  [0.5,1.5]" << std::endl;
+    textFile << "* autoMCStats 0 1" << std::endl;
     textFile << std::endl;
     std::cout << "Datacards production completed for mass ma=" << mass << std::endl; 
 

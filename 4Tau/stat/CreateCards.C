@@ -342,13 +342,15 @@ std::map<TString, std::map<TString, double>> CalculateAdditionalUncertainties(co
   } 
   return signalUncertainties;
 }
-	
+
 void CreateCards(TString mass="5", // mass of pseudoscalar
 		 TString era="2018",// "2018", "2017", "2016_preVFP", "2016_postVFP" 
 		 bool Azimov = true, // replace data by background expectations 
 		 bool correlation = true, // apply mass correlation coefficients
 		 bool MassUncertPerEras = true, // decorrelate mass uncert between eras
-		 bool MassUncertPerBins = true  // decorrelate 1D pdf uncert across bins
+		 bool MassUncertPerBins = true, // decorrelate 1D pdf uncert across bins
+		 TString bkgUnc = "0", // background uncertainty, if set 0, bkg norm is floated freely
+		 bool multiProc = false // if set to true background normalizatin is treated as an additional POI by Combine
 		 ) {
 
     TH1::SetDefaultSumw2(true);
@@ -364,7 +366,7 @@ void CreateCards(TString mass="5", // mass of pseudoscalar
    
     vector<TString> group = groups[era];
  
-    TString dir = "../";
+    TString dir = "/nfs/dust/cms/user/sreelatl/Analyses/H2aa_4tau/Run2/Jul24";
 
     std::map<TString, TString> signalProcess = {
         {"GGH", "SUSYGluGluToHToAA_AToTauTau_M-125_M-"},
@@ -708,7 +710,7 @@ void CreateCards(TString mass="5", // mass of pseudoscalar
 	  product *= corrX;
 	  err *= corrX;
 	  product_FSRUp *= corr_FSRUp;
-	  product_FSRDown *= corrSR_FSRDown;
+	  product_FSRDown *= corr_FSRDown;
 	  product_ISRUp *= corr_ISRUp;
 	  product_ISRDown *= corr_ISRDown;
 	  product_nonQCDUp *= corr_nonQCDUp;
@@ -721,17 +723,17 @@ void CreateCards(TString mass="5", // mass of pseudoscalar
 	bkgd[itempl]->SetBinError(iBin,err);
 	if (itempl==0) {
 	  bkgd_FSRUp->SetBinContent(iBin,product_FSRUp);
-	  bkgd_FSRDown->SetBinContent(iBin,product_FSRDown);
+	  bkgd_FSRDown->SetBinContent(iBin,product*product/product_FSRUp);
 	  bkgd_FSRUp->SetBinError(iBin,err);
 	  bkgd_FSRDown->SetBinError(iBin,err);
 
 	  bkgd_ISRUp->SetBinContent(iBin,product_ISRUp);
-          bkgd_ISRDown->SetBinContent(iBin,product_ISRDown);
+          bkgd_ISRDown->SetBinContent(iBin,product*product/product_ISRUp);
           bkgd_ISRUp->SetBinError(iBin,err);
           bkgd_ISRDown->SetBinError(iBin,err);
 
 	  bkgd_nonQCDUp->SetBinContent(iBin,product_nonQCDUp);
-          bkgd_nonQCDDown->SetBinContent(iBin,product_nonQCDDown);
+          bkgd_nonQCDDown->SetBinContent(iBin,product*product/product_nonQCDUp);
           bkgd_nonQCDUp->SetBinError(iBin,err);
           bkgd_nonQCDDown->SetBinError(iBin,err);
 
@@ -908,7 +910,10 @@ void CreateCards(TString mass="5", // mass of pseudoscalar
 	    << "    haa_"+era
 	    << "    haa_"+era << std::endl;
     textFile << "process                mmtt      tth       vh      vbf      ggh    bkgd" << std::endl;
-    textFile << "process                  -4       -3       -2       -1        0       1" << std::endl;
+    if (multiProc)
+      textFile << "process                  -5       -4       -3       -2       -1       0" << std::endl;
+    else
+      textFile << "process                  -4       -3       -2       -1        0       1" << std::endl;
     textFile << "rate     " 
 	    << unrolledSigHistograms["mmtt"]->GetSumOfWeights() << "  " 
 	    << unrolledSigHistograms["tth"]->GetSumOfWeights() << "  "
@@ -917,6 +922,8 @@ void CreateCards(TString mass="5", // mass of pseudoscalar
 	    << unrolledSigHistograms["ggh"]->GetSumOfWeights() << "  " 
 	    << bkgd[0]->GetSumOfWeights() << std::endl;
     textFile << "-----------------------------" << std::endl;
+    if (bkgUnc!="0"&&!multiProc)
+      textFile << "bkgNorm_" << era << "         lnN     -     -     -     -     -     " << bkgUnc << std::endl;
     textFile << "lumi_"+era+"                    lnN   " << lumiUnc_era << "  " << lumiUnc_era << "   " << lumiUnc_era << "   " << lumiUnc_era << "   " << lumiUnc_era << "      -" << std::endl;
     textFile << "lumi_13TeV_correlated        lnN   " << lumiUnc_corr << "  " << lumiUnc_corr << "  " << lumiUnc_corr << "  " << lumiUnc_corr << "  " << lumiUnc_corr << "     -" << std::endl;
     textFile << "lumi_13TeV_1718              lnN   " << lumiUnc_1718_corr << "  " << lumiUnc_1718_corr << "  " << lumiUnc_1718_corr << "  " << lumiUnc_1718_corr << "  " << lumiUnc_1718_corr << "     -" << std::endl;
@@ -958,7 +965,8 @@ void CreateCards(TString mass="5", // mass of pseudoscalar
     textFile << "CMS_haa4t_acc_VH             lnN      -       -    1.021      -       -        -" << std::endl;
     textFile << "CMS_haa4t_acc_ttH            lnN      -     1.02       -      -       -        -" << std::endl;
 
-    textFile << "CMS_haa4t_bkgNorm_"+era+" rateParam  haa_"+era+"  bkgd  1  [0.5,1.5]" << std::endl;
+    if (bkgUnc=="0"&&!multiProc)
+      textFile << "CMS_haa4t_bkgNorm_"+era+" rateParam  haa_"+era+"  bkgd  1  [0.5,1.5]" << std::endl;
     textFile << "* autoMCStats 0 1" << std::endl;
     textFile << std::endl;
     std::cout << "Datacards production completed for mass ma=" << mass << std::endl; 

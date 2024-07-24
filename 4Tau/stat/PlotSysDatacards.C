@@ -16,9 +16,10 @@
 // ---------------------------------
 
 void PlotSysDatacards(
-		      TString era = "2017",
-		      TString sysName = "CMS_haa4t_uncCorr_FSR",
-		      TString histName = "bkgd",
+		      TString era = "2016",
+		      //		      TString sysName = "CMS_haa4t_uncCorr_FSR",
+		      TString sysName = "CMS_haa4t_eff_trkiso_2016",
+		      TString histName = "ggh",
 		      TString mass = "10"
 		       ) {
 
@@ -46,10 +47,18 @@ void PlotSysDatacards(
   TH1D * histUp = (TH1D*)file->Get(histName+"_"+sysName+"Up");
   TH1D * histDown = (TH1D*)file->Get(histName+"_"+sysName+"Down");
   //  std::cout << histNominal << " " <<  histUp << " " << histDown << std::endl;
-  if (histNominal==NULL) return;
-  if (histUp==NULL) return;
-  if (histDown==NULL) return;
-
+  if (histNominal==NULL) {
+    std::cout << "Histogram " << histName << "is absent in datacards RooT file" << std::endl;
+    return;
+  }
+  if (histUp==NULL) {
+    std::cout << "Histogram " << histName << "_"<< sysName << "Up is absent in datacards RooT file"	<< std::endl;
+    return;
+  }
+  if (histDown==NULL) {
+    std::cout << "Histogram " << histName << "_"<< sysName << "Down is absent in datacards RooT file"	<< std::endl;    
+    return;
+  }
   double xNominal = histNominal->GetSumOfWeights();
   double xUp = histUp->GetSumOfWeights();
   double xDown = histDown->GetSumOfWeights();
@@ -181,7 +190,7 @@ void PlotSysDatacards(
   histNominal->Draw("hpe");
   histUp->Draw("hsame");
   histDown->Draw("hsame");
-  TLegend * leg = new TLegend(0.25,0.68,0.50,0.9);
+  TLegend * leg = new TLegend(0.35,0.68,0.60,0.9);
   SetLegendStyle(leg);
   leg->SetFillColor(0);
   leg->SetTextSize(0.05);

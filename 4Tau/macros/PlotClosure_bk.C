@@ -2,134 +2,64 @@
 #include "HtoH.h"
 #include "CMS_lumi.C"
 
-std::map<TString, double> eraLumi = {
-  {"2016_preVFP", 19520},
-  {"2016_postVFP", 16810},
-  {"2017", 41480},
-  {"2018", 59830}
-};
-
-std::map<TString, double> nonQCDsamples= {
-  {"DYJetsToLL_M-10to50",21610.0},
-  {"DYJetsToLL_M-50",6077.22},
-  {"TTTo2L2Nu",88.29},
-  {"TTToSemiLeptonic",365.35},
-  {"ST_t-channel_top",136.02},
-  {"ST_t-channel_antitop",80.95},
-  {"ST_tW_top",35.85},
-  {"ST_tW_antitop",35.85},
-  {"WW_13TeV-pythia8",118.7},
-  {"WZ_13TeV-pythia8",27.68},
-  {"ZZ_13TeV-pythia8",12.19}
-};
-
-std::map<TString, vector<TString> > groups = {
-  {"2016",{"2016_postVFP","2016_preVFP"}},
-  {"2016_preVFP",{"2016_preVFP"}},
-  {"2016_postVFP",{"2016_postVFP"}},
-  {"2017",{"2017"}},
-  {"2018",{"2018"}},
-};
-
 // mass_Selected_SR
 // mass_Modelled_SR
 // mass_Selected_Loose
 // mass_Modelled_Loose
 
 void PlotClosure(
-		 TString era = "2016",
+		 TString era = "2018",
 		 bool signalRegion = true,
+		 bool normalize = true,
 		 bool logY = true
 		 ) {
   SetStyle();
 
-  TString legend("LooseIso");
-  TString histName("mass_Selected_LooseIso");
-  TString histNameModel("mass_Modelled_LooseIso");
-  TString histNameData("InvMassTrackPlusMuon1D_ControlCH");
+  TString legend = "LooseIso";
+  TString histName = "mass_Selected_LooseIso";
+  TString histNameModel = "mass_Modelled_LooseIso";
   
   if (signalRegion) {
     legend = "SR";
     histName = "mass_Selected_SR";
     histNameModel = "mass_Modelled_SR";
-    histNameData = "InvMassH";
   }
 
   int nBins = 6;
-  double bins[7]     = {0,1,2,3,4,5.2,12};
+  double bins[7]     = {0,1,2,3,4,6,20};
 
-  TString folder("/nfs/dust/cms/user/sreelatl/Analyses/H2aa_4tau/Run2/Jul24");
+
   TFile * file = new TFile("/nfs/dust/cms/user/rasp/Run/HtoAA/QCDModel_"+era+".root");
 
   TH1D * histX = (TH1D*)file->Get(histName);
   TH1D * histModelX = (TH1D*)file->Get(histNameModel);
 
+  std::cout << "Direct   = " << histX->GetSumOfWeights() <<  std::endl;
+  std::cout << "Model   =  " << histModelX->GetSumOfWeights() <<  std::endl;
 
   TH1D * hist = (TH1D*)TH1DtoTH1D(histX,nBins,bins,true,"_rebinned");
   TH1D * histModel = (TH1D*)TH1DtoTH1D(histModelX,nBins,bins,true,"_rebinned");
+    
 
-  TH1D * histData = new TH1D("histData","",nBins,bins);
-  TH1D * histNonQCD = new TH1D("histNonQCD","",nBins,bins);
-
-  vector<TString> eras = groups[era];
-  
-  for (auto grp : eras) {
-    TString dir = folder + "/" + grp;
-    double luminosity = eraLumi[grp];
-    for (auto sample : nonQCDsamples) {
-      TString sampleName = sample.first;
-      double xsec = sample.second;
-      TString fileName = dir + "/" + sampleName + ".root";
-      TFile * file = new TFile(fileName);
-      TH1D * histWeightsH = (TH1D*)file->Get("histWeightsH");
-      TH1D * histOld = (TH1D*)file->Get(histNameData);
-      TH1D * histNew = (TH1D*)TH1DtoTH1D(histOld,nBins,bins,true,"_rebinned");
-      double ngen = histWeightsH->GetSumOfWeights();
-      double norm = xsec*luminosity/ngen;
-      histNew->Scale(norm);
-      histNonQCD->Add(histNonQCD,histNew);
-    }
-    TString dataSampleName = "DoubleMuon_Run" + grp;
-    TString fileName = dir + "/" + dataSampleName + ".root";
-    TFile * file =  new TFile(fileName);
-    TH1D * histOld = (TH1D*)file->Get(histNameData);
-    TH1D * histNew = (TH1D*)TH1DtoTH1D(histOld,nBins,bins,true,"_rebinned");
-    histData->Add(histData,histNew);
-  }
-
-  std::cout << std::endl;
-  std::cout << "Direct  = " << histX->GetSumOfWeights() << std::endl;
-  std::cout << "Model   = " << histModelX->GetSumOfWeights() << std::endl;
-  std::cout << "nonQCD  = " << histNonQCD->GetSumOfWeights() << std::endl;
-  std::cout << "Data    = " << histData->GetSumOfWeights() << std::endl;
-  std::cout << std::endl;
-
-  histData->SetLineColor(1);
-  histData->SetMarkerColor(1);
-  histData->SetMarkerSize(1.2);
-  histData->SetMarkerStyle(20);
-  histData->GetXaxis()->SetLabelSize(0.);
-  histData->GetYaxis()->SetTitle("Entries");
+  hist->SetLineColor(1);
+  hist->SetMarkerColor(1);
+  hist->SetMarkerSize(1.2);
+  hist->SetMarkerStyle(20);
+  hist->GetXaxis()->SetLabelSize(0.);
+  hist->GetYaxis()->SetTitle("normalized");
 
   histModel->SetLineColor(2);
   histModel->SetMarkerColor(2);
   histModel->SetMarkerSize(0);
   histModel->SetMarkerStyle(0);
 
-  InitHist(histNonQCD,"","",kCyan,1001);
-  histNonQCD->SetLineColor(1);
-  
-  double dataYield = histData->GetSumOfWeights();
-  double modelYield = histModel->GetSumOfWeights();
-  
-  histModel->Scale(dataYield/modelYield);
-  double yMax = histData->GetMaximum();
-  histData->GetYaxis()->SetRangeUser(0.1,1.2*yMax);
-  if (logY) histData->GetYaxis()->SetRangeUser(1.,10*yMax);
+  hist->Scale(1.0/hist->GetSumOfWeights());
+  histModel->Scale(1.0/histModel->GetSumOfWeights());
+  if (logY) hist->GetYaxis()->SetRangeUser(0.0001,2.);
 
-  TH1D * ratioH = (TH1D*)histData->Clone("ratioH");
+  TH1D * ratioH = (TH1D*)hist->Clone("ratioH");
   
-  ratioH->GetYaxis()->SetRangeUser(0.601,1.399);
+  ratioH->GetYaxis()->SetRangeUser(0.001,1.999);
 
   for (int iB=1; iB<=nBins; ++iB) {
     float den = histModel->GetBinContent(iB);
@@ -137,13 +67,12 @@ void PlotClosure(
       std::cout << "bin : " << iB << "  den = " << den << std::endl;
       den = 1;
     }
-    float x = histData->GetBinContent(iB);
+    float x = hist->GetBinContent(iB);
     float ratioX = x/den;
-    float e = histData->GetBinError(iB);
+    float e = hist->GetBinError(iB);
     float ratioE = e/den;
     ratioH->SetBinContent(iB,ratioX);
     ratioH->SetBinError(iB,ratioE);
-    histNonQCD->SetBinError(iB,0.);
   }
 
 
@@ -170,10 +99,9 @@ void PlotClosure(
   upper->SetFrameBorderMode(0);
   upper->SetFrameBorderSize(10);
 
-  histData->Draw();
-  histNonQCD->Draw("e2same");
+  hist->GetYaxis()->SetRangeUser(1e-3,1.);
+  hist->Draw();
   histModel->Draw("hsame");
-  histData->Draw("e1same");
   
   lumi_13TeV = "2017, 41.5 fb^{-1}";
   if (era=="2016")
@@ -182,16 +110,15 @@ void PlotClosure(
     lumi_13TeV = "2018, 59.8 fb^{-1}";
 
   writeExtraText = true;
-  extraText   = "Preliminary";
-  CMS_lumi(upper,4,0,-0.03); 
+  extraText   = "Simulation";
+  CMS_lumi(upper,4,33); 
 
   TLegend * leg = new TLegend(0.55,0.55,0.9,0.8);
   SetLegendStyle(leg);
   leg->SetHeader(legend);
   leg->SetTextSize(0.05);
-  leg->AddEntry(histData,"data","lp");
-  leg->AddEntry(histModel,"bkgd (MC)","l");
-  leg->AddEntry(histNonQCD,"non-QCD (MC)","f");
+  leg->AddEntry(hist,"actual selection","lp");
+  leg->AddEntry(histModel,"model","l");
   leg->Draw();
 
   if (logY) upper->SetLogy(true);
@@ -248,7 +175,7 @@ void PlotClosure(
   ratioH->GetXaxis()->SetTitle("m_{#mu,trk} [GeV]");
 
   ratioH->Draw("e1");
-  TLine * line = new TLine(0.,1.,12.,1.);
+  TLine * line = new TLine(0.,1.,20.,1.);
   line->SetLineColor(2);
   line->Draw();
   ratioH->Draw("e1same");
@@ -257,6 +184,7 @@ void PlotClosure(
   lower->RedrawAxis();
   canv1->cd();
   canv1->SetSelected(canv1);
-  canv1->Print("figures/"+histName+"_"+era+".png");
+  canv1->Print(histName+"_"+era+".png");
+
 
 }

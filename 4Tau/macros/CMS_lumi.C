@@ -1,7 +1,7 @@
 #include "CMS_lumi.h"
 
 void 
-CMS_lumi( TPad* pad, int iPeriod, int iPosX )
+CMS_lumi( TPad* pad, int iPeriod, int iPosX, float space)
 {            
   bool outOfFrame    = false;
   if( iPosX/10==0 ) 
@@ -109,6 +109,11 @@ CMS_lumi( TPad* pad, int iPeriod, int iPosX )
       posX_ =  1-r - relPosX*(1-l-r);
     }
   float posY_ = 1-t - relPosY*(1-t-b);
+
+  //  std::cout << "Out of frame     : " << outOfFrame << std::endl;
+  //  std::cout << "Draw logo        : " << drawLogo << std::endl;
+  //  std::cout << "Write extra text : " << writeExtraText << std::endl;
+
   if( !outOfFrame )
     {
       if( drawLogo )
@@ -152,7 +157,11 @@ CMS_lumi( TPad* pad, int iPeriod, int iPosX )
       latex.SetTextFont(extraTextFont);
       latex.SetTextSize(extraTextSize*t);
       latex.SetTextAlign(align_);
-      latex.DrawLatex(posX_, posY_+0.7, extraText);      
+      std::cout << "size = " << extraTextSize*t << std::endl;
+      std::cout << "font = " << extraTextFont << std::endl;
+      std::cout << "space = " << space << std::endl;
+      std::cout << "position of extra text : X = " << posX_ << " Y = " << posY_ << std::endl;
+      latex.DrawLatex(posX_+space, posY_, extraText);      
     }
   return;
 }

@@ -13,25 +13,25 @@ double sysUnc(double mass,
 	      bool isISR) {
 
   double alpha = 0.015;
-  double beta = 12.2;
+  double beta = 14.6;
   if (isISR) {
-    alpha = 0.014;
-    beta = 21.6;
+    alpha = 0.013;
+    beta = 15.6;
   }
   if (era=="2017") {
-    alpha = 0.017;
-    beta = 12.5;
+    alpha = 0.016;
+    beta = 14.1;
     if (isISR) {
-      alpha = 0.015;
-      beta = 20.2;
+      alpha = 0.014;
+      beta = 16.2;
     }
   }
   else if (era=="2018") {
-    alpha = 0.017;
-    beta = 12.7;
+    alpha = 0.015;
+    beta = 14.4;
     if (isISR) {
-      alpha = 0.016;
-      beta = 20.8;
+      alpha = 0.014;
+      beta = 15.8;
     }
   }
   return 1.0+alpha*TMath::Exp(mass/beta);    
@@ -102,7 +102,7 @@ void GetCorrCoeff(TH1D * hist1D, TH2D * hist2D, int iB, int jB, double * output)
 }
 
 void CorrCoefficientsMC_Era(
-			    TString era = "2018",
+			    TString era = "Run2",
 			    bool signalRegion = true,
 			    bool extendedSideband = false
 			    ) {
@@ -642,7 +642,7 @@ void CorrCoefficientsMC_Era(
   lumi_13TeV = eraLabel[era];
   writeExtraText = true;
   extraText = "Simulation";  
-  CMS_lumi(canv0,4,33);  
+  CMS_lumi(canv0,4,0,0.03);  
   canv0->Update();
 
   TString suffix("control");
@@ -692,7 +692,7 @@ void CorrCoefficientsMC_Era(
   lumi_13TeV = eraLabel[era];
   writeExtraText = true;
   extraText = "Simulation";  
-  CMS_lumi(canv1,4,33);  
+  CMS_lumi(canv1,4,0,0.03);  
   canv1->Update();
   canv1->Print(folderFigures+"/CorrCoefficients_"+suffix+"_qcdonly_"+era+".png");
   std::cout << std::endl;
@@ -747,7 +747,7 @@ void CorrCoefficientsMC_Era(
   lumi_13TeV = eraLabel[era];
   writeExtraText = true;
   extraText = "Simulation";  
-  CMS_lumi(canv2,4,33);  
+  CMS_lumi(canv2,4,0,0.3);  
   canv2->Update();
   canv2->Print(folderFigures+"/purityQCD_"+suffix+"_"+era+".png");
   std::cout << std::endl;
